@@ -1,0 +1,417 @@
+{
+  "title": "Living Pixel Diorama — Yaşayan Piksel Habitatı & Masaüstü Başlatıcı",
+  "description": "8 yaşayan piksel-art habitatı, tıklamayla hayvan besleme, canlı hava durumu efektleri, odak sayacı/doğa ambiyansı, takvim, defter ve Optical Liquid Glass Linux tarzı yerel uygulama/dosya başlatıcısı.",
+  "file": "index.html",
+  "type": "web",
+  "preview": "icons/diorama-512.png",
+  "tags": [
+    "Pixel Art",
+    "Nature",
+    "Animal",
+    "Interactive",
+    "Customizable"
+  ],
+  "general": {
+    "supportsaudioprocessing": false,
+    "properties": {
+      "schemecolor": {
+        "order": 0,
+        "text": "Vurgu Rengi",
+        "type": "color",
+        "value": "0.02 0.03 0.05"
+      },
+      "we_header_scene": {
+        "order": 1,
+        "text": "<h4>🌿 HABİTAT VE SAHNE AYARLARI</h4>",
+        "type": "text",
+        "value": ""
+      },
+      "we_habitat": {
+        "order": 2,
+        "text": "Aktif Habitat Sahnesi",
+        "type": "combo",
+        "value": "random",
+        "options": [
+          {
+            "label": "🎲 Rastgele (Her Açılışta Farklı)",
+            "value": "random"
+          },
+          {
+            "label": "🐝 Çayır & Bal Arıları",
+            "value": "bees"
+          },
+          {
+            "label": "🐟 Halfmoon Betta Akvaryumu",
+            "value": "betta"
+          },
+          {
+            "label": "🌿 Sazlık & İmparator Yusufçuk",
+            "value": "dragonfly"
+          },
+          {
+            "label": "🦋 Botanik Bahçesi & Kelebekler",
+            "value": "butterfly"
+          },
+          {
+            "label": "🪼 Mercan Lagünü & Denizanaları",
+            "value": "jellyfish"
+          },
+          {
+            "label": "🎏 Kyoto Zen Bahçesi & Koi Göleti",
+            "value": "koi"
+          },
+          {
+            "label": "🦜 Yağmur Ormanı & Renkli Papağanlar",
+            "value": "rainforest"
+          },
+          {
+            "label": "🦊 Kuzey Işıkları & Kutup Tilkisi",
+            "value": "arctic-aurora"
+          }
+        ]
+      },
+      "we_perf_profile": {
+        "order": 2.5,
+        "text": "Performans & Fan Profili / Performance Profile",
+        "type": "combo",
+        "value": "balanced",
+        "options": [
+          {
+            "label": "Sessiz (Laptop Pil / Düşük Yük)",
+            "value": "eco"
+          },
+          {
+            "label": "Dengeli (Önerilen Varsayılan)",
+            "value": "balanced"
+          },
+          {
+            "label": "Yüksek HD (Masaüstü / Akıcı 60 FPS)",
+            "value": "high"
+          }
+        ]
+      },
+      "we_autocycle_mins": {
+        "order": 3,
+        "text": "Otomatik Habitat Değiştirme Süresi",
+        "type": "combo",
+        "value": "0",
+        "options": [
+          {
+            "label": "Kapalı (Sabit Kalsın)",
+            "value": "0"
+          },
+          {
+            "label": "Her 1 Dakikada Bir",
+            "value": "1"
+          },
+          {
+            "label": "Her 5 Dakikada Bir",
+            "value": "5"
+          },
+          {
+            "label": "Her 15 Dakikada Bir",
+            "value": "15"
+          },
+          {
+            "label": "Her 30 Dakikada Bir",
+            "value": "30"
+          },
+          {
+            "label": "Her 1 Saatte Bir",
+            "value": "60"
+          }
+        ]
+      },
+      "we_theme_mode": {
+        "order": 4,
+        "text": "Gündüz / Gece Teması",
+        "type": "combo",
+        "value": "dark",
+        "options": [
+          {
+            "label": "🌙 Gece Modu (Karanlık)",
+            "value": "dark"
+          },
+          {
+            "label": "☀️ Gündüz Modu (Aydınlık)",
+            "value": "light"
+          },
+          {
+            "label": "🌅 Güneşe Göre Otomatik (Şehir Saati)",
+            "value": "auto"
+          }
+        ]
+      },
+      "we_weather_fx": {
+        "order": 5,
+        "text": "Sahnede Canlı Hava Efektleri (Yağmur/Kar/Bulut/Ay)",
+        "type": "bool",
+        "value": true
+      },
+      "we_taskbar_height": {
+        "order": 6,
+        "text": "Görev Çubuğu Alt Boşluğu (px — Tilki ve Zemin Yüksekliği)",
+        "type": "slider",
+        "min": 0,
+        "max": 120,
+        "value": 48
+      },
+      "we_pixel_font": {
+        "order": 7,
+        "text": "Pixel Art Yazı Tipi / Pixel Font",
+        "type": "combo",
+        "value": "departure",
+        "options": [
+          {
+            "label": "Departure Mono (Keskin & Ultra Okunaklı)",
+            "value": "departure"
+          },
+          {
+            "label": "Jersey 20 (Yüksek Çözünürlüklü 20px Piksel)",
+            "value": "jersey20"
+          },
+          {
+            "label": "Jersey 15 (Sıcak 15px Retro Oyun Pikseli)",
+            "value": "jersey15"
+          },
+          {
+            "label": "Pixelify Sans (Orijinal)",
+            "value": "pixelify"
+          }
+        ]
+      },
+      "we_language": {
+        "order": 8,
+        "text": "Dil / Language",
+        "type": "combo",
+        "value": "tr",
+        "options": [
+          {
+            "label": "Türkçe",
+            "value": "tr"
+          },
+          {
+            "label": "English",
+            "value": "en"
+          }
+        ]
+      },
+      "we_arctic_christmas": {
+        "order": 9,
+        "text": "Kutup Noel Teması (Baston Şeker, Elfler, Hediyeler & Noel Baba)",
+        "type": "bool",
+        "value": true
+      },
+      "we_header_widgets": {
+        "order": 10,
+        "text": "<h4>🧩 WIDGET GÖRÜNÜRLÜK KONTROLLERİ</h4>",
+        "type": "text",
+        "value": ""
+      },
+      "we_topbar_mode": {
+        "order": 11,
+        "text": "Üst Araç Çubuğu Davranışı",
+        "type": "combo",
+        "value": "always",
+        "options": [
+          {
+            "label": "Her Zaman Görünür",
+            "value": "always"
+          },
+          {
+            "label": "Fareyi Ekranın Üstüne Götürünce Göster (Otomatik Gizle)",
+            "value": "autohide"
+          },
+          {
+            "label": "Tamamen Gizle",
+            "value": "hidden"
+          }
+        ]
+      },
+      "we_show_clock": {
+        "order": 12,
+        "text": "Orta: Piksel Saat ve Tarih",
+        "type": "bool",
+        "value": true
+      },
+      "we_clock_seconds": {
+        "order": 13,
+        "text": "Saatte Saniyeyi Göster (SS:DD:sn)",
+        "type": "bool",
+        "value": false
+      },
+      "we_show_greeting": {
+        "order": 14,
+        "text": "Orta: Selamlama ve Kullanıcı Adı",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_search": {
+        "order": 15,
+        "text": "Orta: Linux Hibrit Arama Çubuğu (PC Uygulama/Dosya & Web)",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_dock": {
+        "order": 16,
+        "text": "Orta: Sık Kullanılan Uygulamalar Glass Dock",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_headline": {
+        "order": 17,
+        "text": "Orta Alt: Canlı Gündem / Haber Bandı",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_music": {
+        "order": 18,
+        "text": "Alt Sol: Minecraft Piksel Plak Müzik Çalar",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_system": {
+        "order": 18.5,
+        "text": "Alt Sağ: Piksel Sistem & Diorama Performans Monitörü",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_habitat_pill": {
+        "order": 19,
+        "text": "Üst Sol: Habitat Seçici, Tema ve Zen Butonları",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_news_btn": {
+        "order": 19,
+        "text": "Üst Sağ: Gündem / Haber Merkezi Widget",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_weather_btn": {
+        "order": 20,
+        "text": "Üst Sağ: Canlı Hava Durumu Widget",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_air_btn": {
+        "order": 21,
+        "text": "Üst Sağ: Xiaomi Air Purifier 4 (Oda İklimi & PM2.5) Widget",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_focus_btn": {
+        "order": 22,
+        "text": "Üst Sağ: Odak Sayacı (Pomodoro) & Ambiyans Widget",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_calendar_btn": {
+        "order": 23,
+        "text": "Üst Sağ: Takvim ve Etkinlikler Widget",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_notes_btn": {
+        "order": 24,
+        "text": "Üst Sağ: Kişisel Defter (Görevler & Notlar) Widget",
+        "type": "bool",
+        "value": true
+      },
+      "we_show_data_btn": {
+        "order": 25,
+        "text": "Üst Sağ: Veri Yönetimi ve Yedekleme Butonu",
+        "type": "bool",
+        "value": false
+      },
+      "we_header_personal": {
+        "order": 30,
+        "text": "<h4>⚙️ KONUM, KİŞİSELLEŞTİRME VE SES</h4>",
+        "type": "text",
+        "value": ""
+      },
+      "we_center_offset_y": {
+        "order": 31,
+        "text": "Orta Widget Grubu Dikey Konumu (%)",
+        "type": "slider",
+        "min": -35,
+        "max": 35,
+        "value": 0
+      },
+      "we_username": {
+        "order": 32,
+        "text": "Kullanıcı Adı (Selamlama Metni)",
+        "type": "textinput",
+        "value": "Gezgin"
+      },
+      "we_city": {
+        "order": 33,
+        "text": "Hava Durumu Şehri / Weather City (İstanbul, London, Tokyo...)",
+        "type": "textinput",
+        "value": "İstanbul"
+      },
+      "we_ambient_sound": {
+        "order": 34,
+        "text": "Arka Plan Doğa Ambiyansı Sesi",
+        "type": "combo",
+        "value": "off",
+        "options": [
+          {
+            "label": "🔇 Sessiz",
+            "value": "off"
+          },
+          {
+            "label": "🌿 Biyoma Göre Otomatik Eşleştir",
+            "value": "biome_auto"
+          },
+          {
+            "label": "🌧️ Yağmur & Gök Gürültüsü",
+            "value": "rain"
+          },
+          {
+            "label": "🔥 Kamp Ateşi Çıtırtısı",
+            "value": "fire"
+          },
+          {
+            "label": "🌲 Yağmur Ormanı & Kuşlar",
+            "value": "forest"
+          },
+          {
+            "label": "🌊 Derin Su & Akvaryum",
+            "value": "water"
+          },
+          {
+            "label": "🍃 Kuzey Rüzgarı",
+            "value": "wind"
+          },
+          {
+            "label": "🦗 Yaz Gecesi & Cırcır Böcekleri",
+            "value": "night"
+          },
+          {
+            "label": "🎏 Zen Bahçesi & Bambu Su",
+            "value": "zen"
+          },
+          {
+            "label": "☕ Gece Kütüphanesi & Lo-Fi Plak",
+            "value": "vinyl"
+          }
+        ]
+      },
+      "we_biome_creature_sounds": {
+        "order": 35,
+        "text": "Biyomdaki Hayvanların Sesi Arada Çıksın",
+        "type": "bool",
+        "value": true
+      },
+      "we_ambient_volume": {
+        "order": 36,
+        "text": "Doğa Ambiyansı Ses Seviyesi (%)",
+        "type": "slider",
+        "min": 5,
+        "max": 100,
+        "value": 40
+      }
+    }
+  }
+}
