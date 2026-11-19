@@ -35,19 +35,57 @@ const CORS_HEADERS = {
 };
 
 const SYSTEM_ITEMS = [
-  { id: 'sys-explorer', name: 'Dosya Gezgini', kind: 'app', category: 'Sistem', target: 'explorer.exe', subtitle: 'Windows Dosya Gezgini', icon: 'folder' },
-  { id: 'sys-downloads', name: 'İndirilenler', kind: 'folder', category: 'Klasör', target: join(os.homedir(), 'Downloads'), subtitle: 'İndirilen dosyalar klasörü', icon: 'download' },
-  { id: 'sys-documents', name: 'Belgeler', kind: 'folder', category: 'Klasör', target: join(os.homedir(), 'Documents'), subtitle: 'Kişisel belgeler klasörü', icon: 'file' },
-  { id: 'sys-desktop', name: 'Masaüstü Klasörü', kind: 'folder', category: 'Klasör', target: join(os.homedir(), 'Desktop'), subtitle: 'Masaüstü dizini', icon: 'desktop' },
-  { id: 'sys-terminal', name: 'Windows Terminal / PowerShell', kind: 'app', category: 'Geliştirici', target: 'powershell.exe', subtitle: 'Komut satırı ve kabuk', icon: 'terminal' },
-  { id: 'sys-settings', name: 'Windows Ayarları', kind: 'app', category: 'Sistem', target: 'ms-settings:', subtitle: 'Sistem ve cihaz ayarları', icon: 'settings' },
-  { id: 'sys-taskmgr', name: 'Görev Yöneticisi', kind: 'app', category: 'Sistem', target: 'taskmgr.exe', subtitle: 'Performans ve çalışan işlemler', icon: 'cpu' },
-  { id: 'sys-calc', name: 'Hesap Makinesi', kind: 'app', category: 'Araç', target: 'calc.exe', subtitle: 'Windows Hesap Makinesi', icon: 'app' },
-  { id: 'sys-snip', name: 'Ekran Alıntısı Aracı', kind: 'app', category: 'Araç', target: 'snippingtool.exe', subtitle: 'Ekran görüntüsü yakala', icon: 'app' },
-  { id: 'sys-control', name: 'Denetim Masası', kind: 'app', category: 'Sistem', target: 'control.exe', subtitle: 'Klasik sistem denetimi', icon: 'settings' },
+  { id: 'sys-explorer', name: 'Dosya Gezgini', nameEn: 'File Explorer', kind: 'app', category: 'Sistem', categoryEn: 'System', isSystemTool: true, target: 'explorer.exe', subtitle: 'Windows Dosya Gezgini', subtitleEn: 'Windows File Explorer', icon: 'folder' },
+  { id: 'sys-downloads', name: 'İndirilenler', nameEn: 'Downloads', kind: 'folder', category: 'Klasör', categoryEn: 'Folder', target: join(os.homedir(), 'Downloads'), subtitle: 'İndirilen dosyalar klasörü', subtitleEn: 'Downloaded files folder', icon: 'download' },
+  { id: 'sys-documents', name: 'Belgeler', nameEn: 'Documents', kind: 'folder', category: 'Klasör', categoryEn: 'Folder', target: join(os.homedir(), 'Documents'), subtitle: 'Kişisel belgeler klasörü', subtitleEn: 'Personal documents folder', icon: 'file' },
+  { id: 'sys-desktop', name: 'Masaüstü Klasörü', nameEn: 'Desktop Folder', kind: 'folder', category: 'Klasör', categoryEn: 'Folder', target: join(os.homedir(), 'Desktop'), subtitle: 'Masaüstü dizini', subtitleEn: 'Desktop directory', icon: 'desktop' },
+  { id: 'sys-terminal', name: 'Windows Terminal / PowerShell', nameEn: 'Windows Terminal / PowerShell', kind: 'app', category: 'Geliştirici', categoryEn: 'Developer', isSystemTool: true, target: 'powershell.exe', subtitle: 'Komut satırı ve kabuk', subtitleEn: 'Command line & shell', icon: 'terminal' },
+  { id: 'sys-settings', name: 'Windows Ayarları', nameEn: 'Windows Settings', kind: 'app', category: 'Sistem', categoryEn: 'System', isSystemTool: true, target: 'ms-settings:', subtitle: 'Sistem ve cihaz ayarları', subtitleEn: 'System & device settings', icon: 'settings' },
+  { id: 'sys-taskmgr', name: 'Görev Yöneticisi', nameEn: 'Task Manager', kind: 'app', category: 'Sistem', categoryEn: 'System', isSystemTool: true, target: 'taskmgr.exe', subtitle: 'Performans ve çalışan işlemler', subtitleEn: 'Performance & processes', icon: 'cpu' },
+  { id: 'sys-calc', name: 'Hesap Makinesi', nameEn: 'Calculator', kind: 'app', category: 'Araç', categoryEn: 'Utility', isSystemTool: true, target: 'calc.exe', subtitle: 'Windows Hesap Makinesi', subtitleEn: 'Windows Calculator', icon: 'app' },
+  { id: 'sys-snip', name: 'Ekran Alıntısı Aracı', nameEn: 'Snipping Tool', kind: 'app', category: 'Araç', categoryEn: 'Utility', isSystemTool: true, target: 'snippingtool.exe', subtitle: 'Ekran görüntüsü yakala', subtitleEn: 'Capture screen snips', icon: 'app' },
+  { id: 'sys-control', name: 'Denetim Masası', nameEn: 'Control Panel', kind: 'app', category: 'Sistem', categoryEn: 'System', isSystemTool: true, target: 'control.exe', subtitle: 'Klasik sistem denetimi', subtitleEn: 'Classic system settings', icon: 'settings' },
 ];
 
-const IGNORED_APP_PATTERNS = /uninstall|kaldır|yardım|help|readme|benioku|website|web sitesi|documentation|manual|license|lisans/i;
+const IGNORED_APP_PATTERNS = /uninstall|kaldır|yardım|help|readme|benioku|website|web sitesi|documentation|manual|license|lisans|release notes|changelog|what's new|updater|repair|application verifier|developer command|x64 native|x86 native|cross tools/i;
+const WINDOWS_ADMIN_PATTERNS = /windows administrative tools|windows accessories|windows system|windows powershell|accessibility|erişim kolaylığı|yönetimsel araçlar|donatılar|character map|component services|computer management|odbc data|iscsi|event viewer|performance monitor|resource monitor|registry editor|\bservices\b|system configuration|system information|memory diagnostic|defragment|disk cleanup|steps recorder|fax and scan|quick assist|narrator|magnifier|speech recognition|on-screen keyboard|wordpad|command prompt|remote desktop|powershell|hyper-v|recovery drive|print management|local security|windows defender firewall/i;
+const WINDOWS_TR_NAME_MAP = Object.freeze({
+  'command prompt': 'Komut İstemi (CMD)',
+  'computer management': 'Bilgisayar Yönetimi',
+  'character map': 'Karakter Eşlem',
+  'component services': 'Bileşen Hizmetleri',
+  'control panel': 'Denetim Masası',
+  'task manager': 'Görev Yöneticisi',
+  'registry editor': 'Kayıt Defteri Düzenleyicisi',
+  'notepad': 'Not Defteri',
+  'paint': 'Paint',
+  'snipping tool': 'Ekran Alıntısı Aracı',
+  'file explorer': 'Dosya Gezgini',
+  'remote desktop connection': 'Uzak Masaüstü Bağlantısı',
+  'event viewer': 'Olay Görüntüleyici',
+  'resource monitor': 'Kaynak İzleyici',
+  'performance monitor': 'Performans İzleyici',
+  'disk cleanup': 'Disk Temizleme',
+  'defragment and optimize drives': 'Sürücüleri Birleştir ve İyileştir',
+  'system information': 'Sistem Bilgisi',
+  'system configuration': 'Sistem Yapılandırması',
+  'services': 'Windows Hizmetleri',
+  'magnifier': 'Büyüteç',
+  'narrator': 'Ekran Okuyucusu',
+  'on-screen keyboard': 'Ekran Klavyesi',
+  'steps recorder': 'Adım Kaydedicisi',
+  'quick assist': 'Hızlı Yardım',
+  'windows security': 'Windows Güvenliği',
+  'windows media player': 'Windows Medya Oynatıcı',
+  'windows media player legacy': 'Windows Medya Oynatıcı (Klasik)',
+  'windows memory diagnostic': 'Windows Bellek Tanılama',
+  'wordpad': 'WordPad',
+  'odbc data sources (32-bit)': 'ODBC Veri Kaynakları (32-bit)',
+  'odbc data sources (64-bit)': 'ODBC Veri Kaynakları (64-bit)',
+  'iscsi initiator': 'iSCSI Başlatıcısı',
+  'recovery drive': 'Kurtarma Sürücüsü',
+  'run': 'Çalıştır',
+});
 const APP_EXTENSIONS = new Set(['.lnk', '.appref-ms', '.exe', '.url']);
 
 let cachedIndex = [];
@@ -88,26 +126,36 @@ async function walkStartMenu(dir, depth = 0, maxDepth = 3, out = []) {
       if (!APP_EXTENSIONS.has(ext)) continue;
       const cleanName = basename(entry.name, ext).trim();
       if (!cleanName || IGNORED_APP_PATTERNS.test(cleanName)) continue;
+      const isSystemTool = WINDOWS_ADMIN_PATTERNS.test(fullPath) || WINDOWS_ADMIN_PATTERNS.test(cleanName);
+      const trName = WINDOWS_TR_NAME_MAP[cleanName.toLowerCase()] || cleanName;
       const parentFolder = basename(dir);
-      const subtitle = parentFolder && !/^programs$/i.test(parentFolder)
-        ? `Uygulama · ${parentFolder}`
-        : 'Yüklü Uygulama';
+      const isGenericFolder = /^(programs|taskbar)$/i.test(parentFolder);
+      const subtitle = isSystemTool
+        ? 'Windows Sistem Aracı'
+        : (!isGenericFolder ? `Uygulama · ${parentFolder}` : 'Yüklü Uygulama');
+      const subtitleEn = isSystemTool
+        ? 'Windows System Tool'
+        : (!isGenericFolder ? `App · ${parentFolder}` : 'Installed App');
       out.push({
         id: `app-${cleanName.toLowerCase().replace(/[^a-z0-9ğüşıöç]+/gi, '-')}-${out.length}`,
-        name: cleanName,
+        name: trName,
+        nameEn: cleanName,
         kind: 'app',
-        category: 'Uygulama',
+        category: isSystemTool ? 'Sistem' : 'Uygulama',
+        categoryEn: isSystemTool ? 'System' : 'Application',
+        isSystemTool,
         target: fullPath,
         subtitle,
+        subtitleEn,
         ext,
-        icon: detectIconKey(cleanName, 'app', ext),
+        icon: detectIconKey(`${cleanName} ${trName}`, 'app', ext),
       });
     }
   }
   return out;
 }
 
-async function scanUserDirectory(dir, label, tag, maxDepth = 1, depth = 0, out = []) {
+async function scanUserDirectory(dir, label, labelEn, tag, maxDepth = 1, depth = 0, out = []) {
   if (depth > maxDepth || !existsSync(dir) || out.length >= 260) return out;
   let entries = [];
   try {
@@ -123,36 +171,50 @@ async function scanUserDirectory(dir, label, tag, maxDepth = 1, depth = 0, out =
       out.push({
         id: `dir-${tag}-${out.length}`,
         name: entry.name,
+        nameEn: entry.name,
         kind: 'folder',
         category: label,
+        categoryEn: labelEn,
         sourceTag: tag,
         target: fullPath,
         subtitle: `Klasör · ${label}`,
+        subtitleEn: `Folder · ${labelEn}`,
         ext: '',
         icon: 'folder',
       });
       if (depth < maxDepth) {
-        await scanUserDirectory(fullPath, `${label} / ${entry.name}`, tag, maxDepth, depth + 1, out);
+        await scanUserDirectory(fullPath, `${label} / ${entry.name}`, `${labelEn} / ${entry.name}`, tag, maxDepth, depth + 1, out);
       }
     } else if (entry.isFile()) {
       const ext = extname(entry.name).toLowerCase();
-      const isShortcut = ext === '.lnk' || ext === '.appref-ms';
+      const isShortcut = ext === '.lnk' || ext === '.appref-ms' || ext === '.url';
       const displayName = isShortcut ? basename(entry.name, ext) : entry.name;
       if (isShortcut && IGNORED_APP_PATTERNS.test(displayName)) continue;
       out.push({
         id: `file-${tag}-${out.length}`,
         name: displayName,
+        nameEn: displayName,
         kind: isShortcut ? 'app' : 'file',
         category: isShortcut ? 'Uygulama' : label,
+        categoryEn: isShortcut ? 'Application' : labelEn,
+        isSystemTool: false,
         sourceTag: tag,
         target: fullPath,
         subtitle: isShortcut ? `Kısayol · ${label}` : `Dosya (${ext || 'dosya'}) · ${label}`,
+        subtitleEn: isShortcut ? `Shortcut · ${labelEn}` : `File (${ext || 'file'}) · ${labelEn}`,
         ext,
         icon: detectIconKey(displayName, isShortcut ? 'app' : 'file', ext),
       });
     }
   }
   return out;
+}
+
+function normalizeAppDedupeKey(rawName) {
+  return String(rawName || '')
+    .toLowerCase()
+    .replace(/\s*\((x64|x86|wow|64-bit|32-bit)\)\s*$/i, '')
+    .trim();
 }
 
 async function getDesktopIndex(force = false) {
@@ -168,6 +230,7 @@ async function getDesktopIndex(force = false) {
   const startMenuDirs = [
     join(appData, 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
     join(programData, 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
+    join(appData, 'Microsoft', 'Internet Explorer', 'Quick Launch', 'User Pinned', 'TaskBar'),
   ];
 
   const rawApps = [];
@@ -178,28 +241,28 @@ async function getDesktopIndex(force = false) {
   const seenAppNames = new Set();
   const uniqueApps = [];
   for (const app of rawApps) {
-    const key = app.name.toLowerCase();
-    if (seenAppNames.has(key)) continue;
+    const key = normalizeAppDedupeKey(app.nameEn || app.name);
+    if (!key || seenAppNames.has(key)) continue;
     seenAppNames.add(key);
     uniqueApps.push(app);
   }
 
   const userDirs = [
-    [join(home, 'Desktop'), 'Masaüstü', 'desktop', 1],
-    [join(oneDrive, 'Desktop'), 'Masaüstü', 'desktop', 1],
-    [join(oneDrive, 'Masaüstü'), 'Masaüstü', 'desktop', 1],
-    [join(home, 'Documents'), 'Belgeler', 'documents', 1],
-    [join(oneDrive, 'Documents'), 'Belgeler', 'documents', 1],
-    [join(oneDrive, 'Belgeler'), 'Belgeler', 'documents', 1],
-    [join(home, 'Downloads'), 'İndirilenler', 'downloads', 0],
+    [join(home, 'Desktop'), 'Masaüstü', 'Desktop', 'desktop', 1],
+    [join(oneDrive, 'Desktop'), 'Masaüstü', 'Desktop', 'desktop', 1],
+    [join(oneDrive, 'Masaüstü'), 'Masaüstü', 'Desktop', 'desktop', 1],
+    [join(home, 'Documents'), 'Belgeler', 'Documents', 'documents', 1],
+    [join(oneDrive, 'Documents'), 'Belgeler', 'Documents', 'documents', 1],
+    [join(oneDrive, 'Belgeler'), 'Belgeler', 'Documents', 'documents', 1],
+    [join(home, 'Downloads'), 'İndirilenler', 'Downloads', 'downloads', 0],
   ];
 
   const scannedFiles = [];
   const seenPaths = new Set();
-  for (const [dirPath, label, tag, depth] of userDirs) {
+  for (const [dirPath, label, labelEn, tag, depth] of userDirs) {
     if (!existsSync(dirPath) || seenPaths.has(dirPath.toLowerCase())) continue;
     seenPaths.add(dirPath.toLowerCase());
-    await scanUserDirectory(dirPath, label, tag, depth, 0, scannedFiles);
+    await scanUserDirectory(dirPath, label, labelEn, tag, depth, 0, scannedFiles);
   }
 
   const deduplicatedFiles = [];
@@ -207,7 +270,9 @@ async function getDesktopIndex(force = false) {
     const pKey = item.target.toLowerCase();
     if (seenPaths.has(pKey)) continue;
     seenPaths.add(pKey);
-    if (item.kind === 'app' && seenAppNames.has(item.name.toLowerCase())) continue;
+    const appKey = normalizeAppDedupeKey(item.name);
+    if (item.kind === 'app' && (!appKey || seenAppNames.has(appKey))) continue;
+    if (item.kind === 'app') seenAppNames.add(appKey);
     deduplicatedFiles.push(item);
   }
 
@@ -218,29 +283,33 @@ async function getDesktopIndex(force = false) {
 
 function scoreItem(item, queryTokens, fullQuery) {
   if (!fullQuery) {
-    if (item.id.startsWith('sys-')) return 95;
-    if (item.kind === 'app') return 80;
-    if (item.kind === 'folder') return 60;
-    return 40;
+    if (item.kind === 'app' && !item.isSystemTool && !item.id.startsWith('sys-')) return 96;
+    if (item.id.startsWith('sys-')) return 82;
+    if (item.kind === 'folder') return 70;
+    if (item.isSystemTool) return 48;
+    return 35;
   }
-  const nameLower = item.name.toLowerCase();
-  const subLower = (item.subtitle || '').toLowerCase();
-  const targetLower = (item.target || '').toLowerCase();
+  const nameLower = String(item.name || '').toLowerCase();
+  const nameEnLower = String(item.nameEn || '').toLowerCase();
+  const subLower = String(item.subtitle || '').toLowerCase();
+  const subEnLower = String(item.subtitleEn || '').toLowerCase();
+  const targetLower = String(item.target || '').toLowerCase();
 
   let score = 0;
-  if (nameLower === fullQuery) score += 200;
-  else if (nameLower.startsWith(fullQuery)) score += 140;
-  else if (nameLower.includes(fullQuery)) score += 95;
+  if (nameLower === fullQuery || (nameEnLower && nameEnLower === fullQuery)) score += 200;
+  else if (nameLower.startsWith(fullQuery) || (nameEnLower && nameEnLower.startsWith(fullQuery))) score += 140;
+  else if (nameLower.includes(fullQuery) || (nameEnLower && nameEnLower.includes(fullQuery))) score += 95;
 
   for (const token of queryTokens) {
-    if (nameLower.startsWith(token)) score += 45;
-    else if (nameLower.includes(token)) score += 30;
-    else if (subLower.includes(token)) score += 15;
+    if (nameLower.startsWith(token) || (nameEnLower && nameEnLower.startsWith(token))) score += 45;
+    else if (nameLower.includes(token) || (nameEnLower && nameEnLower.includes(token))) score += 30;
+    else if (subLower.includes(token) || (subEnLower && subEnLower.includes(token))) score += 15;
     else if (targetLower.includes(token)) score += 10;
     else return -1;
   }
 
-  if (item.kind === 'app') score += 18;
+  if (item.kind === 'app' && !item.isSystemTool) score += 22;
+  else if (item.kind === 'app') score += 14;
   else if (item.kind === 'folder') score += 8;
   return score;
 }
@@ -249,10 +318,13 @@ async function searchDesktopItems({ query = '', category = 'all', limit = 28 } =
   const index = await getDesktopIndex();
   const cleanQuery = String(query || '').trim().toLowerCase().slice(0, 120);
   const tokens = cleanQuery.split(/\s+/).filter(Boolean);
+  const safeLimit = Math.max(1, Math.min(500, Number(limit) || 28));
 
   const filtered = [];
   for (const item of index) {
     if (category === 'apps' && item.kind !== 'app') continue;
+    if (category === 'user_apps' && (item.kind !== 'app' || item.isSystemTool)) continue;
+    if (category === 'system' && !item.isSystemTool && item.category !== 'Sistem') continue;
     if (category === 'folders' && item.kind !== 'folder') continue;
     if (category === 'files' && item.kind !== 'file') continue;
     if (category === 'downloads' && item.sourceTag !== 'downloads' && item.id !== 'sys-downloads') continue;
@@ -264,7 +336,7 @@ async function searchDesktopItems({ query = '', category = 'all', limit = 28 } =
   filtered.sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name, 'tr'));
   return {
     totalIndexed: index.length,
-    results: filtered.slice(0, limit).map(({ item }) => item),
+    results: filtered.slice(0, safeLimit).map(({ item }) => item),
   };
 }
 
@@ -1828,8 +1900,9 @@ const server = http.createServer(async (req, res) => {
       const query = reqUrl.searchParams.get('q') || '';
       const category = reqUrl.searchParams.get('category') || 'all';
       const refresh = reqUrl.searchParams.get('refresh') === '1';
+      const limit = Math.max(1, Math.min(500, Number(reqUrl.searchParams.get('limit')) || 28));
       if (refresh) await getDesktopIndex(true);
-      const data = await searchDesktopItems({ query, category, limit: 28 });
+      const data = await searchDesktopItems({ query, category, limit });
       sendJson(res, 200, { status: 'ok', ...data });
       return;
     }

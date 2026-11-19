@@ -349,4 +349,8 @@ input:focus-visible, textarea:focus-visible { border-color: rgba(251, 191, 36, .
     border-radius: 999px;
 }
 
+#shortcutsGrid > * {
+    pointer-events: auto;
+}
+
 /* BÖLÜM SONU: TEMEL STİLLER, FONTLAR VE ORTAK CAM YÜZEYLER */

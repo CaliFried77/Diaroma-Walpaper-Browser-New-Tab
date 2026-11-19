@@ -15,6 +15,7 @@ import { getArcticLedges } from './arctic-geometry.js';
 let activeAmbientSceneProfile = null;
 const ambientHitboxes = [];
 const ambientReactions = new Map();
+const ambientTouchPulses = [];
 
 const AMBIENT_REACTION_DURATIONS = Object.freeze({
     meadow_bear: 3600,
@@ -27,7 +28,7 @@ const AMBIENT_REACTION_DURATIONS = Object.freeze({
     reef_octopus: 4200,
     reef_anemone: 3400,
     koi_loch_ness: 3800,
-    koi_terrapin: 3000,
+    koi_terrapin: 3600,
     rainforest_toucan: 2800,
     rainforest_sloth: 3400,
     rainforest_frog: 2600,
@@ -48,6 +49,8 @@ const nessRoam = {
     vx: 0.018,
     vy: 0.004,
     dir: 1,
+    wpIdx: 1,
+    loopDir: 1,
     lastTime: 0,
     targetX: 0,
     targetY: 0
@@ -61,19 +64,23 @@ export function beginAmbientWildlifeFrame(sceneProfile, _time) {
     if (sceneProfile !== activeAmbientSceneProfile) {
         activeAmbientSceneProfile = sceneProfile;
         ambientReactions.clear();
+        ambientTouchPulses.length = 0;
         nessRoam.initialized = false;
+        nessRoam.wpIdx = 1;
+        nessRoam.loopDir = 1;
         nessRoam.lastTime = 0;
     }
     ambientHitboxes.length = 0;
 }
 
 export function registerAmbientHitbox(id, x1, y1, x2, y2, priority = 0) {
+    const pad = 6;
     ambientHitboxes.push({
         id,
-        x1: Math.min(x1, x2),
-        y1: Math.min(y1, y2),
-        x2: Math.max(x1, x2),
-        y2: Math.max(y1, y2),
+        x1: Math.min(x1, x2) - pad,
+        y1: Math.min(y1, y2) - pad,
+        x2: Math.max(x1, x2) + pad,
+        y2: Math.max(y1, y2) + pad,
         priority
     });
 }
@@ -130,7 +137,40 @@ export function tryInteractAmbientWildlife(sceneProfile, px, py) {
         clickY: py,
         seed: Math.random()
     });
+    if (ambientTouchPulses.length >= 6) ambientTouchPulses.shift();
+    ambientTouchPulses.push({
+        x: Math.round(px),
+        y: Math.round(py),
+        startTime: null,
+        duration: 520
+    });
     return true;
+}
+
+export function drawAmbientTouchPulses(time) {
+    for (let i = ambientTouchPulses.length - 1; i >= 0; i--) {
+        const pulse = ambientTouchPulses[i];
+        if (pulse.startTime === null) pulse.startTime = time;
+        const elapsed = time - pulse.startTime;
+        if (elapsed < 0 || elapsed >= pulse.duration) {
+            ambientTouchPulses.splice(i, 1);
+            continue;
+        }
+        const t = easeOutQuad(elapsed / pulse.duration);
+        const r = Math.max(2, Math.round(t * 14));
+        const alpha = ((1 - elapsed / pulse.duration) * 0.92).toFixed(2);
+        const ringCol = `rgba(253, 224, 71, ${alpha})`;
+        const sparkCol = `rgba(255, 255, 255, ${alpha})`;
+        pRect(pulse.x - Math.floor(r * 0.5), pulse.y - r, r, 1, ringCol);
+        pRect(pulse.x - Math.floor(r * 0.5), pulse.y + r, r, 1, ringCol);
+        pRect(pulse.x - r, pulse.y - Math.floor(r * 0.5), 1, r, ringCol);
+        pRect(pulse.x + r, pulse.y - Math.floor(r * 0.5), 1, r, ringCol);
+        const d = Math.round(r * 0.72);
+        pRect(pulse.x - d, pulse.y - d, 2, 2, sparkCol);
+        pRect(pulse.x + d - 1, pulse.y - d, 2, 2, sparkCol);
+        pRect(pulse.x - d, pulse.y + d - 1, 2, 2, sparkCol);
+        pRect(pulse.x + d - 1, pulse.y + d - 1, 2, 2, sparkCol);
+    }
 }
 
 function getLeftSafeX(pct) {
@@ -1047,22 +1087,27 @@ function drawReefCritters(time) {
 }
 
 function drawKoiPondCritters(time) {
-    // 1. SÜREKLİ GEZİNEN & BÜYÜTÜLMÜŞ LOCH NESS / YEŞİM GÖL EJDERHASI (~48–52px görünür yükselme + dev su altı gölgesi!)
-    let minX = Math.max(152, Math.round(pw * 0.24));
-    let maxX = Math.min(pw - 156, Math.round(pw * 0.76));
-    if (maxX <= minX + 20) {
-        minX = Math.round(pw * 0.30);
-        maxX = Math.round(pw * 0.70);
-    }
-    const minY = Math.round(ph * 0.44);
-    const maxY = Math.round(ph * 0.75);
+    // 1. DIŞ ÇEVRE KORİDORUNDA GEZİNEN LOCH NESS / YEŞİM GÖL EJDERHASI
+    // Saat, Arama Kutusu, Kısayollar & Gündem UI bölgesini [0.27..0.73*pw, 0.23..0.82*ph] ASLA kesmeyen 8 noktalı açık su halkası!
+    const waypoints = [
+        { x: Math.round(pw * 0.16), y: Math.round(ph * 0.21), canEmerge: true },  // 0: Sol-üst açık su
+        { x: Math.round(pw * 0.16), y: Math.round(ph * 0.46), canEmerge: true },  // 1: Sol-orta açık göl (Arama & Saat solu)
+        { x: Math.round(pw * 0.18), y: Math.round(ph * 0.72), canEmerge: true },  // 2: Sol-alt açık göl (Müzik Widget üstü)
+        { x: Math.round(pw * 0.30), y: Math.round(ph * 0.87), canEmerge: true },  // 3: Alt-sol açık kanal
+        { x: Math.round(pw * 0.52), y: Math.round(ph * 0.88), canEmerge: true },  // 4: Alt-orta açık gölet (Gündem altı)
+        { x: Math.round(pw * 0.74), y: Math.round(ph * 0.84), canEmerge: true },  // 5: Alt-sağ açık kanal (Sistem Widget solu)
+        { x: Math.round(pw * 0.78), y: Math.round(ph * 0.46), canEmerge: true },  // 6: Sağ-orta açık derin su
+        { x: Math.round(pw * 0.76), y: Math.round(ph * 0.21), canEmerge: false }  // 7: Sağ-üst & üst bar altı su-altı transit
+    ];
 
     if (!nessRoam.initialized) {
         nessRoam.initialized = true;
-        nessRoam.x = Math.round(minX + (maxX - minX) * 0.40);
-        nessRoam.y = Math.round(minY + (maxY - minY) * 0.62);
-        nessRoam.targetX = Math.round(minX + (maxX - minX) * 0.78);
-        nessRoam.targetY = Math.round(minY + (maxY - minY) * 0.46);
+        nessRoam.wpIdx = 1;
+        nessRoam.loopDir = 1;
+        nessRoam.x = waypoints[1].x;
+        nessRoam.y = waypoints[1].y;
+        nessRoam.targetX = waypoints[2].x;
+        nessRoam.targetY = waypoints[2].y;
         nessRoam.dir = 1;
         nessRoam.lastTime = time;
     }
@@ -1096,26 +1141,31 @@ function drawKoiPondCritters(time) {
             rearExtra = Math.round(reactEmerge * 7);
         }
     }
-    const emerge = Math.max(baseEmerge, reactEmerge);
 
-    // Göl boyunca kesintisiz süzülüş (su altında hızlı devriye, kafa çıkarınca ürpertici yavaş süzülme)
+    const curInCenterUI = nessRoam.x > pw * 0.27 && nessRoam.x < pw * 0.73 && nessRoam.y < ph * 0.82;
+    const safeToEmerge = nessRoam.y >= Math.round(ph * 0.23) && !curInCenterUI;
+    const emerge = Math.max(safeToEmerge ? baseEmerge : 0, reactEmerge);
+
+    // Açık çevre halkası boyunca sıralı ilerleme (merkez arama kutusunu asla kesmez)
     const dt = nessRoam.lastTime ? clampVal(time - nessRoam.lastTime, 0, 80) : 16;
     nessRoam.lastTime = time;
+    const targetWp = waypoints[nessRoam.wpIdx] || waypoints[1];
+    nessRoam.targetX = targetWp.x;
+    nessRoam.targetY = targetWp.y;
     const dxToT = nessRoam.targetX - nessRoam.x;
     const dyToT = nessRoam.targetY - nessRoam.y;
     const distToT = Math.hypot(dxToT, dyToT);
-    if (distToT < 24 || nessRoam.targetX < minX || nessRoam.targetX > maxX) {
-        const midX = (minX + maxX) * 0.5;
-        nessRoam.targetX = nessRoam.x < midX
-            ? midX + 12 + Math.random() * Math.max(10, maxX - midX - 12)
-            : minX + Math.random() * Math.max(10, midX - minX - 12);
-        nessRoam.targetY = minY + Math.random() * Math.max(10, maxY - minY);
+    if (distToT < 16) {
+        nessRoam.wpIdx = (nessRoam.wpIdx + nessRoam.loopDir + waypoints.length) % waypoints.length;
+        const nextWp = waypoints[nessRoam.wpIdx];
+        nessRoam.targetX = nextWp.x;
+        nessRoam.targetY = nextWp.y;
     } else if (dt > 0) {
-        const moveSpeed = 0.024 * (1 - emerge * 0.85);
+        const moveSpeed = 0.025 * (1 - emerge * 0.85);
         nessRoam.vx = (dxToT / distToT) * moveSpeed;
         nessRoam.vy = (dyToT / distToT) * moveSpeed;
-        nessRoam.x = clampVal(nessRoam.x + nessRoam.vx * dt, minX, maxX);
-        nessRoam.y = clampVal(nessRoam.y + nessRoam.vy * dt, minY, maxY);
+        nessRoam.x = clampVal(nessRoam.x + nessRoam.vx * dt, 64, pw - 90);
+        nessRoam.y = clampVal(nessRoam.y + nessRoam.vy * dt, 58, ph - 14);
         if (Math.abs(nessRoam.vx) > 0.002) {
             nessRoam.dir = nessRoam.vx >= 0 ? 1 : -1;
         }
@@ -1155,7 +1205,6 @@ function drawKoiPondCritters(time) {
         const headBaseY = nessY + 9 - liftY + headBob;
         const blinkNess = !react && (time % 6300) > 6100;
 
-        // İkinci belirgin arka sırt kamburu (~24px genişlikte, yalnızca üst sırt kemeri yüzeye çıkar!)
         if (emerge > 0.26) {
             const humpRise = Math.round(((emerge - 0.26) / 0.74) * (9 + Math.round(rearExtra * 0.4)));
             const humpX = nessX - dir * 34;
@@ -1167,7 +1216,6 @@ function drawKoiPondCritters(time) {
             pRect(humpX - 14, nessY, 28, 2, 'rgba(224, 242, 254, 0.48)');
         }
 
-        // Baş altından (dy=0) su yüzeyine kesintisiz inen daha uzun & heybetli S-kıvrımlı boyun
         for (let dy = 0; dy <= 36; dy++) {
             const py = headBaseY - 1 + dy;
             if (py >= nessY) break;
@@ -1184,7 +1232,6 @@ function drawKoiPondCritters(time) {
             }
         }
 
-        // Büyütülmüş Ejderha-Yılan Başı (~22x13px, yürüyüş yönüne döner!)
         const hx = nessX - dir * 3;
         const hy = headBaseY;
         const hRect = (ox, oy, w, h, col) => drawAboveWater(dir >= 0 ? hx + ox : hx - ox - w, hy + oy, w, h, col);
@@ -1206,7 +1253,6 @@ function drawKoiPondCritters(time) {
         const dropOff = Math.floor((time * 0.014) % 9);
         drawAboveWater(hx + dir * 13, hy - 1 + dropOff, 1, 2, 'rgba(167, 243, 208, 0.72)');
 
-        // Su yüzeyi köpük yakası & yayılan şok halkaları (tıklayınca ekstra geniş dalga)
         const surfHalf = Math.round(12 + emerge * 8 + (react ? 6 : 0));
         pRect(nessX - surfHalf, nessY, surfHalf * 2, 2, 'rgba(224, 242, 254, 0.65)');
         pRect(nessX - surfHalf - 7, nessY + 3, (surfHalf + 7) * 2, 1, 'rgba(45, 212, 191, 0.36)');
@@ -1226,35 +1272,70 @@ function drawKoiPondCritters(time) {
         3
     );
 
-    // 2. Büyütülmüş Yüzen Yosunlu Kayadaki Zen Kaplumbağası (~24x14px — tıklayınca kabuğa gizlenip kabarcık çıkarır)
-    const rockX = getRightSafeX(0.68);
-    const rockY = Math.round(ph * 0.72);
+    // 2. Sağ-Alt Gölet Kıyısına Oturan Zen Kaplumbağası (~24x14px — tıklayınca suya atlayıp tur atar & kıyıya döner!)
+    const rockX = pw >= 400 ? Math.min(Math.round(pw * 0.75), pw - 152) : Math.round(pw * 0.75);
+    const rockY = ph - 7;
+
+    // Gölün dibine ve sağ kıyısına organik oturan yosunlu taş kümesi + ufak sazlar
+    pRect(rockX - 18, rockY + 1, 36, 6, 'rgba(2, 8, 16, 0.50)');
+    pRect(rockX - 17, rockY - 4, 34, 11, '#1e293b');
+    pRect(rockX - 15, rockY - 6, 30, 8, '#334155');
+    pRect(rockX - 13, rockY - 7, 25, 3, '#475569');
+    pRect(rockX - 11, rockY - 7, 19, 2, '#15803d');
+    pRect(rockX - 6, rockY - 8, 11, 1, '#22c55e');
+    // Taşın alt-sağ kıyısında organik saz yaprakları
+    pRect(rockX + 12, rockY - 12, 2, 9, '#15803d');
+    pRect(rockX + 15, rockY - 10, 2, 7, '#22c55e');
+
     const terrReact = getAmbientReaction('koi_terrapin', time);
-    const hideTerr = terrReact ? terrReact.progress < 0.64 : false;
-    const rockWobble = terrReact && terrReact.progress < 0.24 ? Math.round(Math.sin(terrReact.progress * Math.PI * 10)) : 0;
-    const blinkTu = (time % 5400) > 5220;
+    let tx = rockX;
+    let ty = rockY;
+    let tDir = -1;
+    let isSwimming = false;
+    let flipperKick = 0;
 
-    pRect(rockX - 14, rockY + 1, 28, 4, 'rgba(2, 8, 16, 0.44)');
-    pRect(rockX - 13, rockY - 4, 26, 6, '#334155');
-    pRect(rockX - 11, rockY - 5, 22, 2, '#475569');
-    pRect(rockX - 9, rockY - 5, 16, 1, '#15803d');
-
-    pRect(rockX - 7 + rockWobble, rockY - 10, 16, 5, '#14532d');
-    pRect(rockX - 5 + rockWobble, rockY - 12, 12, 4, '#166534');
-    pRect(rockX - 4 + rockWobble, rockY - 11, 3, 2, '#4ade80');
-    pRect(rockX + 2 + rockWobble, rockY - 11, 3, 2, '#d97706');
-    pRect(rockX - 7 + rockWobble, rockY - 6, 16, 1, '#b45309');
-    if (!hideTerr) {
-        pRect(rockX - 11, rockY - 9, 5, 3, '#4d7c0f');
-        pRect(rockX - 14, rockY - 11, 5, 3, '#65a30d');
-        pRect(rockX - 13, rockY - 10, 1, 1, blinkTu ? '#365314' : '#0f172a');
+    if (terrReact) {
+        const tp = terrReact.progress;
+        if (tp < 0.14) {
+            const u = tp / 0.14;
+            tx = rockX - Math.round(u * 6);
+            ty = rockY - Math.round(Math.sin(u * Math.PI) * 5);
+            pRect(rockX - 18, rockY + 2, 20, 1, 'rgba(224, 242, 254, 0.72)');
+            pRect(rockX - 14, rockY - 2, 2, 2, '#e0f2fe');
+        } else if (tp < 0.86) {
+            const u = (tp - 0.14) / 0.72;
+            isSwimming = true;
+            tx = rockX - 6 - Math.round(Math.sin(u * Math.PI) * 26);
+            ty = rockY - Math.round(Math.sin(u * Math.PI) * 20) - Math.round(Math.sin(u * Math.PI * 2) * 5);
+            tDir = Math.cos(u * Math.PI) >= 0 ? -1 : 1;
+            flipperKick = Math.round(Math.sin(u * Math.PI * 10) * 2);
+            pRect(tx - tDir * 10, ty - 2, 2, 2, 'rgba(224, 242, 254, 0.68)');
+            pRect(tx - 12, ty + 3, 24, 1, 'rgba(45, 212, 191, 0.42)');
+        } else {
+            const u = (tp - 0.86) / 0.14;
+            tx = Math.round(rockX - 6 * (1 - u));
+            ty = rockY - Math.round(Math.sin(u * Math.PI) * 4);
+            tDir = 1;
+        }
     }
-    if (terrReact && terrReact.progress >= 0.64) {
-        const bProg = (terrReact.progress - 0.64) / 0.36;
-        pRect(rockX - 15, Math.round(rockY - 13 - bProg * 10), 2, 2, 'rgba(224, 242, 254, 0.72)');
-    }
 
-    registerAmbientHitbox('koi_terrapin', rockX - 15, rockY - 14, rockX + 15, rockY + 6, 2);
+    const blinkTu = !isSwimming && (time % 5400) > 5220;
+    const tRect = (ox, oy, w, h, col) => pRect(tDir >= 0 ? tx - ox - w : tx + ox, ty + oy, w, h, col);
+    // Not: mevcut kaplumbağa varsayılan sola (-1) bakar; tDir = -1 doğal yön, +1 dönüş yönü
+    if (isSwimming) {
+        tRect(-9, -6 + flipperKick, 4, 3, '#4d7c0f');
+        tRect(5, -6 - flipperKick, 4, 3, '#4d7c0f');
+    }
+    tRect(-7, -12, 16, 5, '#14532d');
+    tRect(-5, -14, 12, 4, '#166534');
+    tRect(-4, -13, 3, 2, '#4ade80');
+    tRect(2, -13, 3, 2, '#d97706');
+    tRect(-7, -8, 16, 1, '#b45309');
+    tRect(-11, -11, 5, 3, '#4d7c0f');
+    tRect(-14, -13, 5, 3, '#65a30d');
+    tRect(-13, -12, 1, 1, blinkTu ? '#365314' : '#0f172a');
+
+    registerAmbientHitbox('koi_terrapin', tx - 16, ty - 16, rockX + 18, rockY + 6, 2);
 }
 
 function drawArcticAlwaysPresentWildlife(time) {
@@ -1383,6 +1464,7 @@ export function drawHabitatAmbientWildlife(sceneProfile, time) {
     else if (sceneProfile === 'reef') drawReefCritters(time);
     else if (sceneProfile === 'koi-pond') drawKoiPondCritters(time);
     else if (sceneProfile === 'arctic-tundra') drawArcticAlwaysPresentWildlife(time);
+    drawAmbientTouchPulses(time);
 }
 
 // ============================================================================

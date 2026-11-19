@@ -2,21 +2,25 @@
 
 [English](README.md) | **Türkçe**
 
+> **Canlı Web Önizlemesi (Wallpaper Engine Kurmadan Dene):** [https://diorama-site.kerem-eserr.workers.dev/](https://diorama-site.kerem-eserr.workers.dev/)  
+> Duvar kâğıdını kurmadan önce projenin nasıl göründüğünü merak ediyorsan yukarıdaki bağlantıyı tarayıcında açarak 8 yaşayan piksel habitatını, tıklamaya tepki veren ev sahibi canlıları, Liquid Glass widget'ları, haber okuyucuyu ve akıllı takvimi anında deneyimleyebilirsin.
+
 **Sürüm:** `2.0.0`  
 **Çalışma Ortamları:** Windows Masaüstü Wallpaper Engine + Yerel Masaüstü Köprüsü **ve** Tarayıcı Yeni Sekme (Cloudflare Workers Static Assets)  
 **Lisans:** MIT (`LICENSE`). Yerel fontlar kendi SIL Open Font License 1.1 lisanslarını korur (`THIRD_PARTY_NOTICES.md`).
 
-Living Pixel Diorama; **8 canlı piksel-art ekosistem**, tek dilde birleştirilmiş **Hibrit Füme-Kristal Liquid Glass** arayüz, çok kaynaklı RSS haber okuyucu, hava durumu + CAMS hava kalitesi, ambiyans sesli Pomodoro odak sayacı, akıllı takvim, not/görev defteri ve Windows masaüstü entegrasyonu sunan yerel öncelikli bir interaktif duvar kâğıdı ve yeni sekme uygulamasıdır.
+Living Pixel Diorama; **8 canlı piksel-art ekosistem**, tıklamaya tepki veren ev sahibi hayvanlar, tek dilde birleştirilmiş **Hibrit Füme-Kristal Liquid Glass** arayüz, çok kaynaklı RSS haber okuyucu, hava durumu + CAMS hava kalitesi, ambiyans sesli Pomodoro odak sayacı, akıllı takvim, not/görev defteri ve Windows masaüstü entegrasyonu sunan yerel öncelikli bir interaktif duvar kâğıdı ve yeni sekme uygulamasıdır.
 
 ---
 
 ## Öne Çıkan Özellikler
 
-- **8 İnteraktif Piksel-Art Habitat (`config/habitat-catalog.js`, `js/`):** Arılı Çayır, Beta Akvaryumu, Ateşböcekli Söğüt Sulak Alanı, Botanik Sera, Mercan Resifi Denizanaları, Zen Koi Göleti, Yağmur Ormanı Papağanları ve Kutup Tilkili Aurora. Sahneye tıklayarak her biyoma özgü yem/etkileşim bırakabilirsin.
+- **8 İnteraktif Piksel-Art Habitat & Tıklanabilir Ev Sahibi Canlılar (`config/habitat-catalog.js`, `js/`):** Arılı Çayır & Bal Ayısı, Beta Akvaryumu (Aksolotl & Altın Salyangoz), Sazlık (Mavi Balıkçıl & Su Kaplumbağası), Botanik Sera (Sarman Kedi & Kızılgerdan), Mercan Resifi (özel çizim Mercan-Kızıl Ahtapot & Palyaço Balığı), Zen Koi Göleti (dış çevre koridorunda gezinen Loch Ness Ejderhası & kıyı Kaplumbağası), Yağmur Ormanı (Papağanlar, Tukan, Tembel Hayvan, Ağaç Kurbağası & Mavi Morpho) ve Kutup Aurora (Kutup Tilkisi, Kutup Ayısı, Kutup Tavşanı + açılıp kapanabilen **Kutup Noel Teması**). Boş alana tıklayarak yem bırakabilir, doğrudan canlıların üzerine tıklayarak her hayvana özel tepkileri tetikleyebilirsin.
 - **Birleşik Hibrit Füme-Kristal Liquid Glass (`wallpaper/wallpaper.css`, `js/10-glass-renderer.js`):** Yüzen widget'lar, üst araç çubuğu pill'leri ve açılır panellerde 1:1 gerçek zamanlı kırılan piksel cam merceklerini dengeli füme okunabilirlik katmanı ve iç kart cepleriyle Gece/Gündüz modlarında tek tasarım dilinde sunar.
-- **Laptop Dostu Performans & Güç Tasarrufu:** Varsayılan **Dengeli (30 FPS sahne / 20 FPS cam / 1x detay)** profili, tek tıkla **Sessiz/Laptop (24 FPS / 15 FPS cam)** ve **Yüksek HD (60 FPS)** seçenekleri, flora/güneş/ay/bloom offscreen önbellekleri, Wallpaper Engine tam ekran duraklatma (`setPaused`) desteği ve hibrit laptoplarda NVIDIA GPU'yu uyandırmayan **dGPU D3Cold koruması**.
+- **Gelişmiş Uygulama & Kısayol Seçici:** Başlat Menüsü, sabitlenmiş Görev Çubuğu uygulamaları, Masaüstü kısayolları ve klasörlerini A–Z indeksleyen (`limit=450`), kullanıcı uygulamalarını sistem araçlarının üstünde tutan, anlık arama çubuklu, kategori sekmeli (`Uygulamalar`, `Klasörler`, `Sistem`, `Tümü`), gerçek Windows ikonlu ve saf TR/EN yerel seçici.
+- **Laptop Dostu Performans & Güç Tasarrufu:** Varsayılan **Dengeli (30 FPS sahne / 20 FPS cam / 1x detay)** profili, tek tıkla **Sessiz/Laptop (24 FPS / 15 FPS cam)** ve **Yüksek HD (60 FPS)** seçenekleri, flora/güneş/ay/bloom offscreen önbellekleri, reload sonrası silinmeyen ayar koruması (`48px` varsayılan görev çubuğu boşluğu), tam ekran duraklatma (`setPaused`) ve hibrit laptoplarda NVIDIA GPU'yu uyandırmayan **dGPU D3Cold koruması**.
 - **Anlık TR / EN Dil Desteği & Yerel Fontlar:** Türkçe ve İngilizce arasında anlık geçiş + `fonts/` altında yerel pixel/UI fontları.
-- **Kapsamlı Widget Ekosistemi:** PC uygulama/dosya başlatıcısı ve kısayol dock'u, Windows GSMTC uyumlu piksel plak çalar (`#weMusicWidget`), canlı sistem & Diorama kaynak monitörü (`#weSystemWidget`), akıllı takvim (TR/US/UK/DE resmi tatilleri, kulüp ve milli takım maç fikstürleri, ders/iş programı, boş zaman hesabı), RSS haber merkezi, hava/ay/UV/CAMS kartı ve yerel ağ Xiaomi Hava Temizleyici kontrolü.
+- **Kapsamlı Widget Ekosistemi:** PC uygulama/dosya başlatıcısı ve kısayol dock'u, Windows GSMTC uyumlu piksel plak çalar (`#weMusicWidget`), canlı sistem & Diorama kaynak monitörü (`#weSystemWidget`), akıllı takvim (TR/US/UK/DE resmi tatilleri, kulüp ve milli takım maç fikstürleri, ders/iş programı, boş zaman hesabı), 2 sütunlu RSS haber merkezi, hava/ay/UV/CAMS kartı ve yerel ağ Xiaomi Hava Temizleyici kontrolü.
 
 ---
 
@@ -37,11 +41,11 @@ npm run build:wallpaper
 
 ### 3. Wallpaper Engine İçinden Açma
 1. **Wallpaper Engine** uygulamasını aç.
-2. Sol alt köşedeki **Duvar Kâğıdı Aç (Open Wallpaper)** → **Çevrimdışı / Dosyadan Aç (Open from File)** seçeneğine tıkla.
+2. Sol alt köşedeki **Duvar Kâğıdı Aç (Open Wallpaper)** -> **Çevrimdışı / Dosyadan Aç (Open from File)** seçeneğine tıkla.
 3. Proje klasörünün içindeki **`dist-wallpaper/project.json`** dosyasını seç.
 4. **Önerilen Ayarlar:**
    - Wallpaper Engine ayarlarından **Tam ekran uygulama çalışırken duraklat** seçeneğini açık tut; uygulama tam ekrandayken sahne çizim döngüsü, zamanlayıcılar ve arka plan yoklamaları otomatik durur (`setPaused`).
-   - Masaüstündeki sağ üst **Ayarlar (⚙)** menüsünden veya Wallpaper Engine sağ kenar panelinden **Performans Profili** (`Sessiz` / `Dengeli` / `Yüksek HD`), Tema, Görev Çubuğu Yüksekliği, Üst Çubuk Modu, Pixel Font, Dil (`tr` / `en`) ve aktif widget'ları dilediğin gibi özelleştirebilirsin.
+   - Masaüstündeki sağ üst **Ayarlar (⚙)** menüsünden veya Wallpaper Engine sağ kenar panelinden **Performans Profili** (`Sessiz` / `Dengeli` / `Yüksek HD`), Tema, Kutup Noel Teması, Görev Çubuğu Yüksekliği (`48px` varsayılan), Üst Çubuk Modu, Pixel Font, Dil (`tr` / `en`) ve aktif widget'ları dilediğin gibi özelleştirebilirsin.
 
 ### 4. İsteğe Bağlı: Yerel Masaüstü Köprüsü (`127.0.0.1:47831`)
 Duvar kâğıdı tek başına ek servis olmadan da tam görsel olarak çalışır. Masaüstü PC özelliklerini açmak için yerel köprüyü başlatabilirsin:
@@ -50,17 +54,17 @@ Duvar kâğıdı tek başına ek servis olmadan da tam görsel olarak çalışı
 - **Windows açılışında gizli otomatik başlatma:** **`install-startup-bridge.bat`** dosyasını bir kez çalıştır.
 
 Masaüstü Köprüsünün kazandırdığı özellikler:
-- **PC Uygulama & Dosya Arama Başlatıcısı:** Orta arama çubuğundan Başlat Menüsü uygulamalarını, kısayolları ve klasörleri arayıp başlatma.
+- **PC Uygulama & Dosya Arama Başlatıcısı:** Başlat Menüsü uygulamalarını, sabitlenmiş Görev Çubuğu kısayollarını, Masaüstü öğelerini ve klasörleri A–Z tarayıp arama çubuğu ile kısayol seçicide sunar.
 - **Piksel Plak Çalar (`#weMusicWidget`):** Spotify, Chrome, Edge, VLC vb. medya oturumlarını Windows GSMTC üzerinden okur (`desktop-media-helper.ps1`).
 - **Sistem & Diorama İzleyici (`#weSystemWidget`):** Kalıcı native `pdh.dll` GPU/VRAM sayaçları, HWiNFO64/Afterburner/Core Temp shared-memory CPU sıcaklığı, Diorama'nın kendi RAM/CPU/GPU yükü ve hibrit laptoplar için **dGPU D3Cold koruma** mantığı (`desktop-sysmon-helper.ps1`).
-- **Masaüstü Tekerlek & Klavye İletimi:** Masaüstü simgelerini gizlemeden widget içi kaydırma tekerleğini yumuşak biçimde iletme (`desktop-wheel-hook.ps1`).
+- **Masaüstü Tekerlek & Klavye İletimi:** Masaüstü simgelerini gizlemeden widget içi kaydırma tekerleğini ve fiziksel klavye tuşlarını iletme (`desktop-wheel-hook.ps1`).
 - **Yerel Haber, Fikstür ve Akıllı Ev:** Yerel RSS okuyucu (`/api/news`), ESPN spor fikstürleri (`/api/sports/fixtures`) ve Xiaomi Air Purifier yerel ağ kontrolü.
 
 ---
 
 ## Tarayıcı Yeni Sekme ve Cloudflare Workers Kullanımı
 
-Node.js `22+` gereklidir (Wrangler `4.162.0` komutlar içinde `npx` ile otomatik kullanılır).
+Kurulum yapmadan canlı tarayıcı sürümünü görmek için **[https://diorama-site.kerem-eserr.workers.dev/](https://diorama-site.kerem-eserr.workers.dev/)** adresini ziyaret edebilir, kendin derlemek istersen Node.js `22+` ile aşağıdaki komutları kullanabilirsin (Wrangler `4.162.0` komutlar içinde `npx` ile otomatik çağrılır):
 
 ```bash
 # Yerel Cloudflare Workers geliştirme sunucusu (statik uygulama + /api/news + /api/custom-news)
@@ -95,7 +99,7 @@ Canlıya alma adımları için [docs/DEPLOY_CLOUDFLARE_TR.md](docs/DEPLOY_CLOUDF
 ## Proje Yapısı
 
 - `wallpaper/` — Wallpaper Engine Liquid Glass / widget CSS'i (`wallpaper.css`), başlatıcı runtime'ı (`wallpaper-launcher.js`) ve PowerShell yardımcıları (`desktop-sysmon-helper.ps1`, `desktop-media-helper.ps1`, `desktop-wheel-hook.ps1`)
-- `index.html`, `js/`, `css/` — Ana tarayıcı arayüzü, ES modülleri (habitatlar, canlılar, cam renderer, widget'lar) ve temel/yardımcı stiller
+- `index.html`, `js/`, `css/` — Ana tarayıcı arayüzü, ES modülleri (habitatlar, canlılar, etkileşimli ev sahibi hayvanlar, cam renderer, web studio) ve temel/yardımcı stiller
 - `config/` — Habitat ve yerleşik RSS yayıncı katalogları
 - `server/` — Platformdan bağımsız RSS/Atom ayrıştırıcı, URL doğrulama ve API işleyicileri
 - `cloudflare/` — Cloudflare Worker giriş noktası ve ağ taşıması (`wrangler.toml`, `_headers`)

@@ -3,7 +3,7 @@ import { drawHabitatStimuli } from './habitat-interactions.js';
 import { getGroundY } from './habitat-geometry.js';
 import { buildStaticEnvironmentLayer } from './habitat-backgrounds.js';
 import { drawHabitatFlora } from './habitat-flora-renderer.js';
-import { beginAmbientWildlifeFrame, drawHabitatAmbientWildlife, drawArcticChristmasSky, drawArcticChristmasGround, registerAmbientHitbox, getAmbientReaction } from './habitat-ambient-wildlife.js';
+import { beginAmbientWildlifeFrame, drawHabitatAmbientWildlife, drawArcticChristmasSky, drawArcticChristmasGround, registerAmbientHitbox, getAmbientReaction, drawAmbientTouchPulses } from './habitat-ambient-wildlife.js';
 import { isLightMode } from './01-core-ui.js';
 import { wxFxOn, drawWxSky } from './03-weather.js';
 import { sceneCache } from './scene-state.js';
@@ -719,7 +719,7 @@ if (hab.sceneProfile === 'wetland') {
 
         // YERİNDE YAŞAYAN DURGUN CANLILAR (Tıklayınca tepki verirler; yem/uyaran düşürmezler)
         // 1. Toco Tukan (~22x24px kahraman ölçek, tıklayınca kanat açıp iki kez öter)
-        const tx = Math.floor(pw * 0.27) + 15;
+        const tx = Math.floor(pw * 0.22) + 8;
         const ty = Math.floor(ph * 0.36) + 22;
         const toucanReact = getAmbientReaction('rainforest_toucan', time);
         const toucanHop = toucanReact ? -Math.round(Math.abs(Math.sin(toucanReact.progress * Math.PI * 2)) * 5) : 0;
@@ -781,7 +781,7 @@ if (hab.sceneProfile === 'wetland') {
         registerAmbientHitbox('rainforest_toucan', tx - 10, tBodyY - 19, tx + 18, ty + 4, 3);
 
         // 2. Üç Parmaklı Tembel Hayvan (~24x18px, tıklayınca başını kaldırıp gülümser & patisini sallar)
-        const sx = Math.floor(pw * 0.75) - 15;
+        const sx = Math.floor(pw * 0.78) - 4;
         const sy = Math.floor(ph * 0.34) + 23;
         const slothReact = getAmbientReaction('rainforest_sloth', time);
         const slothPhase = (time % 18000) / 18000;
@@ -996,6 +996,7 @@ if (hab.sceneProfile === 'wetland') {
         }
 
         registerAmbientHitbox('rainforest_morpho', mx - 13, my - 17, mx + 14, my + 4, 3);
+        drawAmbientTouchPulses(time);
 
         setSceneFill(isLightMode ? 'rgba(209, 250, 229, 0.045)' : 'rgba(45, 212, 191, 0.032)');
         for (let wisp = 0; wisp < 10; wisp++) {

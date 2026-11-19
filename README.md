@@ -2,21 +2,25 @@
 
 [English](README.md) | [Türkçe](README_TR.md)
 
+> **Live Web Preview (No Install Required):** [https://diorama-site.kerem-eserr.workers.dev/](https://diorama-site.kerem-eserr.workers.dev/)  
+> Curious what it looks and feels like? Open the link above directly in your browser to explore the habitats, click-reactive wildlife, liquid-glass widgets, news reader, smart calendar, and settings before installing anything in Wallpaper Engine.
+
 **Version:** `2.0.0`  
 **Targets:** Windows Desktop Wallpaper Engine + Local Desktop Bridge **and** Browser New Tab (Cloudflare Workers Static Assets)  
 **License:** MIT (`LICENSE`). Self-hosted fonts retain their original SIL Open Font License 1.1 notices (`THIRD_PARTY_NOTICES.md`).
 
-Living Pixel Diorama is an interactive, local-first desktop ecosystem and personal browser new-tab experience featuring **8 handcrafted pixel-art habitats**, a **Unified Hybrid Smoked-Crystal Liquid Glass** UI, multi-source RSS news, weather + CAMS air quality, Pomodoro focus timer with procedural ambient audio, smart calendar, notes, and Windows desktop integration.
+Living Pixel Diorama is an interactive, local-first desktop ecosystem and personal browser new-tab experience featuring **8 handcrafted pixel-art habitats**, click-reactive ambient wildlife hosts, a **Unified Hybrid Smoked-Crystal Liquid Glass** UI, multi-source RSS news, weather + CAMS air quality, Pomodoro focus timer with procedural ambient audio, smart calendar, notes, and Windows desktop integration.
 
 ---
 
 ## Key Features
 
-- **8 Interactive Pixel-Art Habitats (`config/habitat-catalog.js`, `js/`):** Meadow Bees, Halfmoon Betta Aquarium, Willow Firefly Wetland, Botanical Conservatory, Coral Reef Jellyfish, Zen Koi Pond, Tropical Rainforest Parrots, and Arctic Aurora Foxes. Click anywhere in a scene to drop habitat-specific stimuli.
+- **8 Interactive Pixel-Art Habitats & Click-Reactive Hosts (`config/habitat-catalog.js`, `js/`):** Meadow Bees & Honey Bear, Halfmoon Betta Aquarium (Axolotl & Golden Snail), Willow Firefly Wetland (Heron & Marsh Turtle), Botanical Conservatory (Ginger Cat & Robin), Coral Reef (sculpted Coral-Crimson Octopus & Clownfish), Zen Koi Pond (outer perimeter-patrolling Loch Ness Serpent & shoreline Terrapin), Tropical Rainforest (Parrots, Toucan, Sloth, Tree Frog & Blue Morpho), and Arctic Aurora (Foxes, Polar Bear, Snow Hare + toggleable **Christmas Wonderland** mode). Click open spaces to drop habitat-specific stimuli, or click directly on any host animal to trigger a unique animated reaction without dropping food.
 - **Unified Hybrid Smoked-Crystal Liquid Glass (`wallpaper/wallpaper.css`, `js/10-glass-renderer.js`):** Real-time 1:1 refracted pixel canvas lenses layered with balanced smoked-crystal scrims and inner readability pockets across floating widgets, top pills, and popovers in both Dark and Light modes.
-- **Laptop-Friendly Performance & Power Design:** Default **Balanced (30 FPS scene / 20 FPS glass / 1x detail)** profile, 1-click **Eco (24 FPS / 15 FPS glass)** and **High HD (60 FPS)** presets, offscreen flora/sun/moon/bloom caching, transition-tracked lenses, Wallpaper Engine fullscreen pause (`setPaused`), and hybrid-laptop **dGPU D3Cold protection** so NVIDIA GPUs are not woken just for telemetry polling.
+- **Upgraded Desktop App & Shortcut Picker:** Searchable, categorized shortcut picker (`Apps`, `Folders`, `System`, `All`) indexing installed Start Menu, Taskbar, Desktop apps and folders A–Z (up to 450 items), prioritizing user apps above Windows admin tools with extracted native icons and pure TR/EN localization.
+- **Laptop-Friendly Performance & Power Design:** Default **Balanced (30 FPS scene / 20 FPS glass / 1x detail)** profile, 1-click **Eco (24 FPS / 15 FPS glass)** and **High HD (60 FPS)** presets, offscreen flora/sun/moon/bloom caching, transition-tracked lenses, reload-safe Wallpaper Engine property persistence (`48px` taskbar gap default), fullscreen pause (`setPaused`), and hybrid-laptop **dGPU D3Cold protection**.
 - **Bilingual TR / EN & Self-Hosted Typography:** Instant runtime switching between Turkish and English plus bundled pixel/UI fonts (`fonts/`).
-- **Rich Widget Suite:** Multi-engine search & desktop app/file launcher, custom shortcuts dock, Windows GSMTC vinyl player (`#weMusicWidget`), live system + Diorama footprint monitor (`#weSystemWidget`), smart calendar (TR/US/UK/DE public holidays, football club & national team fixtures, weekly timetables, free-time calculator), RSS news reader, weather/moon/UV/CAMS panel, focus stage, and optional Xiaomi MiOT Air Purifier LAN card.
+- **Rich Widget Suite:** Multi-engine search & desktop app/file launcher, custom shortcuts dock, Windows GSMTC vinyl player (`#weMusicWidget`), live system + Diorama footprint monitor (`#weSystemWidget`), smart calendar (TR/US/UK/DE public holidays, football club & national team fixtures, weekly timetables, free-time calculator), 2-column RSS news reader, weather/moon/UV/CAMS panel, focus stage, and optional Xiaomi MiOT Air Purifier LAN card.
 
 ---
 
@@ -37,30 +41,30 @@ Or simply double-click **`build-wallpaper.bat`** in the project folder. This gen
 
 ### 3. Open in Wallpaper Engine
 1. Launch **Wallpaper Engine**.
-2. Click **Open Wallpaper** (bottom-left) → **Open Offline / Open from File**.
+2. Click **Open Wallpaper** (bottom-left) -> **Open Offline / Open from File**.
 3. Browse to the cloned folder and select **`dist-wallpaper/project.json`**.
 4. **Recommended Settings:**
    - Enable **Pause when another application is fullscreen / maximized** in Wallpaper Engine settings — Diorama natively hooks `setPaused` to suspend canvas animation loops, timers, and background telemetry.
-   - Adjust **Performance Profile** (`Eco` / `Balanced` / `High HD`), Theme, Taskbar Height, Top Bar visibility, Pixel Font, Language (`tr` / `en`), and Widgets either from the top-right **Settings (⚙)** panel on the wallpaper or from Wallpaper Engine's properties sidebar.
+   - Adjust **Performance Profile** (`Eco` / `Balanced` / `High HD`), Theme, Taskbar Height (`48px` default), Arctic Christmas Wonderland toggle, Top Bar visibility, Pixel Font, Language (`tr` / `en`), and Widgets from the top-right **Settings (⚙)** panel or Wallpaper Engine's properties sidebar.
 
 ### 4. Optional: Local Desktop Bridge (`127.0.0.1:47831`)
 The wallpaper renders immediately without any background service. To unlock Windows PC features, run the local loopback bridge:
 
 - **Manual start:** Double-click **`start-desktop-bridge.bat`** or run `npm run bridge`.
-- **Auto-start at Windows login (hidden window):** Double-click **`install-startup-bridge.bat`**.
+- **Windows açılışı / Auto-start at Windows login (hidden window):** Double-click **`install-startup-bridge.bat`**.
 
 What the Desktop Bridge enables:
-- **PC App & File Search Launcher:** Indexes Start Menu apps, shortcuts, and user folders directly from the center search bar.
+- **PC App & File Search Launcher:** Indexes Start Menu apps, pinned Taskbar shortcuts, Desktop items, and user folders A–Z for the center search bar and app shortcut picker.
 - **Vinyl Turntable (`#weMusicWidget`):** Reads live Windows GSMTC media sessions (Spotify, Chrome, Edge, VLC, etc.) with adaptive waiting (`desktop-media-helper.ps1`).
 - **System & Diorama Telemetry (`#weSystemWidget`):** Persistent native PDH (`pdh.dll`) GPU/VRAM counters, shared-memory CPU temps (HWiNFO64 / Afterburner / Core Temp), Diorama RAM/CPU/GPU footprint, and hybrid dGPU D3Cold protection (`desktop-sysmon-helper.ps1`).
-- **Desktop Wheel & Input Relay:** Smooth scroll pass-through into widgets while running on the Windows desktop (`desktop-wheel-hook.ps1`).
+- **Desktop Wheel & Input Relay:** Smooth scroll pass-through and physical keyboard input forwarding into widgets on the Windows desktop (`desktop-wheel-hook.ps1`).
 - **Local News, Sports & LAN Devices:** RSS aggregation (`/api/news`), ESPN sports schedule fixtures (`/api/sports/fixtures`), and Xiaomi Air Purifier MiOT LAN control.
 
 ---
 
 ## Using as a Browser New Tab / Cloudflare Worker
 
-Node.js `22+` is required (Wrangler `4.162.0` is invoked automatically via `npx`).
+Try the deployed web build right away at **[https://diorama-site.kerem-eserr.workers.dev/](https://diorama-site.kerem-eserr.workers.dev/)**, or build & self-host with Node.js `22+` (Wrangler `4.162.0` is invoked automatically via `npx`):
 
 ```bash
 # Local Cloudflare Workers preview (static app + /api/news + /api/custom-news)
@@ -95,7 +99,7 @@ For full Cloudflare Worker deployment instructions, see [docs/DEPLOY_CLOUDFLARE_
 ## Project Structure
 
 - `wallpaper/` — Wallpaper Engine glass/widget stylesheet (`wallpaper.css`), launcher runtime (`wallpaper-launcher.js`), and Windows PowerShell helpers (`desktop-sysmon-helper.ps1`, `desktop-media-helper.ps1`, `desktop-wheel-hook.ps1`)
-- `index.html`, `js/`, `css/` — Core browser application markup, ES modules (habitats, creatures, glass renderer, UI panels) and base/utility styles
+- `index.html`, `js/`, `css/` — Core browser application markup, ES modules (habitats, creatures, interactive wildlife hosts, glass renderer, web studio UI) and base/utility styles
 - `config/` — Habitat and built-in RSS publisher catalogs
 - `server/` — Runtime-neutral RSS/Atom parser, URL validator, and API request handlers
 - `cloudflare/` — Cloudflare Worker entrypoint and fetch transport (`wrangler.toml`, `_headers`)

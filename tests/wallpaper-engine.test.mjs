@@ -533,8 +533,21 @@ test('desktop bridge indexes local applications and filters by query and categor
   const explorerSearch = await searchDesktopItems({ query: 'Dosya Gezgini', category: 'apps' });
   assert.ok(explorerSearch.results.some((item) => item.name === 'Dosya Gezgini' && item.kind === 'app'));
 
+  const englishSystemSearch = await searchDesktopItems({ query: 'File Explorer', category: 'system' });
+  assert.ok(englishSystemSearch.results.some((item) => item.nameEn === 'File Explorer' && item.isSystemTool === true));
+
+  const highLimitSearch = await searchDesktopItems({ query: '', category: 'all', limit: 200 });
+  if (index.length > 28) {
+    assert.ok(highLimitSearch.results.length > 28, 'App search limit must support fetching well beyond 28 entries');
+  }
+
   const folderSearch = await searchDesktopItems({ query: 'İndirilenler', category: 'folders' });
   assert.ok(folderSearch.results.some((item) => item.name === 'İndirilenler' && item.kind === 'folder'));
+
+  assert.ok(wallpaperBundle.includes('desktopAppPickerSearch'), 'App picker modal must include search input');
+  assert.ok(wallpaperBundle.includes('desktop-picker-tabs'), 'App picker modal must include category filter tabs');
+  assert.ok(wallpaperBundle.includes('limit=450'), 'Wallpaper picker must fetch full A-Z app catalog (limit=450)');
+  assert.ok(wallpaperCss.includes('.desktop-picker-search-input'), 'Wallpaper CSS must style app picker search input');
 });
 
 test('Xiaomi MiOT telemetry parser disambiguates Air Purifier 4 (mb5/vb4) humidity & temp vs legacy 3H (mb3)', () => {

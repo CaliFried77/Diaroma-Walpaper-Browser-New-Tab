@@ -24,6 +24,8 @@ function getCanvasLogicalPoint(e) {
 // Her habitatın interactionProfile değeri doğru uyaran türünü belirler.
 // ============================================================================
 
+let lastPointerDownAt = 0;
+
 canvas.addEventListener('pointermove', (e) => {
     if (!canvas || !canvas.style) return;
     const { px, py } = getCanvasLogicalPoint(e);
@@ -33,7 +35,15 @@ canvas.addEventListener('pointermove', (e) => {
         : '';
 });
 
-canvas.addEventListener('pointerdown', (e) => {
+function handleCanvasPress(e) {
+    if (typeof e.button === 'number' && e.button !== 0) return;
+    const now = Date.now();
+    if (e && e.type === 'pointerdown') {
+        lastPointerDownAt = now;
+    } else if (e && e.type === 'mousedown' && now - lastPointerDownAt < 400) {
+        return;
+    }
+
     const { px, py } = getCanvasLogicalPoint(e);
     const activeHabitat = HABITATS[currentHabitatIdx];
     if (activeHabitat && tryInteractAmbientWildlife(activeHabitat.sceneProfile, px, py)) {
@@ -195,6 +205,15 @@ canvas.addEventListener('pointerdown', (e) => {
                 claimedBy: null
             });
         }
+    }
+}
+
+canvas.addEventListener('pointerdown', handleCanvasPress);
+canvas.addEventListener('mousedown', handleCanvasPress);
+
+document.addEventListener('pointerdown', (e) => {
+    if (e.target === document.body || e.target === document.documentElement) {
+        handleCanvasPress(e);
     }
 });
 

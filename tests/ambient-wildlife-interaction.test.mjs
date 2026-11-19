@@ -214,23 +214,17 @@ test('clicking ambient wildlife triggers reaction without dropping food while op
     {
       id: 'koi',
       reactionId: 'koi_loch_ness',
-      target: () => {
-        const minX = Math.max(152, Math.round(pw * 0.24));
-        const maxX = Math.min(pw - 156, Math.round(pw * 0.76));
-        const minY = Math.round(ph * 0.44);
-        const maxY = Math.round(ph * 0.75);
-        return {
-          x: Math.round(minX + (maxX - minX) * 0.40) - 10,
-          y: Math.round(minY + (maxY - minY) * 0.62) + 8,
-        };
-      },
-      open: { x: 190, y: 110 },
+      target: () => ({
+        x: Math.round(pw * 0.16) - 10,
+        y: Math.round(ph * 0.46) + 8,
+      }),
+      open: { x: 240, y: 120 },
     },
     {
       id: 'rainforest',
       reactionId: 'rainforest_toucan',
       target: () => ({
-        x: Math.floor(pw * 0.27) + 15,
+        x: Math.floor(pw * 0.22) + 8,
         y: Math.floor(ph * 0.36) + 22 - 8,
       }),
       open: { x: 320, y: 90 },
@@ -292,25 +286,47 @@ test('clicking ambient wildlife triggers reaction without dropping food while op
   assert.equal(nonFiniteRects, 0, 'Zero non-finite pixel coordinates across all interactive reaction frames');
 });
 
-test('koi-pond Loch Ness serpent continuously roams across the pond over time', () => {
+test('koi-pond Loch Ness patrols outer water perimeter without entering center search UI and terrapin reacts to mousedown', () => {
   const koiIdx = HABITATS.findIndex((h) => h.id === 'koi');
   setCurrentHabitatIndex(koiIdx);
-  const startX = Math.round(Math.max(152, Math.round(pw * 0.24)) + (Math.min(pw - 156, Math.round(pw * 0.76)) - Math.max(152, Math.round(pw * 0.24))) * 0.40);
-  const minY = Math.round(ph * 0.44);
-  const maxY = Math.round(ph * 0.75);
-  const startY = Math.round(minY + (maxY - minY) * 0.62);
+  stimuli.length = 0;
+
+  const startX = Math.round(pw * 0.16);
+  const startY = Math.round(ph * 0.46);
 
   drawHabitatEnvironment(1000);
   assert.equal(hasAmbientWildlifeAt('koi-pond', startX - 10, startY + 8), true);
 
-  for (let t = 1050; t <= 12000; t += 50) {
+  // Test grounded shoreline Zen Terrapin accepts left-button mousedown fallback without dropping food
+  const rockX = pw >= 400 ? Math.min(Math.round(pw * 0.75), pw - 152) : Math.round(pw * 0.75);
+  const terrY = ph - 14;
+  assert.equal(hasAmbientWildlifeAt('koi-pond', rockX, terrY), true, 'Shoreline terrapin hitbox should be active');
+  canvas.dispatch('mousedown', { type: 'mousedown', button: 0, clientX: rockX * PIXEL_SCALE, clientY: terrY * PIXEL_SCALE });
+  assert.equal(stimuli.length, 0, 'Clicking terrapin via mousedown must not drop fish pellets');
+  drawHabitatEnvironment(1050);
+  assert.ok(getAmbientReaction('koi_terrapin', 1050), 'Terrapin should start swim-loop reaction on click');
+
+  const centerChecks = [
+    { x: Math.round(pw * 0.36), y: Math.round(ph * 0.46) },
+    { x: Math.round(pw * 0.50), y: Math.round(ph * 0.54) },
+    { x: Math.round(pw * 0.63), y: Math.round(ph * 0.64) },
+  ];
+
+  for (let t = 1100; t <= 26000; t += 50) {
     drawHabitatEnvironment(t);
+    for (const pt of centerChecks) {
+      assert.equal(
+        hasAmbientWildlifeAt('koi-pond', pt.x, pt.y),
+        false,
+        `Loch Ness must stay outside Center UI band (${pt.x}, ${pt.y}) at t=${t}`,
+      );
+    }
   }
 
-  // After 11 seconds of patrolling across the pond, the initial start point should no longer hold its hitbox
+  // After patrolling along the perimeter ring, spawn point in left-mid pond should no longer hold Loch Ness
   assert.equal(
     hasAmbientWildlifeAt('koi-pond', startX - 10, startY + 8),
     false,
-    'Loch Ness serpent must travel away from its spawn point over time',
+    'Loch Ness serpent must travel away from its spawn point along the perimeter ring',
   );
 });

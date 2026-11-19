@@ -733,10 +733,6 @@ async function performDesktopSearch(rawQuery = '') {
     bridgeOnline = true;
     bridgeIndexedCount = Number(data.totalIndexed) || bridgeIndexedCount;
     updateBridgeStatusBadge();
-    if (!query && activeLocalCategory === 'all') {
-      cachedBridgeApps = (data.results || []).filter((i) => i.kind === 'app');
-      renderCustomAppPickerList();
-    }
     renderDesktopResults(data.results || [], query);
   } catch {
     bridgeOnline = false;
@@ -1008,28 +1004,168 @@ function renderDesktopDock() {
   repaintGlassNow();
 }
 
-// Enhance #shortcutModal with a 100% CEF-safe custom HTML application grid (NO native <select>!)
+// Enhance #shortcutModal with a 100% CEF-safe searchable & categorized application picker (NO native <select>!)
 const shortcutNameInput = document.getElementById('shortcutNameInput');
 const shortcutUrlInput = document.getElementById('shortcutUrlInput');
 const shortcutModalTitle = document.getElementById('shortcutModalTitle');
 const shortcutModalDesc = document.getElementById('shortcutModalDescription');
 
 const appPickerWrapper = document.createElement('div');
+const appPickerHeaderRow = document.createElement('div');
+appPickerHeaderRow.className = 'desktop-picker-meta-row';
 const appPickerLabel = document.createElement('div');
-appPickerLabel.className = 'text-xs text-white/65 block mb-1.5 font-pixel';
-appPickerLabel.textContent = 'Bilgisayardaki Uygulamalardan Hızlı Seç (Tıkla):';
+appPickerLabel.className = 'text-xs text-white/75 font-pixel';
+appPickerLabel.textContent = 'Bilgisayardaki Uygulamalardan Seç (Tıkla):';
+const appPickerCountEl = document.createElement('span');
+appPickerCountEl.id = 'desktopAppPickerCount';
+appPickerCountEl.className = 'desktop-picker-count';
+appPickerHeaderRow.append(appPickerLabel, appPickerCountEl);
+
+const appPickerToolbar = document.createElement('div');
+appPickerToolbar.className = 'desktop-picker-toolbar';
+const appPickerSearchWrap = document.createElement('div');
+appPickerSearchWrap.className = 'desktop-picker-search-wrap';
+const appPickerSearchInput = document.createElement('input');
+appPickerSearchInput.id = 'desktopAppPickerSearch';
+appPickerSearchInput.type = 'text';
+appPickerSearchInput.autocomplete = 'off';
+appPickerSearchInput.className = 'desktop-picker-search-input';
+appPickerSearchInput.placeholder = 'Uygulama, klasör veya oyun ara (örn: Chrome, Steam)...';
+const appPickerClearBtn = document.createElement('button');
+appPickerClearBtn.type = 'button';
+appPickerClearBtn.className = 'desktop-picker-clear-btn';
+appPickerClearBtn.textContent = '×';
+appPickerClearBtn.hidden = true;
+appPickerClearBtn.setAttribute('aria-label', 'Aramayı temizle');
+appPickerSearchWrap.append(appPickerSearchInput, appPickerClearBtn);
+
+const appPickerRefreshBtn = document.createElement('button');
+appPickerRefreshBtn.id = 'desktopAppPickerRefreshBtn';
+appPickerRefreshBtn.type = 'button';
+appPickerRefreshBtn.className = 'desktop-picker-refresh-btn';
+appPickerRefreshBtn.textContent = 'Yenile';
+appPickerToolbar.append(appPickerSearchWrap, appPickerRefreshBtn);
+
+const PICKER_CATEGORIES = [
+  { id: 'apps', tr: 'Uygulamalar', en: 'Apps' },
+  { id: 'folders', tr: 'Klasörler', en: 'Folders' },
+  { id: 'system', tr: 'Sistem', en: 'System' },
+  { id: 'all', tr: 'Tümü', en: 'All' },
+];
+let activePickerCategory = 'apps';
+let pickerCatalogLoading = false;
+
+const appPickerTabsEl = document.createElement('div');
+appPickerTabsEl.className = 'desktop-picker-tabs';
+PICKER_CATEGORIES.forEach((cat) => {
+  const tab = document.createElement('button');
+  tab.type = 'button';
+  tab.dataset.pickerCat = cat.id;
+  tab.className = `desktop-picker-tab${cat.id === activePickerCategory ? ' is-active' : ''}`;
+  tab.textContent = isEn() ? cat.en : cat.tr;
+  tab.addEventListener('click', (e) => {
+    e.stopPropagation();
+    activePickerCategory = cat.id;
+    appPickerTabsEl.querySelectorAll('.desktop-picker-tab').forEach((t) => {
+      t.classList.toggle('is-active', t.dataset.pickerCat === activePickerCategory);
+    });
+    renderCustomAppPickerList();
+  });
+  appPickerTabsEl.appendChild(tab);
+});
+
 const customAppListEl = document.createElement('div');
 customAppListEl.id = 'desktopCustomAppList';
 customAppListEl.className = 'desktop-custom-app-list';
-appPickerWrapper.append(appPickerLabel, customAppListEl);
+appPickerWrapper.append(appPickerHeaderRow, appPickerToolbar, appPickerTabsEl, customAppListEl);
 shortcutForm.prepend(appPickerWrapper);
+
+function fetchBridgeAppCatalog(forceRefresh = false) {
+  if (!bridgeOnline && !forceRefresh) return Promise.resolve();
+  pickerCatalogLoading = true;
+  if (appPickerRefreshBtn) appPickerRefreshBtn.textContent = isEn() ? 'Scanning...' : 'Taranıyor...';
+  const qs = `category=all&limit=450${forceRefresh ? '&refresh=1' : ''}`;
+  return fetch(`${BRIDGE_BASE_URL}/api/desktop/search?${qs}`, { cache: 'no-store' })
+    .then((r) => r.json())
+    .then((d) => {
+      if (Array.isArray(d.results)) {
+        cachedBridgeApps = d.results;
+        bridgeIndexedCount = Number(d.totalIndexed) || cachedBridgeApps.length;
+      }
+    })
+    .catch(() => {})
+    .finally(() => {
+      pickerCatalogLoading = false;
+      if (appPickerRefreshBtn) appPickerRefreshBtn.textContent = isEn() ? 'Refresh' : 'Yenile';
+      renderCustomAppPickerList();
+    });
+}
+
+function matchesPickerCategory(item, catId) {
+  if (catId === 'all') return true;
+  if (catId === 'folders') return item.kind === 'folder';
+  if (catId === 'system') {
+    return Boolean(item.isSystemTool) || item.category === 'Sistem' || item.category === 'Araç';
+  }
+  // 'apps': prioritize user-installed applications and shortcuts first
+  return item.kind === 'app' && !item.isSystemTool;
+}
+
+function commitShortcutFormEntry() {
+  const name = shortcutNameInput.value.trim().slice(0, 60);
+  const target = shortcutUrlInput.value.trim().slice(0, 2048);
+  if (!name || !target) return false;
+
+  const entry = {
+    name,
+    url: target,
+    iconKey: inferDockIcon(name, target),
+  };
+
+  if (editingDockIdx !== null && editingDockIdx >= 0 && editingDockIdx < desktopDockItems.length) {
+    desktopDockItems[editingDockIdx] = entry;
+  } else {
+    desktopDockItems.push(entry);
+  }
+  lsSet(DESKTOP_DOCK_KEY, desktopDockItems);
+  renderDesktopDock();
+  if (typeof window.__weScheduleUserStateSync === 'function') window.__weScheduleUserStateSync();
+  setActiveDesktopInput(null);
+  closeShortcutModal(false);
+  return true;
+}
 
 function renderCustomAppPickerList() {
   if (!customAppListEl) return;
   const sourceList = cachedBridgeApps.length ? cachedBridgeApps : FALLBACK_LOCAL_ITEMS;
+  const q = String(appPickerSearchInput?.value || '').trim().toLowerCase();
+  if (appPickerClearBtn) appPickerClearBtn.hidden = !q;
+
+  const catMatches = sourceList.filter((item) => matchesPickerCategory(item, activePickerCategory));
+  const filtered = q
+    ? catMatches.filter((app) => {
+        const hay = `${app.name || ''} ${app.nameEn || ''} ${app.subtitle || ''} ${app.subtitleEn || ''} ${app.target || ''}`.toLowerCase();
+        return q.split(/\s+/).every((tok) => hay.includes(tok));
+      })
+    : catMatches;
+
+  if (appPickerCountEl) {
+    appPickerCountEl.textContent = `${filtered.length} / ${sourceList.length}`;
+  }
+
   customAppListEl.replaceChildren();
 
-  sourceList.slice(0, 60).forEach((app) => {
+  if (filtered.length === 0) {
+    const emptyEl = document.createElement('div');
+    emptyEl.className = 'desktop-picker-empty';
+    emptyEl.textContent = pickerCatalogLoading
+      ? L('Uygulamalar taranıyor...', 'Scanning installed apps...')
+      : L('Eşleşen uygulama bulunamadı — "Tümü" sekmesine geçebilir veya özel yol yazabilirsin.', 'No matching apps found — switch to "All" or enter a custom path.');
+    customAppListEl.appendChild(emptyEl);
+    return;
+  }
+
+  filtered.slice(0, 240).forEach((app) => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'desktop-app-pick-btn';
@@ -1052,12 +1188,18 @@ function renderCustomAppPickerList() {
       iconBox.innerHTML = fallbackSvg;
     }
 
+    const meta = document.createElement('span');
+    meta.className = 'desktop-app-pick-meta';
     const nameSpan = document.createElement('span');
     nameSpan.className = 'desktop-app-pick-name';
     const appDisplayName = isEn() ? (app.nameEn || app.name) : app.name;
     nameSpan.textContent = appDisplayName;
+    const subSpan = document.createElement('span');
+    subSpan.className = 'desktop-app-pick-sub';
+    subSpan.textContent = isEn() ? (app.subtitleEn || app.subtitle || '') : (app.subtitle || '');
+    meta.append(nameSpan, subSpan);
 
-    btn.append(iconBox, nameSpan);
+    btn.append(iconBox, meta);
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       shortcutNameInput.value = appDisplayName;
@@ -1065,9 +1207,34 @@ function renderCustomAppPickerList() {
       customAppListEl.querySelectorAll('.desktop-app-pick-btn').forEach((b) => b.classList.remove('is-selected'));
       btn.classList.add('is-selected');
     });
+    btn.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      shortcutNameInput.value = appDisplayName;
+      shortcutUrlInput.value = app.target;
+      commitShortcutFormEntry();
+    });
     customAppListEl.appendChild(btn);
   });
 }
+
+appPickerSearchInput.addEventListener('focus', () => setActiveDesktopInput(appPickerSearchInput));
+appPickerSearchInput.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setActiveDesktopInput(appPickerSearchInput);
+});
+appPickerSearchInput.addEventListener('input', () => renderCustomAppPickerList());
+appPickerClearBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  appPickerSearchInput.value = '';
+  renderCustomAppPickerList();
+  appPickerSearchInput.focus();
+  setActiveDesktopInput(appPickerSearchInput);
+});
+appPickerRefreshBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  fetchBridgeAppCatalog(true);
+});
+
 renderCustomAppPickerList();
 
 function openDesktopDockModal(editIdx = null) {
@@ -1081,20 +1248,38 @@ function openDesktopDockModal(editIdx = null) {
   }
   if (shortcutModalDesc) {
     shortcutModalDesc.textContent = L(
-      'Listeden bir uygulama seç veya klasör yolu (C:\\...) / web adresi yaz',
-      'Pick an installed app below or enter a folder path / URL',
+      'Listeden bir uygulama seç (çift tıkla hemen ekle) veya klasör yolu / URL yaz',
+      'Pick an installed app below (double-click to add) or enter a folder path / URL',
     );
   }
   if (appPickerLabel) {
     appPickerLabel.textContent = L(
-      'Bilgisayardaki Uygulamalardan Hızlı Seç (Tıkla):',
-      'Quick-pick from installed apps (Click):',
+      'Bilgisayardaki Uygulamalardan Seç (Tıkla):',
+      'Pick from Installed Apps (Click):',
     );
   }
-  shortcutUrlInput.placeholder = L(
-    'Örn: explorer.exe, C:\\Oyunlar, steam:// veya https://...',
-    'e.g. explorer.exe, C:\\Games, steam:// or https://...',
+  const scNameLbl = document.querySelector('label[for="shortcutNameInput"]');
+  const scUrlLbl = document.querySelector('label[for="shortcutUrlInput"]');
+  const scCancel = document.getElementById('closeShortcutModalBtn');
+  const scSubmit = shortcutForm?.querySelector('button[type="submit"]');
+  if (scNameLbl) scNameLbl.textContent = L('Başlık', 'Title');
+  if (scUrlLbl) scUrlLbl.textContent = L('Hedef (Yol veya URL)', 'Target (Path or URL)');
+  if (scCancel) scCancel.textContent = L('Vazgeç', 'Cancel');
+  if (scSubmit) scSubmit.textContent = editingDockIdx !== null ? L('Kaydet', 'Save') : L('Ekle', 'Add');
+  appPickerSearchInput.placeholder = L(
+    'Uygulama, klasör veya oyun ara (örn: Chrome, Steam)...',
+    'Search apps, folders or games (e.g. Chrome, Steam)...',
   );
+  shortcutNameInput.placeholder = L(
+    'Örn: Spotify, Steam veya Oyunlar',
+    'e.g. Spotify, Steam or Games',
+  );
+  shortcutUrlInput.placeholder = L(
+    'Örn: C:\\Oyunlar, explorer.exe, steam:// veya https://...',
+    'e.g. C:\\Games, explorer.exe, steam:// or https://...',
+  );
+
+  appPickerSearchInput.value = '';
   customAppListEl.querySelectorAll('.desktop-app-pick-btn').forEach((b) => b.classList.remove('is-selected'));
 
   if (editingDockIdx !== null) {
@@ -1105,37 +1290,21 @@ function openDesktopDockModal(editIdx = null) {
     shortcutUrlInput.value = '';
   }
 
+  renderCustomAppPickerList();
+  if (bridgeOnline) fetchBridgeAppCatalog(false);
+
   shortcutUrlInput.setCustomValidity('');
   shortcutModal.classList.remove('hidden');
   shortcutModal.classList.add('flex');
   shortcutModal.setAttribute('aria-hidden', 'false');
   shortcutModal.inert = false;
-  setActiveDesktopInput(shortcutNameInput);
+  setActiveDesktopInput(editingDockIdx !== null ? shortcutNameInput : appPickerSearchInput);
 }
 
 shortcutForm.addEventListener('submit', (e) => {
   e.preventDefault();
   e.stopImmediatePropagation();
-  const name = shortcutNameInput.value.trim().slice(0, 60);
-  const target = shortcutUrlInput.value.trim().slice(0, 2048);
-  if (!name || !target) return;
-
-  const entry = {
-    name,
-    url: target,
-    iconKey: inferDockIcon(name, target),
-  };
-
-  if (editingDockIdx !== null && editingDockIdx >= 0 && editingDockIdx < desktopDockItems.length) {
-    desktopDockItems[editingDockIdx] = entry;
-  } else {
-    desktopDockItems.push(entry);
-  }
-  lsSet(DESKTOP_DOCK_KEY, desktopDockItems);
-  renderDesktopDock();
-  if (typeof window.__weScheduleUserStateSync === 'function') window.__weScheduleUserStateSync();
-  setActiveDesktopInput(null);
-  closeShortcutModal(false);
+  commitShortcutFormEntry();
 }, true);
 
 renderDesktopDock();
@@ -2112,15 +2281,7 @@ async function pollDesktopBridge() {
     if (typeof loadNewsCategory === 'function' && (!currentNewsItems || !currentNewsItems.length)) {
       loadNewsCategory(activeNewsCat);
     }
-    fetch(`${BRIDGE_BASE_URL}/api/desktop/search?category=apps`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (Array.isArray(d.results)) {
-          cachedBridgeApps = d.results;
-          renderCustomAppPickerList();
-        }
-      })
-      .catch(() => {});
+    fetchBridgeAppCatalog(false);
   }
 }
 async function scheduleBridgePollLoop() {
@@ -8274,16 +8435,24 @@ window.__weApplyLanguage = function applyWallpaperLanguage(lang = 'tr', opts = {
   renderCustomAppPickerList();
   setQ('#headlineBar > span', 'Gündem', 'News');
 
-  // Shortcut Modal Static Labels
+  // Shortcut Modal Static Labels & Picker Localization
   const scNameLbl = document.querySelector('label[for="shortcutNameInput"]');
   const scUrlLbl = document.querySelector('label[for="shortcutUrlInput"]');
   const scCancel = document.getElementById('closeShortcutModalBtn');
   const scSubmit = shortcutForm?.querySelector('button[type="submit"]');
   if (scNameLbl) scNameLbl.textContent = L('Başlık', 'Title');
-  if (scUrlLbl) scUrlLbl.textContent = L('Adres (URL)', 'Path or URL');
+  if (scUrlLbl) scUrlLbl.textContent = L('Hedef (Yol veya URL)', 'Target (Path or URL)');
   if (scCancel) scCancel.textContent = L('Vazgeç', 'Cancel');
-  if (scSubmit) scSubmit.textContent = L('Ekle', 'Save');
-  if (appPickerLabel) appPickerLabel.textContent = L('Bilgisayardaki Uygulamalardan Hızlı Seç (Tıkla):', 'Quick-pick from installed apps (Click):');
+  if (scSubmit) scSubmit.textContent = editingDockIdx !== null ? L('Kaydet', 'Save') : L('Ekle', 'Add');
+  if (appPickerLabel) appPickerLabel.textContent = L('Bilgisayardaki Uygulamalardan Seç (Tıkla):', 'Pick from Installed Apps (Click):');
+  if (appPickerRefreshBtn && !pickerCatalogLoading) appPickerRefreshBtn.textContent = L('Yenile', 'Refresh');
+  if (appPickerSearchInput) appPickerSearchInput.placeholder = L('Uygulama, klasör veya oyun ara (örn: Chrome, Steam)...', 'Search apps, folders or games (e.g. Chrome, Steam)...');
+  if (shortcutNameInput) shortcutNameInput.placeholder = L('Örn: Spotify, Steam veya Oyunlar', 'e.g. Spotify, Steam or Games');
+  if (shortcutUrlInput) shortcutUrlInput.placeholder = L('Örn: C:\\Oyunlar, explorer.exe, steam:// veya https://...', 'e.g. C:\\Games, explorer.exe, steam:// or https://...');
+  appPickerTabsEl?.querySelectorAll('.desktop-picker-tab').forEach((t) => {
+    const def = PICKER_CATEGORIES.find((c) => c.id === t.dataset.pickerCat);
+    if (def) t.textContent = en ? def.en : def.tr;
+  });
 
   // 3. News Center
   setQ('#newsPopover .news-eyebrow', 'Diorama · Güncel', 'Diorama · Live');
