@@ -56,6 +56,7 @@ import { refreshWeatherPreviewButtons, refreshDataManagerStats } from './service
             applyThemeMode();
             invalidateBackgroundCache();
             refreshWeatherPreviewButtons();
+            window.dispatchEvent(new CustomEvent('diorama:manual-theme-toggle', { detail: { isLightMode } }));
         });
 
         // Update the pointer sheen only on the glass surface under the pointer.

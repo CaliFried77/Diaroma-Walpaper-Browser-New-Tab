@@ -2049,7 +2049,11 @@ export function applyWallpaperEngineProperties(properties) {
       wxAutoTheme = true;
       if (atBox) atBox.checked = true;
       lsPut('diorama_wx_autotheme', 'on');
-      if (WX.data) applyWeather();
+      if (typeof window.__weSyncWeatherSolar === 'function') {
+        window.__weSyncWeatherSolar(true);
+      } else if (WX.data) {
+        applyWeather({ forceThemeSync: true });
+      }
     } else {
       wxAutoTheme = false;
       if (atBox) atBox.checked = false;
@@ -2133,6 +2137,9 @@ window.wallpaperPropertyListener = {
     if (!weWallpaperPaused) {
       if (showClockSeconds) updateDesktopClockWithSeconds();
       else if (typeof updateClockAndGreeting === 'function') updateClockAndGreeting();
+      if (typeof window.__weSyncWeatherOnWake === 'function') {
+        window.__weSyncWeatherOnWake();
+      }
       if (bridgeOnline && typeof window.__wePollSystemStats === 'function' && weSettings.showSystem && !document.body.classList.contains('zen-active')) {
         window.__wePollSystemStats();
       }
@@ -4570,10 +4577,26 @@ window.__weHydrateUserState = async function hydrateUserStateFromBridge() {
         if (typeof renderTasks === 'function') renderTasks();
         if (typeof setNotes === 'function') setNotes(storedNotes);
         if (typeof renderNotes === 'function') renderNotes();
-        const savedTheme = lsRaw('diorama_theme');
-        if (savedTheme === 'light' || savedTheme === 'dark') {
-          const wantLight = savedTheme === 'light';
-          if (typeof setLightMode === 'function' && isLightMode !== wantLight) setLightMode(wantLight);
+        const savedWxFx = lsRaw('diorama_wxfx');
+        if (savedWxFx === 'on' || savedWxFx === 'off') {
+          wxFxEnabled = savedWxFx !== 'off';
+          const fxBox = document.getElementById('wxFxToggle');
+          if (fxBox) fxBox.checked = wxFxEnabled;
+        }
+        const savedAutoTheme = lsRaw('diorama_wx_autotheme');
+        if (savedAutoTheme === 'on' || savedAutoTheme === 'off') {
+          wxAutoTheme = savedAutoTheme === 'on';
+          const atBox = document.getElementById('wxAutoTheme');
+          if (atBox) atBox.checked = wxAutoTheme;
+        }
+        if (wxAutoTheme && typeof window.__weSyncWeatherSolar === 'function') {
+          window.__weSyncWeatherSolar(true);
+        } else {
+          const savedTheme = lsRaw('diorama_theme');
+          if (savedTheme === 'light' || savedTheme === 'dark') {
+            const wantLight = savedTheme === 'light';
+            if (typeof setLightMode === 'function' && isLightMode !== wantLight) setLightMode(wantLight);
+          }
         }
         if (typeof normalizeEvents === 'function' && typeof renderCalendar === 'function') {
           events = normalizeEvents(lsGet('diorama_calendar_events_v1', []));
@@ -8129,7 +8152,8 @@ window.__weTranslateWeatherPanel = function translateWeatherPanel(data) {
   const c = data.current;
   const dy = data.daily;
   const hr = data.hourly;
-  const isDay = Boolean(c.is_day);
+  const isDay = WX.live ? Boolean(WX.live.isDay) : Boolean(c.is_day);
+  const dayIdx = Number.isInteger(WX.live?.dayIdx) && dy.sunrise[WX.live.dayIdx] && dy.sunset[WX.live.dayIdx] ? WX.live.dayIdx : 0;
 
   const condEl = document.getElementById('wxCondition');
   if (condEl) condEl.textContent = WX_EN[c.weather_code] || 'Unknown';
@@ -8168,13 +8192,13 @@ window.__weTranslateWeatherPanel = function translateWeatherPanel(data) {
           <span>DAYLIGHT</span>
           <strong>${dayState}</strong>
         </div>
-        <div class="wx-solar-track ${isDay ? 'is-day' : 'is-night'}" role="img" aria-label="Sunrise ${hhmm(dy.sunrise[0])}, sunset ${hhmm(dy.sunset[0])}">
+        <div class="wx-solar-track ${isDay ? 'is-day' : 'is-night'}" role="img" aria-label="Sunrise ${hhmm(dy.sunrise[dayIdx])}, sunset ${hhmm(dy.sunset[dayIdx])}">
           <span class="wx-solar-glow" style="width:${skyPct}%"></span>
           <span class="wx-solar-marker" style="left:${skyPct}%">${isDay ? '☀' : '☾'}</span>
         </div>
         <div class="wx-solar-times">
-          <span><i>↗</i><small>SUNRISE</small><strong>${hhmm(dy.sunrise[0])}</strong></span>
-          <span><i>↘</i><small>SUNSET</small><strong>${hhmm(dy.sunset[0])}</strong></span>
+          <span><i>↗</i><small>SUNRISE</small><strong>${hhmm(dy.sunrise[dayIdx])}</strong></span>
+          <span><i>↘</i><small>SUNSET</small><strong>${hhmm(dy.sunset[dayIdx])}</strong></span>
         </div>
       </section>
       <div class="wx-celestial-grid">
@@ -8500,6 +8524,11 @@ window.__weApplyLanguage = function applyWallpaperLanguage(lang = 'tr', opts = {
   const wxAutoSpan = document.getElementById('wxAutoTheme')?.previousElementSibling;
   if (wxFxSpan) wxFxSpan.textContent = L('Sahnede hava efektleri', 'Live weather effects in scene');
   if (wxAutoSpan) wxAutoSpan.textContent = L('Gündüz/gece temasını güneşe göre ayarla', 'Auto day/night theme by sunrise & sunset');
+  const wxRefreshBtn = document.getElementById('refreshWeatherBtn');
+  if (wxRefreshBtn) {
+    wxRefreshBtn.setAttribute('aria-label', L('Hava durumunu yenile', 'Refresh weather'));
+    wxRefreshBtn.title = L('Hava Durumunu Yenile', 'Refresh Weather');
+  }
   const cityInp = document.getElementById('cityInput');
   if (cityInp) cityInp.placeholder = L('Şehir (Örn: İstanbul)', 'City (e.g. Istanbul, London)');
   const wxSaveBtn = document.querySelector('#weatherForm button[type="submit"]');

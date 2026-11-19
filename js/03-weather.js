@@ -2,6 +2,12 @@ import { lsRaw, lsPut, lsGet, lsSet, esc } from './storage.js';
 import { SVG_ICONS, isLightMode, setLightMode, closeAllPopovers } from './01-core-ui.js';
 import { pw, ph, pRect, ctx, setSceneFill, frameChance, shootingStars, frameScale, HABITATS, currentHabitatIdx } from './07-habitat-state.js';
 import { registerWeatherPreviewRenderer } from './services.js';
+import {
+    parseWeatherLocalTime,
+    computeLiveSolarState,
+    shouldRefreshWeather,
+    WEATHER_SOLAR_TICK_MS,
+} from './weather-solar.js';
 
 /* WEATHER — Living Pixel Diorama
    Native ES module. Cross-file dependencies are declared with imports and exports. */
@@ -12,6 +18,11 @@ import { registerWeatherPreviewRenderer } from './services.js';
         const weatherSvgContainer = document.getElementById('weatherSvgContainer');
         const weatherDetailText = document.getElementById('weatherDetailText');
         const weatherUpdatedText = document.getElementById('weatherUpdatedText');
+        const refreshWeatherBtn = document.getElementById('refreshWeatherBtn');
+        const wxPillBtnEl = document.getElementById('weatherBtn');
+        const wxPopoverPanelEl = document.getElementById('weatherPopover');
+        const wxIsEn = () => typeof window !== 'undefined' && window.__weLang === 'en';
+        const wxL = (tr, en) => (wxIsEn() ? en : tr);
         weatherSvgContainer.innerHTML = SVG_ICONS.weatherClear;
 
                 /* ============================================================================
@@ -168,7 +179,10 @@ import { registerWeatherPreviewRenderer } from './services.js';
 
         function renderWeatherPanel() {
             const d = WX.data, c = d.current, dy = d.daily, hr = d.hourly;
-            const kind = wxKind(c.weather_code), isDay = !!c.is_day;
+            const kind = wxKind(c.weather_code);
+            const solar = WX.live || computeLiveSolarState(d, Date.now());
+            const isDay = Boolean(solar.isDay);
+            const dayIdx = Number.isInteger(solar.dayIdx) && dy.sunrise[solar.dayIdx] && dy.sunset[solar.dayIdx] ? solar.dayIdx : 0;
             document.getElementById('wxBigIcon').innerHTML = pxIcon(kind, isDay, 64);
             document.getElementById('wxBigTemp').textContent = `${Math.round(c.temperature_2m)}°`;
             document.getElementById('wxCondition').textContent = WX_TR[c.weather_code] || 'Bilinmiyor';
@@ -199,13 +213,13 @@ import { registerWeatherPreviewRenderer } from './services.js';
                         <span>GÜNÜN IŞIĞI</span>
                         <strong>${dayState}</strong>
                     </div>
-                    <div class="wx-solar-track ${isDay ? 'is-day' : 'is-night'}" role="img" aria-label="Gün doğumu ${hhmm(dy.sunrise[0])}, gün batımı ${hhmm(dy.sunset[0])}">
+                    <div class="wx-solar-track ${isDay ? 'is-day' : 'is-night'}" role="img" aria-label="Gün doğumu ${hhmm(dy.sunrise[dayIdx])}, gün batımı ${hhmm(dy.sunset[dayIdx])}">
                         <span class="wx-solar-glow" style="width:${skyPct}%"></span>
                         <span class="wx-solar-marker" style="left:${skyPct}%">${isDay ? '☀' : '☾'}</span>
                     </div>
                     <div class="wx-solar-times">
-                        <span><i>↗</i><small>GÜN DOĞUMU</small><strong>${hhmm(dy.sunrise[0])}</strong></span>
-                        <span><i>↘</i><small>GÜN BATIMI</small><strong>${hhmm(dy.sunset[0])}</strong></span>
+                        <span><i>↗</i><small>GÜN DOĞUMU</small><strong>${hhmm(dy.sunrise[dayIdx])}</strong></span>
+                        <span><i>↘</i><small>GÜN BATIMI</small><strong>${hhmm(dy.sunset[dayIdx])}</strong></span>
                     </div>
                 </section>
                 <div class="wx-celestial-grid">
@@ -257,8 +271,9 @@ import { registerWeatherPreviewRenderer } from './services.js';
                     </section>`;
             }
 
-            const srH = +hhmm(dy.sunrise[0]).slice(0, 2), ssH = +hhmm(dy.sunset[0]).slice(0, 2);
-            let i0 = hr.time.indexOf(c.time.slice(0, 13) + ':00');
+            const srH = +hhmm(dy.sunrise[dayIdx]).slice(0, 2), ssH = +hhmm(dy.sunset[dayIdx]).slice(0, 2);
+            let i0 = solar.cityHourPrefix ? hr.time.indexOf(solar.cityHourPrefix) : -1;
+            if (i0 < 0) i0 = hr.time.indexOf(c.time.slice(0, 13) + ':00');
             if (i0 < 0) i0 = 0;
             let hourlyMarkup = '';
             for (let i = i0; i < Math.min(i0 + 12, hr.time.length); i++) {
@@ -302,14 +317,6 @@ import { registerWeatherPreviewRenderer } from './services.js';
         // BÖLÜM BAŞI: SERVİS YANITLARI, ÖNBELLEK VE HAVA VERİSİ İSTEKLERİ
 // ============================================================================
 
-        function parseWeatherLocalTime(value) {
-            if (typeof value !== 'string' || !value) return new Date(NaN);
-            // Open-Meteo returns wall-clock ISO values for timezone=auto. Keeping them
-            // on one neutral timeline makes sun-progress differences independent of
-            // the device timezone; explicit offsets are preserved when present.
-            return new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(value) ? value : `${value}Z`);
-        }
-
         function validWeatherPayload(data) {
             if (!data || typeof data !== 'object' || !data.current || !data.daily || !data.hourly) return false;
             const c = data.current, dy = data.daily, hr = data.hourly;
@@ -333,33 +340,98 @@ import { registerWeatherPreviewRenderer } from './services.js';
             return true;
         }
 
-        function applyWeather() {
-            const d = WX.data; if (!validWeatherPayload(d)) return;
-            const c = d.current, dy = d.daily, now = parseWeatherLocalTime(c.time), sr = parseWeatherLocalTime(dy.sunrise[0]), ss = parseWeatherLocalTime(dy.sunset[0]), isDay = !!c.is_day;
-            let sunP = .5, moonP = .5;
-            if (Number.isFinite(now.getTime()) && Number.isFinite(sr.getTime()) && Number.isFinite(ss.getTime())) {
-                if (isDay && ss > sr) sunP = clamp01((now - sr) / (ss - sr));
-                else if (now > ss) {
-                    const nextSunrise = parseWeatherLocalTime(dy.sunrise[1]);
-                    if (Number.isFinite(nextSunrise.getTime()) && nextSunrise > ss) moonP = clamp01((now - ss) / (nextSunrise - ss));
-                } else {
-                    const previousSunset = new Date(ss.getTime() - 864e5);
-                    moonP = clamp01((now - previousSunset) / (sr - previousSunset));
-                }
+        let weatherRequestSeq = 0;
+        let weatherController = null;
+        let lastWeatherFetchedAt = 0;
+        let lastWeatherAttemptAt = 0;
+        let lastWeatherFailed = false;
+        let consecutiveWeatherFailures = 0;
+        let cachedWeatherCoords = null;
+        let manualThemeOverrideForIsDay = null;
+        const WEATHER_CACHE_KEY = 'diorama_weather_cache';
+
+        function setRefreshWeatherBusy(busy) {
+            if (!refreshWeatherBtn) return;
+            refreshWeatherBtn.disabled = Boolean(busy);
+            if (busy) refreshWeatherBtn.setAttribute('aria-busy', 'true');
+            else refreshWeatherBtn.removeAttribute('aria-busy');
+        }
+
+        function enforceAutoThemeIfNeeded(isDay, forceThemeSync = false) {
+            if (forceThemeSync) manualThemeOverrideForIsDay = null;
+            if (wxAutoTheme && manualThemeOverrideForIsDay !== isDay && isLightMode !== isDay) {
+                setLightMode(isDay);
+                lsPut('diorama_theme', isDay ? 'light' : 'dark');
+                renderWxPreviewButtons();
             }
-            WX.live = { code: c.weather_code, cloud: c.cloud_cover, wind: c.wind_speed_10m, dir: c.wind_direction_10m, isDay, sunP, moonP };
+        }
+
+        function applyWeather(options = {}) {
+            const d = WX.data; if (!validWeatherPayload(d)) return;
+            const c = d.current;
+            const solar = computeLiveSolarState(d, Date.now());
+            const prevIsDay = WX.live ? Boolean(WX.live.isDay) : null;
+            if (prevIsDay !== null && prevIsDay !== solar.isDay) {
+                manualThemeOverrideForIsDay = null;
+            }
+            WX.live = {
+                code: c.weather_code,
+                cloud: c.cloud_cover,
+                wind: c.wind_speed_10m,
+                dir: c.wind_direction_10m,
+                isDay: solar.isDay,
+                sunP: solar.sunP,
+                moonP: solar.moonP,
+                dayIdx: solar.dayIdx,
+                cityHourPrefix: solar.cityHourPrefix,
+            };
             weatherTemp.textContent = `${Math.round(c.temperature_2m)}°C`;
-            weatherSvgContainer.innerHTML = pxIcon(wxKind(c.weather_code), isDay, 20);
+            weatherSvgContainer.innerHTML = pxIcon(wxKind(c.weather_code), solar.isDay, 20);
             weatherSvgContainer.className = 'w-5 h-5 flex items-center justify-center';
             renderWeatherPanel();
             if (WX.preview === null) { wxApplyState(WX.live); WX.ready = true; }
-            if (wxAutoTheme && isLightMode !== isDay) { setLightMode(isDay); lsPut('diorama_theme', isDay ? 'light' : 'dark'); }
+            enforceAutoThemeIfNeeded(solar.isDay, Boolean(options.forceThemeSync));
             renderWxPreviewButtons();
         }
 
-        let weatherRequestSeq = 0;
-        let weatherController = null;
-        const WEATHER_CACHE_KEY = 'diorama_weather_cache';
+        function syncWeatherSolarAndTheme(options = {}) {
+            if (!validWeatherPayload(WX.data)) return false;
+            const solar = computeLiveSolarState(WX.data, Date.now());
+            if (!WX.live) {
+                applyWeather(options);
+                return true;
+            }
+            const prev = WX.live;
+            const isDayChanged = Boolean(prev.isDay) !== Boolean(solar.isDay);
+            const dayIdxChanged = (prev.dayIdx ?? 0) !== solar.dayIdx;
+            const hourChanged = (prev.cityHourPrefix || '') !== (solar.cityHourPrefix || '');
+            const prevProg = prev.isDay ? prev.sunP : prev.moonP;
+            const nextProg = solar.isDay ? solar.sunP : solar.moonP;
+            const progDelta = Math.abs(nextProg - prevProg);
+
+            if (isDayChanged) manualThemeOverrideForIsDay = null;
+            WX.live = {
+                ...prev,
+                isDay: solar.isDay,
+                sunP: solar.sunP,
+                moonP: solar.moonP,
+                dayIdx: solar.dayIdx,
+                cityHourPrefix: solar.cityHourPrefix,
+            };
+            if (WX.preview === null && (isDayChanged || progDelta >= 0.004)) {
+                wxApplyState(WX.live);
+                WX.ready = true;
+            }
+            if (isDayChanged) {
+                weatherSvgContainer.innerHTML = pxIcon(wxKind(WX.data.current.weather_code), solar.isDay, 20);
+                renderWeatherPanel();
+                renderWxPreviewButtons();
+            } else if ((dayIdxChanged || hourChanged || progDelta >= 0.008) && wxPopoverPanelEl?.classList.contains('open')) {
+                renderWeatherPanel();
+            }
+            enforceAutoThemeIfNeeded(solar.isDay, Boolean(options.forceThemeSync));
+            return true;
+        }
 
         function setWeatherStatus(message, tone = 'normal') {
             weatherUpdatedText.textContent = message;
@@ -377,11 +449,19 @@ import { registerWeatherPreviewRenderer } from './services.js';
             if (!weatherCacheIsValid(cache)) return false;
             WX.data = cache.data;
             WX.airQuality = validAirQualityCurrent(cache.airQuality) ? cache.airQuality : null;
+            lastWeatherFetchedAt = cache.fetchedAt;
+            cachedWeatherCoords = cache.coords && Number.isFinite(cache.coords.latitude) && Number.isFinite(cache.coords.longitude)
+                ? cache.coords
+                : null;
             weatherCity.textContent = cache.city;
-            applyWeather();
-            const stamp = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(cache.fetchedAt));
+            applyWeather({ forceThemeSync: true });
+            const locale = wxIsEn() ? 'en-US' : 'tr-TR';
+            const stamp = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(cache.fetchedAt));
             const age = Date.now() - cache.fetchedAt;
-            setWeatherStatus(`${age > 6 * 60 * 60 * 1000 ? 'Eski önbellek' : 'Önbellek'} · ${stamp}`, age > 6 * 60 * 60 * 1000 ? 'error' : 'normal');
+            setWeatherStatus(
+                `${age > 6 * 60 * 60 * 1000 ? wxL('Eski önbellek', 'Stale cache') : wxL('Önbellek', 'Cached')} · ${stamp}`,
+                age > 6 * 60 * 60 * 1000 ? 'error' : 'normal'
+            );
             return true;
         }
 
@@ -396,30 +476,59 @@ import { registerWeatherPreviewRenderer } from './services.js';
             const timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, 12000);
             const isCurrentRequest = () => requestId === weatherRequestSeq;
 
-            if (!options.silent) setWeatherStatus(`${requestedCity} aranıyor…`);
+            lastWeatherAttemptAt = Date.now();
+            setRefreshWeatherBusy(true);
+            if (!options.silent) {
+                setWeatherStatus(options.manual
+                    ? wxL('Hava durumu güncelleniyor…', 'Refreshing weather…')
+                    : wxL(`${requestedCity} aranıyor…`, `Searching ${requestedCity}…`));
+            }
             try {
                 if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('offline');
 
-                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(requestedCity)}&count=1&language=tr&format=json`, {
-                    signal: controller.signal,
-                    cache: 'no-store',
-                    credentials: 'omit',
-                    referrerPolicy: 'no-referrer'
-                });
-                if (!geoResponse.ok) throw new Error(`Konum servisi HTTP ${geoResponse.status}`);
-                const geo = await geoResponse.json();
-                if (!isCurrentRequest()) return false;
-                if (!geo || !Array.isArray(geo.results) || !geo.results.length) {
-                    const currentCity = weatherCity.textContent;
-                    setWeatherStatus(WX.data
-                        ? `“${requestedCity}” bulunamadı · ${currentCity} gösterilmeye devam ediyor`
-                        : `“${requestedCity}” için konum bulunamadı`, 'error');
-                    return false;
+                let latitude;
+                let longitude;
+                let name = requestedCity;
+                const canReuseCoords = Boolean(
+                    cachedWeatherCoords
+                    && typeof cachedWeatherCoords.city === 'string'
+                    && cachedWeatherCoords.city.toLowerCase() === requestedCity.toLowerCase()
+                    && Number.isFinite(cachedWeatherCoords.latitude)
+                    && Number.isFinite(cachedWeatherCoords.longitude)
+                );
+
+                try {
+                    const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(requestedCity)}&count=1&language=tr&format=json`, {
+                        signal: controller.signal,
+                        cache: 'no-store',
+                        credentials: 'omit',
+                        referrerPolicy: 'no-referrer'
+                    });
+                    if (!geoResponse.ok) throw new Error(`Konum servisi HTTP ${geoResponse.status}`);
+                    const geo = await geoResponse.json();
+                    if (!isCurrentRequest()) return false;
+                    if (!geo || !Array.isArray(geo.results) || !geo.results.length) {
+                        const currentCity = weatherCity.textContent;
+                        setWeatherStatus(WX.data
+                            ? wxL(`“${requestedCity}” bulunamadı · ${currentCity} gösterilmeye devam ediyor`, `“${requestedCity}” not found · keeping ${currentCity}`)
+                            : wxL(`“${requestedCity}” için konum bulunamadı`, `Location not found for “${requestedCity}”`), 'error');
+                        lastWeatherFailed = true;
+                        consecutiveWeatherFailures += 1;
+                        return false;
+                    }
+
+                    const place = geo.results.find(item => Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)));
+                    if (!place) throw new Error('Konum koordinatları geçersiz');
+                    latitude = place.latitude;
+                    longitude = place.longitude;
+                    name = place.name || requestedCity;
+                } catch (geoError) {
+                    if (geoError?.name === 'AbortError' || !canReuseCoords) throw geoError;
+                    latitude = cachedWeatherCoords.latitude;
+                    longitude = cachedWeatherCoords.longitude;
+                    name = cachedWeatherCoords.name || requestedCity;
                 }
 
-                const place = geo.results.find(item => Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)));
-                if (!place) throw new Error('Konum koordinatları geçersiz');
-                const { latitude, longitude, name } = place;
                 const q = `latitude=${encodeURIComponent(latitude)}&longitude=${encodeURIComponent(longitude)}&timezone=auto&forecast_days=5` +
                     `&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,is_day,cloud_cover,precipitation` +
                     `&hourly=temperature_2m,weather_code,precipitation_probability` +
@@ -435,35 +544,47 @@ import { registerWeatherPreviewRenderer } from './services.js';
                 if (!isCurrentRequest()) return false;
                 if (!validWeatherPayload(weatherData)) throw new Error((weatherData && weatherData.reason) || 'Hava durumu verisi eksik veya geçersiz');
 
+                lastWeatherFailed = false;
+                consecutiveWeatherFailures = 0;
+                const fetchedAt = Date.now();
+                lastWeatherFetchedAt = fetchedAt;
+                const resolvedCity = name || requestedCity;
+                cachedWeatherCoords = { city: resolvedCity, latitude, longitude, name: resolvedCity };
+
                 WX.data = weatherData;
                 WX.airQuality = null;
-                weatherCity.textContent = name || requestedCity;
-                applyWeather();
-                userCity = name || requestedCity;
+                weatherCity.textContent = resolvedCity;
+                applyWeather({ forceThemeSync: Boolean(options.manual || options.force) });
+                userCity = resolvedCity;
                 lsPut('diorama_city', userCity);
-                const fetchedAt = Date.now();
-                lsSet(WEATHER_CACHE_KEY, { city: userCity, fetchedAt, data: WX.data, airQuality: WX.airQuality });
-                setWeatherStatus(`Güncellendi ${new Date(fetchedAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`);
+                lsSet(WEATHER_CACHE_KEY, { city: userCity, fetchedAt, data: WX.data, airQuality: WX.airQuality, coords: cachedWeatherCoords });
+                const timeStr = new Date(fetchedAt).toLocaleTimeString(wxIsEn() ? 'en-US' : 'tr-TR', { hour: '2-digit', minute: '2-digit', hour12: false });
+                setWeatherStatus(wxL(`Güncellendi ${timeStr}`, `Updated ${timeStr}`));
                 void fetchAirQuality(latitude, longitude, requestId);
                 return true;
             } catch (error) {
                 if (!isCurrentRequest()) return false;
+                lastWeatherFailed = true;
+                consecutiveWeatherFailures += 1;
                 const offline = (typeof navigator !== 'undefined' && navigator.onLine === false) || error.message === 'offline';
                 const hasLastGoodData = !!WX.data;
                 const message = offline
-                    ? (hasLastGoodData ? 'Çevrimdışı · son başarılı veri gösteriliyor' : 'Çevrimdışı · hava verisi henüz alınamadı')
+                    ? (hasLastGoodData ? wxL('Çevrimdışı · son başarılı veri gösteriliyor', 'Offline · showing last saved data') : wxL('Çevrimdışı · hava verisi henüz alınamadı', 'Offline · weather data unavailable'))
                     : timedOut
-                        ? (hasLastGoodData ? 'Yanıt zaman aşımı · son başarılı veri gösteriliyor' : 'Yanıt zaman aşımına uğradı · veri alınamadı')
-                        : (hasLastGoodData ? 'Güncellenemedi · son başarılı veri gösteriliyor' : 'Hava verisi alınamadı · yeniden deneyebilirsin');
+                        ? (hasLastGoodData ? wxL('Yanıt zaman aşımı · son başarılı veri gösteriliyor', 'Timed out · showing last saved data') : wxL('Yanıt zaman aşımına uğradı · veri alınamadı', 'Request timed out · data unavailable'))
+                        : (hasLastGoodData ? wxL('Güncellenemedi · son başarılı veri gösteriliyor', 'Refresh failed · showing last saved data') : wxL('Hava verisi alınamadı · yeniden deneyebilirsin', 'Weather unavailable · please try again'));
                 setWeatherStatus(message, 'error');
                 if (!WX.data) {
                     weatherTemp.textContent = '--°C';
-                    weatherDetailText.textContent = 'Hava durumu verisi şu anda alınamıyor';
+                    weatherDetailText.textContent = wxL('Hava durumu verisi şu anda alınamıyor', 'Weather forecast is currently unavailable');
                 }
                 return false;
             } finally {
                 clearTimeout(timeoutId);
-                if (isCurrentRequest()) weatherController = null;
+                if (isCurrentRequest()) {
+                    weatherController = null;
+                    setRefreshWeatherBusy(false);
+                }
             }
         }
 
@@ -504,22 +625,82 @@ import { registerWeatherPreviewRenderer } from './services.js';
             }
         }
 
+        function maybeRefreshWeather(reason = 'tick') {
+            syncWeatherSolarAndTheme({ forceThemeSync: reason === 'manual' });
+            const shouldFetch = shouldRefreshWeather({
+                nowMs: Date.now(),
+                lastFetchedAt: lastWeatherFetchedAt,
+                lastAttemptAt: lastWeatherAttemptAt,
+                lastFailed: lastWeatherFailed,
+                consecutiveFailures: consecutiveWeatherFailures,
+                hasData: validWeatherPayload(WX.data),
+                reason,
+                isHidden: typeof document !== 'undefined' ? Boolean(document.hidden) : false,
+                isPaused: typeof window !== 'undefined' && window.__wePaused === true,
+                isOnline: typeof navigator === 'undefined' ? true : navigator.onLine !== false,
+                inFlight: Boolean(weatherController),
+            });
+            if (shouldFetch) {
+                void fetchWeather(userCity, {
+                    silent: reason !== 'manual',
+                    manual: reason === 'manual',
+                    force: reason === 'manual',
+                });
+            }
+        }
+
         restoreWeatherCache();
         fetchWeather(userCity, { silent: true });
 
-        // Refresh on return to the tab and periodically while visible; never poll in the background.
+        if (refreshWeatherBtn) {
+            refreshWeatherBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                maybeRefreshWeather('manual');
+            });
+        }
+        if (wxPillBtnEl) {
+            wxPillBtnEl.addEventListener('click', () => {
+                if (wxPopoverPanelEl?.classList.contains('open')) {
+                    maybeRefreshWeather('popover');
+                }
+            });
+        }
+
+        // Refresh on wake/focus/unpause and evaluate real-time solar state every 30s.
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && typeof navigator !== 'undefined' && navigator.onLine) fetchWeather(userCity, { silent: true });
+            if (!document.hidden) maybeRefreshWeather('wake');
         });
-        window.addEventListener('online', () => fetchWeather(userCity, { silent: true }));
-        window.addEventListener('offline', () => setWeatherStatus('Çevrimdışı · son başarılı veri korunuyor', 'error'));
+        window.addEventListener('focus', () => {
+            maybeRefreshWeather('wake');
+        });
+        window.addEventListener('online', () => {
+            maybeRefreshWeather('online');
+        });
+        window.addEventListener('offline', () => setWeatherStatus(wxL('Çevrimdışı · son başarılı veri korunuyor', 'Offline · showing last saved data'), 'error'));
+        window.addEventListener('diorama:manual-theme-toggle', () => {
+            if (wxAutoTheme && WX.live) manualThemeOverrideForIsDay = Boolean(WX.live.isDay);
+        });
         setInterval(() => {
-            if (!document.hidden && typeof navigator !== 'undefined' && navigator.onLine) fetchWeather(userCity, { silent: true });
-        }, 30 * 60 * 1000);
+            maybeRefreshWeather('tick');
+        }, WEATHER_SOLAR_TICK_MS);
+
+        window.__weSyncWeatherOnWake = () => maybeRefreshWeather('wake');
+        window.__weRefreshWeatherNow = () => maybeRefreshWeather('manual');
+        window.__weSyncWeatherSolar = (forceThemeSync = false) => syncWeatherSolarAndTheme({ forceThemeSync });
+
         const fxBox = document.getElementById('wxFxToggle'), atBox = document.getElementById('wxAutoTheme');
         fxBox.checked = wxFxEnabled; atBox.checked = wxAutoTheme;
         fxBox.addEventListener('change', () => { wxFxEnabled = fxBox.checked; lsPut('diorama_wxfx', wxFxEnabled ? 'on' : 'off'); });
-        atBox.addEventListener('change', () => { wxAutoTheme = atBox.checked; lsPut('diorama_wx_autotheme', wxAutoTheme ? 'on' : 'off'); if (wxAutoTheme) applyWeather(); });
+        atBox.addEventListener('change', () => {
+            wxAutoTheme = atBox.checked;
+            lsPut('diorama_wx_autotheme', wxAutoTheme ? 'on' : 'off');
+            if (wxAutoTheme) {
+                manualThemeOverrideForIsDay = null;
+                if (!syncWeatherSolarAndTheme({ forceThemeSync: true })) {
+                    void fetchWeather(userCity, { silent: true, force: true });
+                }
+            }
+        });
         renderWxPreviewButtons();
 
         /* ---- Sahne parçacıkları ---- */

@@ -2269,6 +2269,8 @@ function applyWebLanguageToUI() {
     if (wxFxSpan) wxFxSpan.textContent = L('Sahnede hava efektleri', 'Weather effects in scene');
     const wxAutoSpan = document.getElementById('wxAutoTheme')?.previousElementSibling;
     if (wxAutoSpan) wxAutoSpan.textContent = L('Gündüz/gece temasını güneşe göre ayarla', 'Auto day/night theme from sun cycle');
+    setAttr('#refreshWeatherBtn', 'aria-label', 'Hava durumunu yenile', 'Refresh weather');
+    setAttr('#refreshWeatherBtn', 'title', 'Hava Durumunu Yenile', 'Refresh Weather');
     setAttr('#cityInput', 'placeholder', 'Şehir (Örn: İstanbul)', 'City (e.g. London)');
     setText('#weatherForm button[type="submit"]', 'Kaydet', 'Save');
 

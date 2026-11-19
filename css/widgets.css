@@ -351,6 +351,8 @@
 @media (prefers-reduced-motion: reduce) {
   .focus-stage-overlay.is-visible .focus-stage-shell { animation: none; }
   .focus-pixel-track span, .focus-stage-pixel-track span { transition: none; }
+  .wx-icon-btn[aria-busy="true"] svg { animation: none; }
+  .wx-icon-btn { transition: none; }
 }
 
 
@@ -361,6 +363,44 @@
   padding: 1.35rem !important;
   overflow-x: hidden;
 }
+.wx-header-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.wx-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  color: rgba(255, 255, 255, .78);
+  background: rgba(255, 255, 255, .065);
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease, border-color .2s ease, transform .2s ease;
+}
+.wx-icon-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, .13);
+  border-color: rgba(255, 255, 255, .23);
+  transform: translateY(-1px);
+}
+.wx-icon-btn:disabled {
+  opacity: .5;
+  cursor: wait;
+  transform: none;
+}
+.wx-icon-btn[aria-busy="true"] svg {
+  animation: wx-spin .9s linear infinite;
+}
+.wx-icon-btn svg {
+  width: 17px;
+  height: 17px;
+}
+@keyframes wx-spin { to { transform: rotate(360deg); } }
 .wx-air-card {
   padding: 13px 14px 11px;
   border: 1px solid rgba(125,211,252,.22);

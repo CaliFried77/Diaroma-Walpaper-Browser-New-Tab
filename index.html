@@ -183,9 +183,9 @@
                 </button>
 
                 <div id="weatherPopover" role="region" aria-label="Hava durumu" aria-hidden="true" inert class="popover-panel editorial-modal rounded-3xl weather-popover absolute right-0 mt-2.5 z-50 overflow-y-auto">
-                    <div class="flex items-center gap-4">
+                    <div class="wx-header-row">
                         <div id="wxBigIcon" class="shrink-0 w-16 h-16 flex items-center justify-center"></div>
-                        <div class="min-w-0">
+                        <div class="min-w-0 flex-1">
                             <div class="flex items-baseline gap-2">
                                 <span id="wxBigTemp" class="font-pixel text-4xl text-white leading-none">--°</span>
                                 <span id="wxCondition" class="text-sm text-white/85 truncate">Yükleniyor</span>
@@ -193,6 +193,9 @@
                             <p id="weatherDetailText" class="text-xs text-white/60 mt-1.5">Veri alınıyor…</p>
                             <p id="weatherUpdatedText" class="text-[10px] text-white/45 mt-1" aria-live="polite">Hava verisi bekleniyor</p>
                         </div>
+                        <button id="refreshWeatherBtn" type="button" aria-label="Hava durumunu yenile" title="Hava Durumunu Yenile" class="wx-icon-btn shrink-0">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        </button>
                     </div>
                     <div id="wxAirQuality" class="wx-air-quality mt-4" aria-live="polite"></div>
                     <div id="wxStats" class="wx-stats mt-3"></div>
