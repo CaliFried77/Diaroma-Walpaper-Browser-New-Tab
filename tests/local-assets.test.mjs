@@ -231,6 +231,21 @@ test('all remaining biomes have stationary ambient wildlife and arctic tundra su
   ]) {
     assert.ok(ambientWildlifeModule.includes(fnName), `Missing stationary wildlife/holiday renderer: ${fnName}`);
   }
+  assert.ok(ambientWildlifeModule.includes('beginAmbientWildlifeFrame'));
+  assert.ok(ambientWildlifeModule.includes('registerAmbientHitbox'));
+  assert.ok(ambientWildlifeModule.includes('getAmbientReaction'));
+  assert.ok(ambientWildlifeModule.includes('hasAmbientWildlifeAt'));
+  assert.ok(ambientWildlifeModule.includes('tryInteractAmbientWildlife'));
+  assert.ok(ambientWildlifeModule.includes('nessRoam'), 'Koi-pond Loch Ness serpent must roam across pond');
+  assert.ok(ambientWildlifeModule.includes('getRightSafeX(0.69)'), 'Betta Axolotl should relocate to clean right-center cove');
+  assert.ok(
+    ambientWildlifeModule.includes('#be123c') && ambientWildlifeModule.includes('#e11d48') && ambientWildlifeModule.includes('#fbcfe8'),
+    'Reef Octopus must use sculpted coral-crimson palette with pink suction cups',
+  );
+  assert.ok(
+    interactionModule.includes('tryInteractAmbientWildlife('),
+    'Canvas pointerdown must intercept direct animal clicks before dropping food/stimuli',
+  );
   assert.ok(ambientWildlifeModule.includes('getLeftSafeX'));
   assert.ok(ambientWildlifeModule.includes('getRightSafeX'));
   assert.ok(ambientWildlifeModule.includes('drawArcticCandyCane'));

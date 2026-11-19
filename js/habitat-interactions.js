@@ -1,18 +1,45 @@
 import { stimuli, canvas, PIXEL_SCALE, HABITATS, currentHabitatIdx, pw, ph, frameScale, pRect } from './07-habitat-state.js';
 import { getArcticLandingY } from './arctic-geometry.js';
 import { getGroundY } from './habitat-geometry.js';
+import { tryInteractAmbientWildlife, hasAmbientWildlifeAt } from './habitat-ambient-wildlife.js';
 
-/* HABITAT INTERACTIONS — user input that spawns food and stimuli in the active habitat. */
+/* HABITAT INTERACTIONS — user input that spawns food/stimuli or triggers direct ambient wildlife reactions. */
+
+function getCanvasLogicalPoint(e) {
+    const rect = typeof canvas.getBoundingClientRect === 'function' ? canvas.getBoundingClientRect() : null;
+    if (rect && rect.width >= Math.max(120, pw) && rect.height >= Math.max(80, ph)) {
+        return {
+            px: (e.clientX - rect.left) * (pw / rect.width),
+            py: (e.clientY - rect.top) * (ph / rect.height)
+        };
+    }
+    return {
+        px: e.clientX / PIXEL_SCALE,
+        py: e.clientY / PIXEL_SCALE
+    };
+}
 
 // ============================================================================
-// BÖLÜM BAŞI: SAHNEYE TIKLAYARAK YEM VE UYARAN BIRAKMA
+// BÖLÜM BAŞI: SAHNEYE TIKLAYARAK YEM VE UYARAN BIRAKMA YA DA CANLIYA DOKUNMA
 // Her habitatın interactionProfile değeri doğru uyaran türünü belirler.
 // ============================================================================
 
+canvas.addEventListener('pointermove', (e) => {
+    if (!canvas || !canvas.style) return;
+    const { px, py } = getCanvasLogicalPoint(e);
+    const activeHabitat = HABITATS[currentHabitatIdx];
+    canvas.style.cursor = (activeHabitat && hasAmbientWildlifeAt(activeHabitat.sceneProfile, px, py))
+        ? 'pointer'
+        : '';
+});
+
 canvas.addEventListener('pointerdown', (e) => {
-    const px = e.clientX / PIXEL_SCALE;
-    const py = e.clientY / PIXEL_SCALE;
-    const interactionProfile = HABITATS[currentHabitatIdx].interactionProfile;
+    const { px, py } = getCanvasLogicalPoint(e);
+    const activeHabitat = HABITATS[currentHabitatIdx];
+    if (activeHabitat && tryInteractAmbientWildlife(activeHabitat.sceneProfile, px, py)) {
+        return;
+    }
+    const interactionProfile = activeHabitat.interactionProfile;
 
     if (interactionProfile === 'nectar') {
         for (let i = 0; i < 3; i++) {

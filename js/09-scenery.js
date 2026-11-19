@@ -3,7 +3,7 @@ import { drawHabitatStimuli } from './habitat-interactions.js';
 import { getGroundY } from './habitat-geometry.js';
 import { buildStaticEnvironmentLayer } from './habitat-backgrounds.js';
 import { drawHabitatFlora } from './habitat-flora-renderer.js';
-import { drawHabitatAmbientWildlife, drawArcticChristmasSky, drawArcticChristmasGround } from './habitat-ambient-wildlife.js';
+import { beginAmbientWildlifeFrame, drawHabitatAmbientWildlife, drawArcticChristmasSky, drawArcticChristmasGround, registerAmbientHitbox, getAmbientReaction } from './habitat-ambient-wildlife.js';
 import { isLightMode } from './01-core-ui.js';
 import { wxFxOn, drawWxSky } from './03-weather.js';
 import { sceneCache } from './scene-state.js';
@@ -73,6 +73,7 @@ function getFallbackMoonSprite() {
 export function drawHabitatEnvironment(time) {
     resetFillStyleCache();
     const hab = HABITATS[currentHabitatIdx];
+    beginAmbientWildlifeFrame(hab.sceneProfile, time);
     const topCol = isLightMode ? hab.lightTop : hab.skyTop;
     const midCol = isLightMode ? hab.lightMid : hab.skyMid;
     const botCol = isLightMode ? hab.lightBot : hab.skyBot;
@@ -716,46 +717,51 @@ if (hab.sceneProfile === 'wetland') {
             pRect(mx, my, 3, 2, `rgba(224, 242, 254, ${mAlpha})`);
         }
 
-        // YERİNDE YAŞAYAN DURGUN CANLILAR (Uçuş/Gezme sadece papağanlara özeldir; diğerleri habitat ev sahibi olarak doğal es'li ritimlerle yaşar)
-        // 1. Toco Tukan (~22x24px kahraman ölçek, sol kanopi dalında tüner; 16s doğal dinlenme/çağrı ritmi)
+        // YERİNDE YAŞAYAN DURGUN CANLILAR (Tıklayınca tepki verirler; yem/uyaran düşürmezler)
+        // 1. Toco Tukan (~22x24px kahraman ölçek, tıklayınca kanat açıp iki kez öter)
         const tx = Math.floor(pw * 0.27) + 15;
         const ty = Math.floor(ph * 0.36) + 22;
+        const toucanReact = getAmbientReaction('rainforest_toucan', time);
+        const toucanHop = toucanReact ? -Math.round(Math.abs(Math.sin(toucanReact.progress * Math.PI * 2)) * 5) : 0;
         const toucanPhase = (time % 16000) / 16000;
-        const toucanBreath = Math.sin(time * 0.0018) > 0.45 ? -1 : 0;
-        const toucanBlink = (time % 5600) > 5440;
-        const toucanAlert = (toucanPhase >= 0.68 && toucanPhase < 0.96) ? -1 : 0;
-        const toucanCall = (toucanPhase >= 0.80 && toucanPhase < 0.93)
-            ? (Math.sin((toucanPhase - 0.80) * Math.PI * 16) > 0 ? 1 : 0)
-            : 0;
-        const toucanTailLift = (toucanPhase >= 0.72 && toucanPhase < 0.90) ? -1 : 0;
-        const tBodyY = ty + toucanBreath + toucanAlert;
+        const toucanBreath = toucanReact ? 0 : (Math.sin(time * 0.0018) > 0.45 ? -1 : 0);
+        const toucanBlink = !toucanReact && (time % 5600) > 5440;
+        const toucanAlert = toucanReact ? -1 : ((toucanPhase >= 0.68 && toucanPhase < 0.96) ? -1 : 0);
+        const toucanCall = toucanReact
+            ? (Math.sin(toucanReact.progress * Math.PI * 6) > 0 ? 2 : 0)
+            : ((toucanPhase >= 0.80 && toucanPhase < 0.93) && Math.sin((toucanPhase - 0.80) * Math.PI * 16) > 0 ? 1 : 0);
+        const toucanTailLift = (toucanReact || (toucanPhase >= 0.72 && toucanPhase < 0.90)) ? -1 : 0;
+        const tBodyY = ty + toucanBreath + toucanAlert + toucanHop;
 
-        // Tüneme dalı & kavrayan parmaklar
         pRect(tx - 6, ty + 1, 14, 2, '#573b26');
         pRect(tx - 5, ty + 1, 12, 1, '#714d33');
         pRect(tx - 1, ty, 2, 2, '#64748b');
         pRect(tx + 3, ty, 2, 2, '#64748b');
 
-        // Uzun koyu kuyruk + ikonik kızıl kuyruk altı örtüsü
-        pRect(tx - 7, ty + 1 + toucanTailLift, 4, 8, '#090d16');
-        pRect(tx - 6, ty + 2 + toucanTailLift, 2, 6, '#1e293b');
+        pRect(tx - 7, tBodyY + 1 + toucanTailLift, 4, 8, '#090d16');
+        pRect(tx - 6, tBodyY + 2 + toucanTailLift, 2, 6, '#1e293b');
         pRect(tx - 5, tBodyY - 1, 3, 2, '#dc2626');
         pRect(tx - 4, tBodyY, 2, 1, '#ef4444');
 
-        // Dolgun parlak siyah gövde & katmanlı kanat tüyleri
+        if (toucanReact) {
+            const wingLift = Math.round(Math.sin(toucanReact.progress * Math.PI * 6) * 2);
+            pRect(tx - 11, tBodyY - 12 + wingLift, 8, 7, '#0f172a');
+            pRect(tx - 10, tBodyY - 11 + wingLift, 6, 4, '#334155');
+            pRect(tx + 11, tBodyY - 19 - Math.round(toucanReact.progress * 7), 2, 2, '#fde047');
+            pRect(tx + 14, tBodyY - 21 - Math.round(toucanReact.progress * 7), 2, 1, '#fef08a');
+        }
+
         pRect(tx - 5, tBodyY - 10, 9, 10, '#090d16');
         pRect(tx - 4, tBodyY - 11, 7, 10, '#0f172a');
         pRect(tx - 4, tBodyY - 8, 5, 6, '#1e293b');
         pRect(tx - 3, tBodyY - 7, 3, 4, '#334155');
 
-        // Sarı-krem göğüs önlüğü ve baş tacı
         pRect(tx + 1, tBodyY - 14, 6, 8, '#fde047');
         pRect(tx + 2, tBodyY - 13, 5, 6, '#fef08a');
         pRect(tx + 3, tBodyY - 12, 3, 4, '#fef9c3');
         pRect(tx, tBodyY - 16, 6, 4, '#090d16');
         pRect(tx + 1, tBodyY - 17, 4, 2, '#0f172a');
 
-        // Parlak mavi göz halkası ve canlı bakış
         pRect(tx + 3, tBodyY - 15, 3, 2, '#38bdf8');
         if (!toucanBlink) {
             pRect(tx + 4, tBodyY - 15, 1, 1, '#020617');
@@ -764,7 +770,6 @@ if (hab.sceneProfile === 'wetland') {
             pRect(tx + 4, tBodyY - 15, 1, 1, '#0284c7');
         }
 
-        // İkonik dev kavisli turuncu-altın gaga (çağrı sırasında alt gaga açılır)
         pRect(tx + 6, tBodyY - 16, 8, 4, '#ea580c');
         pRect(tx + 7, tBodyY - 16, 7, 2, '#f97316');
         pRect(tx + 8, tBodyY - 15, 5, 1, '#fb923c');
@@ -773,19 +778,21 @@ if (hab.sceneProfile === 'wetland') {
         pRect(tx + 6, tBodyY - 12 + toucanCall, 7, 2, '#c2410c');
         pRect(tx + 13, tBodyY - 12 + toucanCall, 1, 1, '#0f172a');
 
-        // 2. Üç Parmaklı Tembel Hayvan (~24x18px, sağ kanopi dalının altında asılı; 18s sakin salınım ve uzanma ritmi)
+        registerAmbientHitbox('rainforest_toucan', tx - 10, tBodyY - 19, tx + 18, ty + 4, 3);
+
+        // 2. Üç Parmaklı Tembel Hayvan (~24x18px, tıklayınca başını kaldırıp gülümser & patisini sallar)
         const sx = Math.floor(pw * 0.75) - 15;
         const sy = Math.floor(ph * 0.34) + 23;
+        const slothReact = getAmbientReaction('rainforest_sloth', time);
         const slothPhase = (time % 18000) / 18000;
-        const slothSway = Math.round(Math.sin(time * 0.00075) * 0.65);
-        const slothBlink = (time % 6200) > 5880;
-        const slothStretch = (slothPhase >= 0.66 && slothPhase < 0.92)
-            ? Math.sin(((slothPhase - 0.66) / 0.26) * Math.PI)
-            : 0;
-        const leftReach = Math.round(slothStretch * 4);
+        const slothSway = slothReact ? Math.round(Math.sin(slothReact.progress * Math.PI * 2) * 1.2) : Math.round(Math.sin(time * 0.00075) * 0.65);
+        const slothBlink = !slothReact && (time % 6200) > 5880;
+        const slothStretch = slothReact ? 1 : ((slothPhase >= 0.66 && slothPhase < 0.92) ? Math.sin(((slothPhase - 0.66) / 0.26) * Math.PI) : 0);
+        const leftReach = slothReact ? 5 : Math.round(slothStretch * 4);
+        const pawWaveX = slothReact ? Math.round(Math.sin(slothReact.progress * Math.PI * 5) * 3) : 0;
+        const headPerkY = slothReact ? -2 : 0;
         const slX = sx + slothSway;
 
-        // Dal dokusu ve dala kilitlenen uzun kavisli tırnaklar
         pRect(sx - 10, sy - 4, 22, 2, '#573b26');
         pRect(sx - 9, sy - 4, 20, 1, '#714d33');
         if (leftReach === 0) {
@@ -795,132 +802,200 @@ if (hab.sceneProfile === 'wetland') {
         pRect(slX + 5, sy - 5, 3, 2, '#cbd5e1');
         pRect(slX + 7, sy - 5, 1, 1, '#64748b');
 
-        // Ön ve arka tüylü kollar (sol kol esnerken yavaşça aşağı uzanır)
-        pRect(slX - 7, sy - 3 + leftReach, 3, 7, '#6b5344');
-        pRect(slX - 6, sy - 2 + leftReach, 2, 5, '#8c6d53');
+        pRect(slX - 7 + pawWaveX, sy - 3 + leftReach, 3, 7, '#6b5344');
+        pRect(slX - 6 + pawWaveX, sy - 2 + leftReach, 2, 5, '#8c6d53');
         if (leftReach > 0) {
-            pRect(slX - 7, sy + 4 + leftReach, 3, 2, '#cbd5e1');
+            pRect(slX - 7 + pawWaveX, sy + 4 + leftReach, 3, 2, '#cbd5e1');
         }
         pRect(slX + 4, sy - 3, 4, 7, '#6b5344');
         pRect(slX + 5, sy - 2, 2, 5, '#8c6d53');
 
-        // Kabarık yosunlu sırt ve tombul gövde
         pRect(slX - 8, sy + 3, 16, 8, '#785c48');
         pRect(slX - 6, sy + 5, 13, 6, '#574032');
         pRect(slX - 5, sy + 4, 10, 4, '#8c6d53');
         pRect(slX - 2, sy + 7, 6, 2, '#65a30d');
         pRect(slX, sy + 8, 3, 1, '#84cc16');
 
-        // Uysal krem yüz maskesi, koyu göz bandı ve dingin gülümseme
-        pRect(slX - 11, sy + 1, 6, 6, '#fde68a');
-        pRect(slX - 10, sy + 2, 5, 4, '#fef3c7');
-        pRect(slX - 11, sy + 3, 2, 2, '#57534e');
-        pRect(slX - 7, sy + 3, 2, 2, '#57534e');
-        pRect(slX - 10, sy + 3, 1, 1, slothBlink ? '#a8a29e' : '#1c1917');
-        pRect(slX - 7, sy + 3, 1, 1, slothBlink ? '#a8a29e' : '#1c1917');
-        pRect(slX - 9, sy + 5, 2, 1, '#44403c');
-
-        // 3. Kırmızı Gözlü Ağaç Kurbağası (~16x12px, widget/ticker dışı sol dev yaprak üzerinde; 15s sakin ritim)
-        const fx = Math.max(155, Math.min(Math.round(pw * 0.34), wfX - poolHalfW - 22));
-        const fBaseY = getGroundY(fx, 'rainforest', pw, ph);
-        const fy = fBaseY - 7;
-        const frogPhase = (time % 15000) / 15000;
-        const idleBreath = Math.sin(time * 0.0022) > 0.3 ? 1 : 0;
-        const isCroaking = (frogPhase >= 0.58 && frogPhase < 0.78)
-            && Math.sin((frogPhase - 0.58) * Math.PI * 12) > 0;
-        const tongueFlick = frogPhase >= 0.82 && frogPhase < 0.86;
-        const frogBlink = (time % 4800) > 4640;
-
-        // Altındaki geniş filkulağı yağmur ormanı yaprağı ve sapı
-        pRect(fx - 4, fBaseY - 6, 2, 6, '#15803d');
-        pRect(fx - 9, fy, 18, 3, '#166534');
-        pRect(fx - 8, fy - 1, 16, 2, '#15803d');
-        pRect(fx - 6, fy - 1, 12, 1, '#22c55e');
-
-        // Kurbağa gövdesi, mavi-altın yan şerit ve turuncu perdeli ayaklar
-        pRect(fx - 6, fy - 3, 4, 2, '#f97316');
-        pRect(fx + 2, fy - 2, 5, 1, '#fb923c');
-        pRect(fx - 6, fy - 7, 10, 5, '#16a34a');
-        pRect(fx - 4, fy - 8, 7, 3, '#22c55e');
-        pRect(fx - 2, fy - 8, 4, 1, '#84cc16');
-        pRect(fx - 2, fy - 5, 5, 2, '#2563eb');
-        pRect(fx - 1, fy - 4, 3, 1, '#facc15');
-
-        // Şişen krem boğaz kesesi (es'li vıraklama)
-        const sacDrop = isCroaking ? 3 : idleBreath;
-        pRect(fx + 3, fy - 5, 5, 2 + sacDrop, '#fef3c7');
-        pRect(fx + 4, fy - 4 + sacDrop, 3, 1, '#fde68a');
-
-        // Büyük parlak yakut kırmızı gözler
-        pRect(fx + 2, fy - 10, 4, 3, frogBlink ? '#15803d' : '#dc2626');
-        pRect(fx + 3, fy - 10, 3, 2, frogBlink ? '#16a34a' : '#ef4444');
-        if (!frogBlink) {
-            pRect(fx + 4, fy - 9, 1, 2, '#090d16');
-            pRect(fx + 3, fy - 10, 1, 1, '#fee2e2');
+        pRect(slX - 11, sy + 1 + headPerkY, 6, 6, '#fde68a');
+        pRect(slX - 10, sy + 2 + headPerkY, 5, 4, '#fef3c7');
+        pRect(slX - 11, sy + 3 + headPerkY, 2, 2, '#57534e');
+        pRect(slX - 7, sy + 3 + headPerkY, 2, 2, '#57534e');
+        pRect(slX - 10, sy + 3 + headPerkY, 1, 1, slothBlink ? '#a8a29e' : '#1c1917');
+        pRect(slX - 7, sy + 3 + headPerkY, 1, 1, slothBlink ? '#a8a29e' : '#1c1917');
+        pRect(slX - 9, sy + 5 + headPerkY, 2, 1, '#44403c');
+        if (slothReact) {
+            pRect(slX - 13, sy - 3, 2, 2, '#4ade80');
+            pRect(slX - 10, sy - 6, 2, 2, '#fde047');
         }
 
-        // Yaprak önünde sakin süzülen ateşböceği & ani dil hamlesi
-        if (!tongueFlick && frogPhase < 0.86) {
-            const gnatX = fx + 13 + Math.round(Math.sin(time * 0.0028) * 2);
-            const gnatY = fy - 8 + Math.round(Math.cos(time * 0.0036) * 2);
+        registerAmbientHitbox('rainforest_sloth', slX - 13, sy - 6, slX + 10, sy + 14 + leftReach, 3);
+
+        // 3. Büyütülmüş Kırmızı Gözlü Ağaç Kurbağası (~22x16px, tıklayınca sıçrayıp ateşböceğine dil atar & geri döner)
+        const fxHome = Math.max(155, Math.min(Math.round(pw * 0.34), wfX - poolHalfW - 22));
+        const fBaseY = getGroundY(fxHome, 'rainforest', pw, ph);
+        const leafY = fBaseY - 8;
+
+        // Sabit dev filkulağı yaprağı & sap
+        pRect(fxHome - 5, fBaseY - 7, 3, 7, '#15803d');
+        pRect(fxHome - 12, leafY, 24, 3, '#166534');
+        pRect(fxHome - 11, leafY - 1, 21, 2, '#15803d');
+        pRect(fxHome - 9, leafY - 1, 16, 1, '#22c55e');
+
+        const frogReact = getAmbientReaction('rainforest_frog', time);
+        let fJumpX = 0;
+        let fJumpY = 0;
+        let reactTongue = false;
+        if (frogReact) {
+            const fp = frogReact.progress;
+            if (fp < 0.46) {
+                const u = fp / 0.46;
+                fJumpX = Math.round(Math.sin(u * Math.PI * 0.5) * 20);
+                fJumpY = -Math.round(Math.sin(u * Math.PI) * 16);
+                reactTongue = u >= 0.72;
+            } else if (fp < 0.58) {
+                fJumpX = 20;
+                reactTongue = fp < 0.52;
+            } else {
+                const u = (fp - 0.58) / 0.42;
+                fJumpX = Math.round((1 - u) * 20);
+                fJumpY = -Math.round(Math.sin(u * Math.PI) * 14);
+            }
+        }
+
+        const fx = fxHome + fJumpX;
+        const fy = leafY + fJumpY;
+        const frogPhase = (time % 15000) / 15000;
+        const idleBreath = Math.sin(time * 0.0022) > 0.3 ? 1 : 0;
+        const isCroaking = !frogReact && (frogPhase >= 0.58 && frogPhase < 0.78)
+            && Math.sin((frogPhase - 0.58) * Math.PI * 12) > 0;
+        const tongueFlick = reactTongue || (!frogReact && frogPhase >= 0.82 && frogPhase < 0.86);
+        const frogBlink = !frogReact && (time % 4800) > 4640;
+
+        // Turuncu ayaklar (sıçrarken uzanır), zümrüt gövde & safir/altın yan şerit
+        if (fJumpY < -3) {
+            pRect(fx - 11, fy - 1, 6, 3, '#16a34a');
+            pRect(fx - 13, fy + 1, 5, 2, '#f97316');
+        } else {
+            pRect(fx - 8, fy - 3, 5, 2, '#f97316');
+        }
+        pRect(fx + 3, fy - 2, 6, 1, '#fb923c');
+        pRect(fx - 8, fy - 9, 14, 7, '#16a34a');
+        pRect(fx - 6, fy - 10, 10, 4, '#22c55e');
+        pRect(fx - 3, fy - 10, 5, 1, '#84cc16');
+        pRect(fx - 3, fy - 6, 7, 2, '#2563eb');
+        pRect(fx - 1, fy - 5, 4, 1, '#facc15');
+
+        const sacDrop = isCroaking ? 3 : idleBreath;
+        pRect(fx + 5, fy - 6, 6, 3 + sacDrop, '#fef3c7');
+        pRect(fx + 6, fy - 5 + sacDrop, 4, 1, '#fde68a');
+
+        // Büyük yakut gözler (5x4px)
+        pRect(fx + 3, fy - 13, 5, 4, frogBlink ? '#15803d' : '#dc2626');
+        pRect(fx + 4, fy - 13, 4, 3, frogBlink ? '#16a34a' : '#ef4444');
+        if (!frogBlink) {
+            pRect(fx + 6, fy - 12, 1, 2, '#090d16');
+            pRect(fx + 4, fy - 13, 1, 1, '#fee2e2');
+        }
+
+        if (!tongueFlick && (frogReact || frogPhase < 0.86)) {
+            const gnatX = fxHome + 16 + Math.round(Math.sin(time * 0.0028) * 2);
+            const gnatY = leafY - 10 + Math.round(Math.cos(time * 0.0036) * 2);
             pRect(gnatX, gnatY, 2, 2, '#fde047');
             pRect(gnatX + 1, gnatY - 1, 1, 1, '#fef9c3');
         } else if (tongueFlick) {
-            pRect(fx + 7, fy - 6, 7, 2, '#fb7185');
-            pRect(fx + 13, fy - 7, 2, 2, '#fda4af');
+            const tLen = frogReact ? 11 : 8;
+            pRect(fx + 9, fy - 7, tLen, 2, '#fb7185');
+            pRect(fx + 8 + tLen, fy - 8, 2, 2, '#fda4af');
         }
 
-        // 4. Dinlenen Mavi Morpho Kelebeği (~16x13px, widget/ticker dışı sağ helikonya çiçeği; 16s güneşlenme ritmi)
-        const mx = Math.min(pw - 150, Math.max(Math.round(pw * 0.66), wfX + poolHalfW + 24));
-        const mBaseY = getGroundY(mx, 'rainforest', pw, ph);
-        const my = mBaseY - 18;
+        registerAmbientHitbox('rainforest_frog', fx - 12, fy - 14, fx + 14, fBaseY + 2, 3);
+
+        // 4. Büyütülmüş Mavi Morpho Kelebeği (~22x17px, tıklayınca parıltılı havalanıp tur atar & çiçeğe döner!)
+        const mxHome = Math.min(pw - 150, Math.max(Math.round(pw * 0.66), wfX + poolHalfW + 24));
+        const mBaseY = getGroundY(mxHome, 'rainforest', pw, ph);
+        const flowerY = mBaseY - 19;
+
+        // Sabit büyük tropik yapraklar & kırmızı-altın Helikonya meşalesi
+        pRect(mxHome - 1, flowerY + 4, 2, 15, '#15803d');
+        pRect(mxHome - 7, flowerY + 11, 6, 3, '#166534');
+        pRect(mxHome + 2, flowerY + 9, 7, 3, '#15803d');
+        pRect(mxHome - 5, flowerY + 2, 11, 3, '#be123c');
+        pRect(mxHome - 7, flowerY, 15, 3, '#e11d48');
+        pRect(mxHome - 4, flowerY - 2, 9, 3, '#fb7185');
+        pRect(mxHome - 3, flowerY - 2, 7, 2, '#facc15');
+        pRect(mxHome, flowerY - 3, 2, 1, '#fef08a');
+
+        const morphoReact = getAmbientReaction('rainforest_morpho', time);
+        let mx = mxHome;
+        let my = flowerY;
+        let isFlying = false;
+        if (morphoReact) {
+            const mp = morphoReact.progress;
+            mx = mxHome + Math.round(Math.sin(mp * Math.PI * 2) * 15);
+            my = flowerY - Math.round(Math.sin(mp * Math.PI) * 22);
+            isFlying = true;
+            pRect(mx - 4, my + 2, 2, 2, 'rgba(125, 211, 252, 0.72)');
+            pRect(mx + 4, my + 4, 1, 1, '#fde047');
+        }
+
         const morphoPhase = (time % 16000) / 16000;
         const antBob = Math.sin(time * 0.002) > 0.5 ? -1 : 0;
 
-        // Kalın tropik yapraklar ve kırmızı-altın Helikonya meşalesi
-        pRect(mx - 1, my + 4, 2, 14, '#15803d');
-        pRect(mx - 6, my + 10, 5, 3, '#166534');
-        pRect(mx + 2, my + 8, 6, 3, '#15803d');
-        pRect(mx - 4, my + 2, 9, 3, '#be123c');
-        pRect(mx - 5, my, 11, 3, '#e11d48');
-        pRect(mx - 3, my - 2, 7, 3, '#fb7185');
-        pRect(mx - 2, my - 2, 5, 2, '#facc15');
-        pRect(mx, my - 3, 2, 1, '#fef08a');
+        pRect(mx, my - 7, 2, 6, '#090d16');
+        pRect(mx - 1, my - 9 + antBob, 1, 2, '#334155');
+        pRect(mx + 2, my - 9 + antBob, 1, 2, '#334155');
 
-        // Gövde & duyargalar
-        pRect(mx, my - 6, 2, 5, '#090d16');
-        pRect(mx - 1, my - 8 + antBob, 1, 2, '#334155');
-        pRect(mx + 2, my - 8 + antBob, 1, 2, '#334155');
-
-        if (morphoPhase < 0.48) {
-            // Kapalı sakin dinlenme: sıcak kahverengi kanat altı & göz halkaları
-            pRect(mx - 2, my - 11, 5, 7, '#451a03');
-            pRect(mx - 1, my - 10, 4, 5, '#78350f');
-            pRect(mx, my - 9, 2, 2, '#d97706');
-            pRect(mx, my - 6, 1, 1, '#0284c7');
+        if (isFlying) {
+            const flapOpen = Math.sin(morphoReact.progress * Math.PI * 18) > 0;
+            if (flapOpen) {
+                pRect(mx - 11, my - 15, 11, 10, '#090d16');
+                pRect(mx + 2, my - 15, 11, 10, '#090d16');
+                pRect(mx - 10, my - 14, 10, 8, '#1d4ed8');
+                pRect(mx + 2, my - 14, 10, 8, '#1d4ed8');
+                pRect(mx - 8, my - 12, 7, 5, '#0284c7');
+                pRect(mx + 3, my - 12, 7, 5, '#0284c7');
+                pRect(mx - 6, my - 12, 5, 4, '#38bdf8');
+                pRect(mx + 3, my - 12, 5, 4, '#38bdf8');
+                pRect(mx - 4, my - 11, 3, 2, '#7dd3fc');
+                pRect(mx + 3, my - 11, 3, 2, '#7dd3fc');
+                pRect(mx - 11, my - 12, 1, 1, '#e0f2fe');
+                pRect(mx + 12, my - 12, 1, 1, '#e0f2fe');
+            } else {
+                pRect(mx - 6, my - 14, 6, 9, '#0f172a');
+                pRect(mx + 2, my - 14, 6, 9, '#0f172a');
+                pRect(mx - 5, my - 13, 5, 7, '#2563eb');
+                pRect(mx + 2, my - 13, 5, 7, '#2563eb');
+                pRect(mx - 4, my - 12, 3, 4, '#38bdf8');
+                pRect(mx + 3, my - 12, 3, 4, '#38bdf8');
+            }
+        } else if (morphoPhase < 0.48) {
+            pRect(mx - 3, my - 14, 7, 9, '#451a03');
+            pRect(mx - 2, my - 13, 6, 7, '#78350f');
+            pRect(mx, my - 11, 3, 3, '#d97706');
+            pRect(mx, my - 7, 2, 1, '#0284c7');
         } else if (morphoPhase < 0.58 || morphoPhase >= 0.88) {
-            // Yarı açık geçiş
-            pRect(mx - 5, my - 11, 5, 7, '#0f172a');
-            pRect(mx + 2, my - 11, 5, 7, '#0f172a');
-            pRect(mx - 4, my - 10, 4, 5, '#1d4ed8');
-            pRect(mx + 2, my - 10, 4, 5, '#1d4ed8');
-            pRect(mx - 3, my - 9, 2, 3, '#38bdf8');
-            pRect(mx + 2, my - 9, 2, 3, '#38bdf8');
+            pRect(mx - 7, my - 14, 7, 9, '#0f172a');
+            pRect(mx + 2, my - 14, 7, 9, '#0f172a');
+            pRect(mx - 6, my - 13, 6, 7, '#1d4ed8');
+            pRect(mx + 2, my - 13, 6, 7, '#1d4ed8');
+            pRect(mx - 4, my - 11, 3, 4, '#38bdf8');
+            pRect(mx + 3, my - 11, 3, 4, '#38bdf8');
         } else {
-            // Tam açık yanardöner mavi güneşlenme (16x10px görkemli kanatlar)
-            pRect(mx - 8, my - 12, 8, 8, '#090d16');
-            pRect(mx + 2, my - 12, 8, 8, '#090d16');
-            pRect(mx - 7, my - 11, 7, 6, '#1d4ed8');
-            pRect(mx + 2, my - 11, 7, 6, '#1d4ed8');
-            pRect(mx - 6, my - 10, 5, 4, '#0284c7');
-            pRect(mx + 2, my - 10, 5, 4, '#0284c7');
-            pRect(mx - 5, my - 10, 4, 3, '#38bdf8');
-            pRect(mx + 2, my - 10, 4, 3, '#38bdf8');
-            pRect(mx - 3, my - 9, 2, 2, '#7dd3fc');
-            pRect(mx + 2, my - 9, 2, 2, '#7dd3fc');
-            pRect(mx - 8, my - 10, 1, 1, '#e0f2fe');
-            pRect(mx + 9, my - 10, 1, 1, '#e0f2fe');
+            pRect(mx - 11, my - 15, 11, 10, '#090d16');
+            pRect(mx + 2, my - 15, 11, 10, '#090d16');
+            pRect(mx - 10, my - 14, 10, 8, '#1d4ed8');
+            pRect(mx + 2, my - 14, 10, 8, '#1d4ed8');
+            pRect(mx - 8, my - 12, 7, 5, '#0284c7');
+            pRect(mx + 3, my - 12, 7, 5, '#0284c7');
+            pRect(mx - 6, my - 12, 5, 4, '#38bdf8');
+            pRect(mx + 3, my - 12, 5, 4, '#38bdf8');
+            pRect(mx - 4, my - 11, 3, 2, '#7dd3fc');
+            pRect(mx + 3, my - 11, 3, 2, '#7dd3fc');
+            pRect(mx - 11, my - 12, 1, 1, '#e0f2fe');
+            pRect(mx + 12, my - 12, 1, 1, '#e0f2fe');
         }
+
+        registerAmbientHitbox('rainforest_morpho', mx - 13, my - 17, mx + 14, my + 4, 3);
 
         setSceneFill(isLightMode ? 'rgba(209, 250, 229, 0.045)' : 'rgba(45, 212, 191, 0.032)');
         for (let wisp = 0; wisp < 10; wisp++) {

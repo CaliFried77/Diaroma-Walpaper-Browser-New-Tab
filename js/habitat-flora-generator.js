@@ -122,6 +122,7 @@ if (hab.sceneProfile === 'meadow') {
             const nx = x / Math.max(1, pw);
             const inCenterPath = nx > 0.41 && nx < 0.59;
             if (inCenterPath) continue;
+            if (Math.abs(x - Math.min(Math.round(pw * 0.69), pw - 142)) < 22) continue;
 
             const baseY = soilY(x) + 1;
             const moundScale = 0.72 + Math.pow(Math.abs(nx - 0.5) * 1.9, 1.2) * 0.52;
