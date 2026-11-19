@@ -38,7 +38,7 @@ import { refreshWeatherPreviewButtons, refreshDataManagerStats } from './service
         const themeIconSlot = document.getElementById('themeIconSlot');
         const themeModeLabel = document.getElementById('themeModeLabel');
 
-        function applyThemeMode() {
+        export function applyThemeMode() {
             document.body.classList.toggle('theme-light', isLightMode);
             const themeColor = document.querySelector('meta[name="theme-color"]');
             if (themeColor) themeColor.setAttribute('content', isLightMode ? '#dbeafe' : '#04070d');
@@ -46,7 +46,7 @@ import { refreshWeatherPreviewButtons, refreshDataManagerStats } from './service
             themeIconSlot.className = isLightMode
                 ? 'w-3.5 h-3.5 flex items-center justify-center text-amber-300'
                 : 'w-3.5 h-3.5 flex items-center justify-center text-sky-300';
-            themeModeLabel.textContent = isLightMode ? 'Gündüz' : 'Gece';
+            themeModeLabel.textContent = window.__weLang === 'en' ? (isLightMode ? 'Day' : 'Night') : (isLightMode ? 'Gündüz' : 'Gece');
         }
         applyThemeMode();
 
@@ -139,17 +139,29 @@ import { refreshWeatherPreviewButtons, refreshDataManagerStats } from './service
             }
         });
 
-        function updateClockAndGreeting() {
+        export function updateClockAndGreeting() {
             const now = new Date();
             const h = now.getHours();
             const m = String(now.getMinutes()).padStart(2, '0');
-            heroClock.textContent = `${String(h).padStart(2, '0')}:${m}`;
-            heroDate.textContent = now.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' });
+            const secPart = window.__weClockSeconds ? `:${String(now.getSeconds()).padStart(2, '0')}` : '';
+            const clockStr = `${String(h).padStart(2, '0')}:${m}${secPart}`;
+            if (typeof window.__weSetHeroClock === 'function') window.__weSetHeroClock(clockStr);
+            else heroClock.textContent = clockStr;
 
-            if (h >= 0 && h < 5) greetingLabel.textContent = 'İyi geceler';
-            else if (h >= 5 && h < 12) greetingLabel.textContent = 'Günaydın';
-            else if (h >= 12 && h < 18) greetingLabel.textContent = 'İyi günler';
-            else greetingLabel.textContent = 'İyi akşamlar';
+            const isEn = window.__weLang === 'en';
+            heroDate.textContent = now.toLocaleDateString(isEn ? 'en-US' : 'tr-TR', { day: 'numeric', month: 'long', weekday: 'long' });
+
+            if (isEn) {
+                if (h >= 0 && h < 5) greetingLabel.textContent = 'Good night';
+                else if (h >= 5 && h < 12) greetingLabel.textContent = 'Good morning';
+                else if (h >= 12 && h < 18) greetingLabel.textContent = 'Good afternoon';
+                else greetingLabel.textContent = 'Good evening';
+            } else {
+                if (h >= 0 && h < 5) greetingLabel.textContent = 'İyi geceler';
+                else if (h >= 5 && h < 12) greetingLabel.textContent = 'Günaydın';
+                else if (h >= 12 && h < 18) greetingLabel.textContent = 'İyi günler';
+                else greetingLabel.textContent = 'İyi akşamlar';
+            }
         }
         updateClockAndGreeting();
         setInterval(updateClockAndGreeting, 10000);

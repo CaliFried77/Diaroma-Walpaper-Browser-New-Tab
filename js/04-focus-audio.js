@@ -272,6 +272,9 @@ if (focusSession.status === 'running') startFocusTicker();
         let activeSoundSource = null;
         let activeSoundType = null;
         let ambientVolume = Math.min(100, Math.max(5, Number(localStorage.getItem('diorama_ambient_volume')) || 40)) / 100;
+        export function getAmbientVolume() {
+            return ambientVolume;
+        }
         const soundActiveDot = document.getElementById('soundActiveDot');
         const ambientVolumeSlider = document.getElementById('ambientVolumeSlider');
         const ambientVolumeValue = document.getElementById('ambientVolumeValue');
@@ -295,6 +298,7 @@ if (focusSession.status === 'running') startFocusTicker();
         }
 
         function stopAmbientSound() {
+            if (typeof window.__weCustomStopAmbientSound === 'function') { window.__weCustomStopAmbientSound(); return; }
             if (activeSoundSource) {
                 try {
                     const g = activeSoundSource._gain.gain, n = audioCtx.currentTime;
@@ -314,6 +318,7 @@ if (focusSession.status === 'running') startFocusTicker();
         }
 
         function toggleAmbientSound(type) {
+            if (typeof window.__weCustomToggleAmbientSound === 'function') { window.__weCustomToggleAmbientSound(type); return; }
             if (activeSoundType === type) {
                 stopAmbientSound();
                 return;
@@ -382,6 +387,7 @@ if (focusSession.status === 'running') startFocusTicker();
             ambientVolume = pct / 100;
             if (ambientVolumeValue) ambientVolumeValue.textContent = `${pct}%`;
             try { localStorage.setItem('diorama_ambient_volume', String(pct)); } catch {}
+            if (typeof window.__weSetCustomAmbientVolume === 'function') window.__weSetCustomAmbientVolume(ambientVolume);
             if (activeSoundSource?._gain && audioCtx) {
                 const g = activeSoundSource._gain.gain;
                 const now = audioCtx.currentTime;

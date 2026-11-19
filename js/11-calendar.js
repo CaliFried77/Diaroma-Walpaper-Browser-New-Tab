@@ -128,6 +128,8 @@ function renderSelectedDay() {
   selectedDateLabel.textContent = formatDate(selectedDate, {
     weekday: 'long', day: 'numeric', month: 'long',
   });
+  if (selectedDateLabel.dataset) selectedDateLabel.dataset.dateKey = key;
+  if (typeof window.__weOnCalendarDayRendered === 'function') window.__weOnCalendarDayRendered(key);
   eventCountLabel.textContent = `${dayEvents.length} etkinlik`;
   eventList.replaceChildren();
 

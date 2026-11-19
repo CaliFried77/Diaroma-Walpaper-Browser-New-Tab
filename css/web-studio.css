@@ -1,0 +1,563 @@
+/* ==========================================================================
+   LIVING PIXEL DIORAMA — WEB STUDIO LAYER
+   Brings the Unified Hybrid Smoked-Crystal Liquid Glass language, 16x16
+   pixel habitat badges, bilingual Web Settings & Performance Profiles,
+   8-channel biome soundscape studio, switchable pixel typography, and
+   offline holiday observability cleanly to the Browser / Cloudflare edition.
+   ========================================================================== */
+
+/* Optional Self-Hosted Pixel-Art Typefaces (SIL OFL 1.1, Full Turkish) */
+@font-face {
+  font-family: 'Departure Mono';
+  src: url('../fonts/departure-mono-regular.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 94%;
+}
+
+@font-face {
+  font-family: 'Jersey 20';
+  src: url('../fonts/jersey-20-latin-ext.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 124%;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Jersey 20';
+  src: url('../fonts/jersey-20-latin.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 124%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Jersey 15';
+  src: url('../fonts/jersey-15-latin-ext.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 124%;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Jersey 15';
+  src: url('../fonts/jersey-15-latin.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 124%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  /* Unified Hybrid Smoked-Crystal Liquid Glass System */
+  --we-glass-border: rgba(255, 255, 255, 0.24);
+  --we-glass-border-hover: rgba(255, 255, 255, 0.40);
+  --we-glass-bevel:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.44),
+    inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.14),
+    inset 1px 0 1px 0 rgba(255, 255, 255, 0.16);
+  --we-glass-shadow: 0 22px 54px -12px rgba(0, 0, 0, 0.62);
+  --we-glass-float-bg: rgba(8, 15, 28, 0.24);
+  --we-glass-float-scrim: linear-gradient(158deg, rgba(8, 14, 28, 0.16) 0%, rgba(5, 10, 20, 0.28) 100%);
+  --we-glass-pill-bg: rgba(8, 15, 28, 0.22);
+  --we-glass-pill-scrim: linear-gradient(180deg, rgba(8, 14, 28, 0.20) 0%, rgba(5, 10, 20, 0.32) 100%);
+  --we-glass-pill-scrim-hover: linear-gradient(180deg, rgba(12, 22, 42, 0.14) 0%, rgba(7, 14, 28, 0.26) 100%);
+  --we-glass-plate-bg: rgba(8, 14, 28, 0.42);
+  --we-glass-plate-scrim: linear-gradient(158deg, rgba(7, 13, 26, 0.30) 0%, rgba(4, 9, 19, 0.44) 100%);
+  --we-glass-pocket-bg: linear-gradient(180deg, rgba(6, 12, 24, 0.34) 0%, rgba(4, 9, 18, 0.46) 100%);
+  --we-glass-pocket-border: rgba(255, 255, 255, 0.14);
+}
+
+body.theme-light {
+  --we-glass-border: rgba(255, 255, 255, 0.48);
+  --we-glass-border-hover: rgba(255, 255, 255, 0.68);
+  --we-glass-bevel:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.70),
+    inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.24),
+    inset 1px 0 1px 0 rgba(255, 255, 255, 0.28);
+  --we-glass-shadow: 0 20px 46px -12px rgba(15, 23, 42, 0.40);
+  --we-glass-float-bg: rgba(10, 20, 38, 0.34);
+  --we-glass-float-scrim: linear-gradient(158deg, rgba(9, 18, 36, 0.26) 0%, rgba(6, 13, 28, 0.38) 100%);
+  --we-glass-pill-bg: rgba(10, 20, 38, 0.34);
+  --we-glass-pill-scrim: linear-gradient(180deg, rgba(10, 20, 38, 0.34) 0%, rgba(7, 15, 30, 0.46) 100%);
+  --we-glass-pill-scrim-hover: linear-gradient(180deg, rgba(12, 24, 44, 0.28) 0%, rgba(8, 17, 34, 0.40) 100%);
+  --we-glass-plate-bg: rgba(10, 19, 36, 0.50);
+  --we-glass-plate-scrim: linear-gradient(158deg, rgba(9, 18, 34, 0.40) 0%, rgba(6, 13, 26, 0.54) 100%);
+  --we-glass-pocket-bg: linear-gradient(180deg, rgba(8, 16, 30, 0.42) 0%, rgba(5, 11, 22, 0.54) 100%);
+  --we-glass-pocket-border: rgba(255, 255, 255, 0.24);
+}
+
+/* Optional Font Switcher (default 'classic' leaves Silkscreen & Pixelify Sans untouched) */
+body[data-pixel-font="departure"] {
+  --we-pixel-font: 'Departure Mono', 'JetBrains Mono', monospace;
+  --we-pixel-track: -0.015em;
+}
+body[data-pixel-font="jersey20"] {
+  --we-pixel-font: 'Jersey 20', 'Departure Mono', monospace;
+  --we-pixel-track: 0.015em;
+}
+body[data-pixel-font="jersey15"] {
+  --we-pixel-font: 'Jersey 15', 'Departure Mono', monospace;
+  --we-pixel-track: 0.015em;
+}
+body[data-pixel-font="departure"] :is(.font-pixel, .pixel-text, .pixel-clock),
+body[data-pixel-font="jersey20"] :is(.font-pixel, .pixel-text, .pixel-clock),
+body[data-pixel-font="jersey15"] :is(.font-pixel, .pixel-text, .pixel-clock) {
+  font-family: var(--we-pixel-font) !important;
+  letter-spacing: var(--we-pixel-track, normal);
+}
+
+/* Widget visibility toggles */
+body.we-hide-clock #heroClockContainer { display: none !important; }
+body.we-hide-greeting #heroGreetingHeading { display: none !important; }
+body.we-hide-search #searchForm { display: none !important; }
+body.we-hide-dock #shortcutsGrid { display: none !important; }
+body.we-hide-headline #headlineBar { display: none !important; }
+
+/* Unified Optical Glass Shells & Lenses */
+.optical-glass {
+  background: var(--we-glass-float-bg);
+  border-color: var(--we-glass-border);
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel);
+}
+body.theme-light .optical-glass {
+  background: var(--we-glass-float-bg);
+  border-color: var(--we-glass-border);
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel);
+}
+.optical-glass > canvas.glass-lens {
+  opacity: var(--we-glass-opacity, 0.90) !important;
+  filter: blur(var(--we-glass-blur, 2.2px)) saturate(158%) brightness(1.06) contrast(1.05) !important;
+}
+body.theme-light .optical-glass > canvas.glass-lens {
+  opacity: calc(var(--we-glass-opacity, 0.90) * 0.86) !important;
+  filter: blur(var(--we-glass-blur, 2.2px)) saturate(145%) brightness(0.84) contrast(1.09) !important;
+}
+
+/* Live 1:1 Optical Liquid Glass Top-Bar Pills */
+.main-header .optical-pill.we-liquid-pill {
+  position: relative;
+  overflow: hidden;
+  background: var(--we-glass-pill-bg) !important;
+  border: 1px solid var(--we-glass-border) !important;
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.main-header .optical-pill.we-liquid-pill > canvas.glass-lens {
+  border-radius: inherit;
+  opacity: var(--we-glass-opacity, 0.90) !important;
+  filter: blur(var(--we-glass-blur, 2.2px)) saturate(152%) brightness(1.03) contrast(1.05) !important;
+}
+body.theme-light .main-header .optical-pill.we-liquid-pill > canvas.glass-lens {
+  opacity: calc(var(--we-glass-opacity, 0.90) * 0.86) !important;
+  filter: blur(var(--we-glass-blur, 2.2px)) saturate(138%) brightness(0.82) contrast(1.09) !important;
+}
+.main-header .optical-pill.we-liquid-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: var(--we-glass-pill-scrim);
+  transition: background 0.22s ease;
+}
+body.theme-light .main-header .optical-pill.we-liquid-pill {
+  background: var(--we-glass-pill-bg) !important;
+  border-color: var(--we-glass-border) !important;
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel) !important;
+}
+.main-header .optical-pill.we-liquid-pill:hover {
+  border-color: var(--we-glass-border-hover) !important;
+  transform: translateY(-1px);
+}
+.main-header .optical-pill.we-liquid-pill:hover::before {
+  background: var(--we-glass-pill-scrim-hover);
+}
+.main-header .optical-pill.we-liquid-pill::after {
+  z-index: 2 !important;
+}
+.main-header .optical-pill.we-liquid-pill > :where(*:not(canvas.glass-lens)) {
+  position: relative;
+  z-index: 3 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.72);
+}
+
+/* 1:1 Optical Liquid Glass Backing Plate Behind Open Popovers */
+#wePopoverGlassPlate.we-popover-glass-plate {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 29;
+  border-radius: 24px;
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  background: var(--we-glass-plate-bg) !important;
+  border: 1px solid var(--we-glass-border) !important;
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel) !important;
+  transition: opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s ease;
+}
+#wePopoverGlassPlate.we-popover-glass-plate.is-visible {
+  visibility: visible;
+  opacity: 1;
+}
+#wePopoverGlassPlate.we-popover-glass-plate > canvas.glass-lens {
+  border-radius: inherit;
+  opacity: var(--we-glass-opacity, 0.90) !important;
+  filter: blur(calc(var(--we-glass-blur, 2.2px) + 0.8px)) saturate(148%) brightness(0.98) contrast(1.05) !important;
+}
+body.theme-light #wePopoverGlassPlate.we-popover-glass-plate > canvas.glass-lens {
+  opacity: calc(var(--we-glass-opacity, 0.90) * 0.84) !important;
+  filter: blur(calc(var(--we-glass-blur, 2.2px) + 1.0px)) saturate(136%) brightness(0.82) contrast(1.08) !important;
+}
+#wePopoverGlassPlate.we-popover-glass-plate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: var(--we-glass-plate-scrim);
+}
+#wePopoverGlassPlate.we-popover-glass-plate::after {
+  z-index: 2 !important;
+  background:
+    radial-gradient(
+      125px circle at var(--creature-x, -200px) var(--creature-y, -200px),
+      rgba(var(--glow-r, 255), var(--glow-g, 255), var(--glow-b, 255), var(--glow-alpha, 0)),
+      transparent 74%
+    ),
+    radial-gradient(
+      210px circle at var(--mouse-x, 50%) var(--mouse-y, -20%),
+      rgba(255, 255, 255, 0.12),
+      transparent 70%
+    ),
+    linear-gradient(
+      140deg,
+      rgba(255, 255, 255, 0.13) 0%,
+      rgba(255, 255, 255, 0.025) 44%,
+      rgba(0, 0, 0, 0.12) 100%
+    ) !important;
+  box-shadow: inset 0 0 18px rgba(var(--glow-r, 255), var(--glow-g, 255), var(--glow-b, 255), calc(var(--glow-alpha, 0) * 0.50)) !important;
+}
+body.theme-light #wePopoverGlassPlate.we-popover-glass-plate {
+  background: var(--we-glass-plate-bg) !important;
+  border-color: var(--we-glass-border) !important;
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel) !important;
+}
+
+body.we-plate-ready .popover-panel.editorial-modal {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  text-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.58);
+}
+
+/* Inner Readability Pockets for Dense Popover Cards */
+body.we-plate-ready .popover-panel.editorial-modal :is(
+  .wx-stat-card,
+  .wx-air-card,
+  .wx-uv-card,
+  .wx-moon-card,
+  .wx-solar-card,
+  .calendar-day-panel,
+  .news-card,
+  .news-settings-panel,
+  .we-biome-audio-toggles,
+  .we-settings-section,
+  .we-cal-holiday-banner
+) {
+  background: var(--we-glass-pocket-bg) !important;
+  border-color: var(--we-glass-pocket-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 16x16 Pixel-Art Habitat Icons */
+#habitatDot.we-hab-pill-icon {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 5px !important;
+  background-color: transparent !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.we-hab-icon-slot {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.14), rgba(15, 23, 42, 0.42));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.we-hab-pixel-svg {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.65));
+}
+.we-hab-row-active {
+  background: linear-gradient(90deg, rgba(var(--hab-rgb, 56, 189, 248), 0.22), rgba(255, 255, 255, 0.08)) !important;
+  border-color: rgba(var(--hab-rgb, 56, 189, 248), 0.48) !important;
+}
+
+/* 8-Channel Organic Soundscape & Biome Voice Controls */
+.we-soundscape-grid-8 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.we-biome-audio-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 10px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.we-biome-toggle-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.86);
+  cursor: pointer;
+}
+.we-biome-creature-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+.we-creature-preview-btn {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.75rem;
+  color: #e0f2fe;
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid rgba(125, 211, 252, 0.36);
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+.we-creature-preview-btn:hover {
+  background: rgba(56, 189, 248, 0.30);
+  transform: translateY(-1px);
+}
+
+/* Web Settings & Performance Profile Popover */
+.we-settings-popover {
+  width: min(370px, calc(100vw - 24px));
+  max-height: min(82vh, 660px);
+  padding: 16px !important;
+  overflow-y: auto;
+}
+.we-settings-section {
+  padding: 10px 11px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 10px;
+}
+.we-settings-section-title {
+  font-family: 'Pixelify Sans', 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  margin-bottom: 8px;
+}
+.we-segmented-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+.we-segmented-grid.we-segmented-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.we-segmented-grid.we-segmented-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.we-seg-btn {
+  padding: 6px 4px;
+  border-radius: 10px;
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  text-align: center;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.we-seg-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.we-seg-btn.is-active {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(125, 211, 252, 0.55);
+  color: #f0f9ff;
+}
+.we-slider-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 6px;
+}
+.we-slider-row input[type="range"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  accent-color: #7dd3fc;
+}
+.we-slider-val {
+  min-width: 42px;
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: #bae6fd;
+}
+.we-widget-toggles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.we-toggle-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  text-align: left;
+  min-width: 0;
+}
+.we-toggle-chip.is-on {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(52, 211, 153, 0.38);
+  color: #ecfdf5;
+}
+.we-toggle-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex: 0 0 7px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.we-toggle-chip.is-on .we-toggle-dot {
+  background: #34d399;
+}
+
+/* Offline Smart Calendar Country & Holiday Ribbon */
+.we-cal-country-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+}
+.we-cal-country-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.we-cal-country-btn {
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.70);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.we-cal-country-btn.is-active {
+  background: rgba(251, 191, 36, 0.20);
+  border-color: rgba(251, 191, 36, 0.50);
+  color: #fef3c7;
+}
+.we-cal-holiday-banner {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.90);
+}
+.we-cal-holiday-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  margin: 2px 4px 2px 0;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: rgba(251, 191, 36, 0.18);
+  border: 1px solid rgba(251, 191, 36, 0.40);
+  color: #fde68a;
+}
+.we-cal-special-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  margin: 2px 4px 2px 0;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  color: #e0f2fe;
+}
+
+/* Mobile & 320px Zero-Overflow Safeguards */
+@media (max-width: 639px) {
+  .we-settings-popover {
+    width: auto !important;
+  }
+  #webSettingsBtn {
+    padding-left: 0.45rem !important;
+    padding-right: 0.45rem !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .main-header {
+    padding-left: 0.45rem !important;
+    padding-right: 0.45rem !important;
+  }
+  .header-controls-right {
+    gap: 0.2rem !important;
+  }
+  .header-controls-right > div > button {
+    padding-left: 0.38rem !important;
+    padding-right: 0.38rem !important;
+    min-width: 0;
+  }
+}

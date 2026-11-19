@@ -46,27 +46,6 @@ function replaceRequired(source, search, replacement, label) {
 function transformForWallpaper(code, relPath) {
   let transformed = code;
 
-  if (relPath === 'js/01-core-ui.js') {
-    transformed = replaceRequired(
-      transformed,
-      "themeModeLabel.textContent = isLightMode ? 'Gündüz' : 'Gece';",
-      "themeModeLabel.textContent = window.__weLang === 'en' ? (isLightMode ? 'Day' : 'Night') : (isLightMode ? 'Gündüz' : 'Gece');",
-      '01-core-ui themeModeLabel',
-    );
-    transformed = replaceRequired(
-      transformed,
-      'heroClock.textContent = `${String(h).padStart(2, \'0\')}:${m}`;',
-      'const secPart = window.__weClockSeconds ? `:${String(now.getSeconds()).padStart(2, \'0\')}` : \'\';\n            const clockStr = `${String(h).padStart(2, \'0\')}:${m}${secPart}`;\n            if (typeof window.__weSetHeroClock === \'function\') window.__weSetHeroClock(clockStr);\n            else heroClock.textContent = clockStr;',
-      '01-core-ui heroClock',
-    );
-    transformed = replaceRequired(
-      transformed,
-      "heroDate.textContent = now.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' });\n\n            if (h >= 0 && h < 5) greetingLabel.textContent = 'İyi geceler';\n            else if (h >= 5 && h < 12) greetingLabel.textContent = 'Günaydın';\n            else if (h >= 12 && h < 18) greetingLabel.textContent = 'İyi günler';\n            else greetingLabel.textContent = 'İyi akşamlar';",
-      "const isEn = window.__weLang === 'en';\n            heroDate.textContent = now.toLocaleDateString(isEn ? 'en-US' : 'tr-TR', { day: 'numeric', month: 'long', weekday: 'long' });\n            if (isEn) {\n                if (h >= 0 && h < 5) greetingLabel.textContent = 'Good night';\n                else if (h >= 5 && h < 12) greetingLabel.textContent = 'Good morning';\n                else if (h >= 12 && h < 18) greetingLabel.textContent = 'Good afternoon';\n                else greetingLabel.textContent = 'Good evening';\n            } else {\n                if (h >= 0 && h < 5) greetingLabel.textContent = 'İyi geceler';\n                else if (h >= 5 && h < 12) greetingLabel.textContent = 'Günaydın';\n                else if (h >= 12 && h < 18) greetingLabel.textContent = 'İyi günler';\n                else greetingLabel.textContent = 'İyi akşamlar';\n            }",
-      '01-core-ui greeting',
-    );
-  }
-
   if (relPath === 'js/02-news.js') {
     transformed = replaceRequired(transformed, "const NEWS_API_ENDPOINT = '/api/news';", "const NEWS_API_ENDPOINT = 'http://127.0.0.1:47831/api/news';", '02-news endpoint');
     transformed = replaceRequired(transformed, "const CUSTOM_NEWS_API_ENDPOINT = '/api/custom-news';", "const CUSTOM_NEWS_API_ENDPOINT = 'http://127.0.0.1:47831/api/custom-news';", '02-news custom endpoint');
@@ -150,25 +129,13 @@ function transformForWallpaper(code, relPath) {
     transformed = replaceRequired(
       transformed,
       'for (let i = 0; i < creatureProfile.count; i++) creatures.push(creatureProfile.create());',
-      'const bonusCreatures = detailTier === 3 ? 3 : detailTier === 2 ? 1 : 0;\n        for (let i = 0; i < creatureProfile.count + bonusCreatures; i++) creatures.push(creatureProfile.create());\n    if (typeof window.__weOnHabitatChanged === \'function\') window.__weOnHabitatChanged(hab);',
+      'const bonusCreatures = detailTier === 3 ? 3 : detailTier === 2 ? 1 : 0;\n        for (let i = 0; i < creatureProfile.count + bonusCreatures; i++) creatures.push(creatureProfile.create());',
       'habitat-initializer creatures',
     );
   }
 
-  // Upgrade Focus Audio engine with 8 multi-layered acoustic soundscapes, auto-biome sync, and periodic creature calls
+  // Hook Focus Audio UI translation for Wallpaper Engine bilingual panel
   if (relPath === 'js/04-focus-audio.js') {
-    transformed = replaceRequired(
-      transformed,
-      'function stopAmbientSound() {',
-      'function stopAmbientSound() {\n            if (typeof window.__weCustomStopAmbientSound === \'function\') { window.__weCustomStopAmbientSound(); return; }',
-      '04-focus-audio stopAmbientSound',
-    );
-    transformed = replaceRequired(
-      transformed,
-      'function toggleAmbientSound(type) {',
-      'function toggleAmbientSound(type) {\n            if (typeof window.__weCustomToggleAmbientSound === \'function\') { window.__weCustomToggleAmbientSound(type); return; }',
-      '04-focus-audio toggleAmbientSound',
-    );
     transformed = replaceRequired(
       transformed,
       '  updateFocusStageVisibility();\n}',
@@ -192,15 +159,8 @@ function transformForWallpaper(code, relPath) {
     transformed = replaceRequired(transformed, 'ctx.drawImage(sceneCache.staticEnvCache.img, 0, 0);', 'ctx.drawImage(sceneCache.staticEnvCache.img, 0, 0, pw, ph);', '09-scenery staticEnvCache');
   }
 
-  // Align 1:1 optical liquid glass sampling with #habitatCanvas clientHeight & rScale,
-  // and guarantee constant real-world creature speed at any FPS setting!
+  // Align 1:1 optical liquid glass sampling with #habitatCanvas clientHeight & rScale in Wallpaper Engine
   if (relPath === 'js/10-glass-renderer.js') {
-    transformed = replaceRequired(
-      transformed,
-      'if (document.body.classList.contains(\'zen-active\')) return;',
-      'if (document.body.classList.contains(\'zen-active\')) return;\n            if (typeof window.__weSyncPopoverGlassPlate === \'function\') window.__weSyncPopoverGlassPlate();',
-      '10-glass-renderer zen/plate sync',
-    );
     transformed = replaceRequired(
       transformed,
       `const winW = window.innerWidth;\n            const winH = window.innerHeight;`,
@@ -209,45 +169,9 @@ function transformForWallpaper(code, relPath) {
     );
     transformed = replaceRequired(
       transformed,
-      `const lw = Math.max(16, Math.round(sw));\n                const lh = Math.max(12, Math.round(sh));`,
-      `const qScale = Math.max(0.5, Math.min(2.5, Number(window.__weGlassQualityScale) || 0.75));\n                const lw = Math.max(16, Math.round(sw * qScale));\n                const lh = Math.max(12, Math.round(sh * qScale));`,
-      '10-glass-renderer lens size',
-    );
-    transformed = replaceRequired(
-      transformed,
       'lctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, lw, lh);',
       'lctx.drawImage(canvas, sx * rScale, sy * rScale, sw * rScale, sh * rScale, 0, 0, lw, lh);',
       '10-glass-renderer drawImage scale',
-    );
-    transformed = replaceRequired(
-      transformed,
-      `                const pad = 18;\n                const coreAlpha = 0.52;\n                const maxBloomR = Math.max(10, Math.min(lw, lh) * 0.7);`,
-      `                const isPopoverPlate = el.id === 'wePopoverGlassPlate';\n                const isTopPill = el.classList.contains('we-liquid-pill');\n                const pad = isPopoverPlate ? 14 : 18;\n                const coreAlpha = isPopoverPlate ? 0.26 : isTopPill ? 0.34 : 0.42;\n                const maxBloomR = Math.max(7 * qScale, Math.min(Math.min(lw, lh) * (isPopoverPlate ? 0.24 : 0.56), (isPopoverPlate ? 18 : isTopPill ? 18 : 22) * qScale));`,
-      '10-glass-renderer bloom tiers',
-    );
-    transformed = replaceRequired(
-      transformed,
-      'const glowAlphaVal = (bestGlow * 0.48).toFixed(2);',
-      `const glowScale = isPopoverPlate ? 0.20 : isTopPill ? 0.24 : 0.28;\n                const glowAlphaVal = (bestGlow * glowScale).toFixed(2);`,
-      '10-glass-renderer glowScale',
-    );
-    transformed = replaceRequired(
-      transformed,
-      `const minFrameInterval = prefersReducedMotion ? 1000 / 15 : BASE_FRAME_MS;\n            if (lastFrameTime && timestamp - lastFrameTime < minFrameInterval) {\n                animationFrameId = requestAnimationFrame(animate);\n                return;\n            }\n\n            const elapsed = lastFrameTime ? timestamp - lastFrameTime : BASE_FRAME_MS;\n            const safeElapsed = Math.min(MAX_FRAME_DELTA_MS, Math.max(0, elapsed));\n            const motionMultiplier = prefersReducedMotion ? 0.35 : 1;\n            setFrameScale((safeElapsed / BASE_FRAME_MS) * motionMultiplier);\n            sceneTime += safeElapsed * motionMultiplier;`,
-      `const targetSceneFps = Math.max(15, Math.min(240, Number(window.__weSceneFps) || 30));\n            const minFrameInterval = targetSceneFps >= 140 ? 0 : (1000 / targetSceneFps) - 2.2;\n            if (lastFrameTime && timestamp - lastFrameTime < minFrameInterval) {\n                animationFrameId = requestAnimationFrame(animate);\n                return;\n            }\n\n            const elapsed = lastFrameTime ? timestamp - lastFrameTime : BASE_FRAME_MS;\n            const safeElapsed = Math.min(MAX_FRAME_DELTA_MS, Math.max(1, elapsed));\n            const speedMult = Math.max(0.25, Math.min(3.0, Number(window.__weCreatureSpeed) || 1.0));\n            setFrameScale((safeElapsed / BASE_FRAME_MS) * speedMult);\n            sceneTime += safeElapsed * speedMult;`,
-      '10-glass-renderer animate frame timing',
-    );
-    transformed = replaceRequired(
-      transformed,
-      'const glassInterval = prefersReducedMotion ? 100 : 1000 / 30;',
-      'const targetGlassFps = Math.max(10, Math.min(144, Number(window.__weGlassFps) || 20));\n            const glassInterval = targetGlassFps >= 115 ? 0 : (1000 / targetGlassFps) - 1.5;',
-      '10-glass-renderer glassInterval',
-    );
-    transformed = replaceRequired(
-      transformed,
-      'function renderHabitatMenu() {',
-      'function renderHabitatMenu() {\n            if (typeof window.__weCustomRenderHabitatMenu === \'function\') {\n                window.__weCustomRenderHabitatMenu();\n                return;\n            }',
-      '10-glass-renderer renderHabitatMenu',
     );
   }
 
@@ -289,7 +213,13 @@ function transformForWallpaper(code, relPath) {
 
 let bundleCode = `/* Living Pixel Diorama — Wallpaper Engine Classic Bundle (file:// CORS-safe) */\n(function () {\n"use strict";\nwindow.__weTaskbarHeightPx = 54;\nwindow.__weDetailTier = 1;\nwindow.__weSceneFps = 30;\nwindow.__weGlassFps = 20;\nwindow.__weGlassQualityScale = 0.75;\nwindow.__weCreatureSpeed = 1.0;\nwindow.__wePaused = false;\n\n`;
 for (const mod of orderedModules) {
-  if (mod.relPath === 'js/main.js') continue;
+  if (
+    mod.relPath === 'js/main.js' ||
+    mod.relPath === 'js/12-web-studio.js' ||
+    mod.relPath === 'js/calendar-observances.js'
+  ) {
+    continue;
+  }
   bundleCode += `// ============================================================================\n`;
   bundleCode += `// MODULE: ${mod.relPath}\n`;
   bundleCode += `// ============================================================================\n`;
@@ -306,6 +236,7 @@ await mkdir(resolve(distWallpaper, 'js'), { recursive: true });
 for (const dir of ['css', 'fonts', 'icons', 'licenses']) {
   await cp(resolve(root, dir), resolve(distWallpaper, dir), { recursive: true });
 }
+await rm(resolve(distWallpaper, 'css/web-studio.css'), { force: true });
 await cp(resolve(root, 'wallpaper/wallpaper.css'), resolve(distWallpaper, 'css/wallpaper.css'));
 await cp(resolve(root, 'LICENSE'), resolve(distWallpaper, 'LICENSE'));
 await cp(resolve(root, 'THIRD_PARTY_NOTICES.md'), resolve(distWallpaper, 'THIRD_PARTY_NOTICES.md'));
@@ -318,6 +249,7 @@ const wallpaperHtml = rawHtml
   .replace('<link rel="manifest" href="./manifest.webmanifest">', '')
   .replace('id="calendarEventTime" type="time"', 'id="calendarEventTime" type="text" placeholder="14:30" maxlength="5"')
   .replace('id="importDataFile" type="file"', 'id="importDataFile" type="hidden"')
+  .replace(/\s*<link rel="stylesheet" href="\.\/css\/web-studio\.css">/, '')
   .replace(
     '<link rel="stylesheet" href="./css/widgets.css">',
     '<link rel="stylesheet" href="./css/widgets.css">\n    <link rel="stylesheet" href="./css/wallpaper.css">',

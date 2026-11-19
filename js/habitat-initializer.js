@@ -61,6 +61,7 @@ export function initHabitat(idx) {
     if (creatureProfile) {
         for (let i = 0; i < creatureProfile.count; i++) creatures.push(creatureProfile.create());
     }
+    if (typeof window.__weOnHabitatChanged === 'function') window.__weOnHabitatChanged(hab);
 }
 
 // ============================================================================

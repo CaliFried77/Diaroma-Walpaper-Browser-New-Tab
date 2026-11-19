@@ -11,6 +11,7 @@ import './08-creatures.js';
 import './habitat-interactions.js';
 import './09-scenery.js';
 import './10-glass-renderer.js';
+import './12-web-studio.js';
 import './performance-monitor.js';
 
 

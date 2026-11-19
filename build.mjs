@@ -78,7 +78,7 @@ await cp(resolve(root, 'THIRD_PARTY_NOTICES.md'), resolve(dist, 'THIRD_PARTY_NOT
 await cp(resolve(root, 'manifest.webmanifest'), resolve(dist, 'manifest.webmanifest'));
 await cp(resolve(root, '_headers'), resolve(dist, '_headers'));
 
-for (const cssFile of ['base.css', 'utilities.css', 'responsive.css', 'news.css', 'widgets.css']) {
+for (const cssFile of ['base.css', 'utilities.css', 'responsive.css', 'news.css', 'widgets.css', 'web-studio.css']) {
   const target = resolve(dist, 'css', cssFile);
   const source = await readFile(target, 'utf8');
   await writeFile(target, minifyCss(source));

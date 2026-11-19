@@ -71,8 +71,9 @@ import { lsPut, esc } from './storage.js';
             return sprite;
         }
 
-        function updateOpticalLiquidGlass(forceTrack = false) {
+        export function updateOpticalLiquidGlass(forceTrack = false) {
             if (document.body.classList.contains('zen-active')) return;
+            if (typeof window.__weSyncPopoverGlassPlate === 'function') window.__weSyncPopoverGlassPlate();
             const winW = window.innerWidth;
             const winH = window.innerHeight;
             if (!winW || !winH || !cachedGlassCards.length) return;
@@ -133,8 +134,9 @@ import { lsPut, esc } from './storage.js';
                 const sh = Math.max(1, Math.min(ph - sy, rawSh - (sy - rawSy)));
                 if (sw <= 0 || sh <= 0) continue;
 
-                const lw = Math.max(16, Math.round(sw));
-                const lh = Math.max(12, Math.round(sh));
+                const qScale = Math.max(0.5, Math.min(2.5, Number(window.__weGlassQualityScale) || 0.75));
+                const lw = Math.max(16, Math.round(sw * qScale));
+                const lh = Math.max(12, Math.round(sh * qScale));
                 let hasNearbyCreature = false;
                 const proxPad = 24;
                 for (let ci = 0; ci < creatures.length; ci++) {
@@ -169,9 +171,11 @@ import { lsPut, esc } from './storage.js';
                 let glowRGB = HABITATS[currentHabitatIdx].rgb;
                 let localGlowX = -200;
                 let localGlowY = -200;
-                const pad = 18;
-                const coreAlpha = 0.52;
-                const maxBloomR = Math.max(10, Math.min(lw, lh) * 0.7);
+                const isPopoverPlate = el.id === 'wePopoverGlassPlate';
+                const isTopPill = el.classList.contains('we-liquid-pill');
+                const pad = isPopoverPlate ? 14 : 18;
+                const coreAlpha = isPopoverPlate ? 0.26 : isTopPill ? 0.34 : 0.42;
+                const maxBloomR = Math.max(7 * qScale, Math.min(Math.min(lw, lh) * (isPopoverPlate ? 0.24 : 0.56), (isPopoverPlate ? 18 : isTopPill ? 18 : 22) * qScale));
 
                 lctx.globalCompositeOperation = 'lighter';
                 for (let i = 0; i < creatures.length; i++) {
@@ -214,7 +218,8 @@ import { lsPut, esc } from './storage.js';
                 // repeated CSS custom property recalculation every glass tick.
                 const qGlowX = localGlowX < -100 ? -200 : Math.round(localGlowX * 0.5) * 2;
                 const qGlowY = localGlowY < -100 ? -200 : Math.round(localGlowY * 0.5) * 2;
-                const glowAlphaVal = (bestGlow * 0.48).toFixed(2);
+                const glowScale = isPopoverPlate ? 0.20 : isTopPill ? 0.24 : 0.28;
+                const glowAlphaVal = (bestGlow * glowScale).toFixed(2);
                 const glowState = `${qGlowX}|${qGlowY}|${glowRGB[0]},${glowRGB[1]},${glowRGB[2]}|${glowAlphaVal}`;
                 if (glowState !== card.glowState) {
                     el.style.setProperty('--creature-x', `${qGlowX}px`);
@@ -239,7 +244,11 @@ import { lsPut, esc } from './storage.js';
         const pinHabitatBtn = document.getElementById('pinHabitatBtn');
         const pinHabitatText = document.getElementById('pinHabitatText');
 
-        function renderHabitatMenu() {
+        export function renderHabitatMenu() {
+            if (typeof window.__weCustomRenderHabitatMenu === 'function') {
+                window.__weCustomRenderHabitatMenu();
+                return;
+            }
             if (!habitatListContainer) return;
             habitatListContainer.innerHTML = '';
             const isPinned = Boolean(pinnedHabitatId);
@@ -319,17 +328,20 @@ import { lsPut, esc } from './storage.js';
                 return;
             }
 
-            const minFrameInterval = prefersReducedMotion ? 1000 / 15 : BASE_FRAME_MS;
+            const defaultSceneFps = prefersReducedMotion ? 15 : 30;
+            const targetSceneFps = Math.max(15, Math.min(240, Number(window.__weSceneFps) || defaultSceneFps));
+            const minFrameInterval = targetSceneFps >= 140 ? 0 : (1000 / targetSceneFps) - 2.2;
             if (lastFrameTime && timestamp - lastFrameTime < minFrameInterval) {
                 animationFrameId = requestAnimationFrame(animate);
                 return;
             }
 
             const elapsed = lastFrameTime ? timestamp - lastFrameTime : BASE_FRAME_MS;
-            const safeElapsed = Math.min(MAX_FRAME_DELTA_MS, Math.max(0, elapsed));
+            const safeElapsed = Math.min(MAX_FRAME_DELTA_MS, Math.max(1, elapsed));
             const motionMultiplier = prefersReducedMotion ? 0.35 : 1;
-            setFrameScale((safeElapsed / BASE_FRAME_MS) * motionMultiplier);
-            sceneTime += safeElapsed * motionMultiplier;
+            const speedMult = motionMultiplier * Math.max(0.25, Math.min(3.0, Number(window.__weCreatureSpeed) || 1.0));
+            setFrameScale((safeElapsed / BASE_FRAME_MS) * speedMult);
+            sceneTime += safeElapsed * speedMult;
             lastFrameTime = timestamp;
 
             const renderStartedAt = performance.now();
@@ -342,8 +354,10 @@ import { lsPut, esc } from './storage.js';
 
             drawWxFront(sceneTime);
 
-            // The refractive lens is expensive; 30 Hz is visually smooth for this pixel-art UI.
-            const glassInterval = prefersReducedMotion ? 100 : 1000 / 30;
+            // Controlled glass cadence (default 20 Hz, configurable via settings).
+            const defaultGlassFps = prefersReducedMotion ? 10 : 20;
+            const targetGlassFps = Math.max(10, Math.min(144, Number(window.__weGlassFps) || defaultGlassFps));
+            const glassInterval = targetGlassFps >= 115 ? 0 : (1000 / targetGlassFps) - 1.5;
             let glassMs = 0;
             if (!document.body.classList.contains('zen-active') && timestamp - lastGlassUpdateTime >= glassInterval) {
                 const glassStartedAt = performance.now();
