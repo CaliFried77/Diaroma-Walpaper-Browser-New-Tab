@@ -873,76 +873,68 @@ export function drawHabitatFlora(time, hab) {
         } else if (f.type === 'lily') {
             const driftX = Math.round(f.x + Math.sin(time * 0.001 + (f.phase || 0)) * 1.2);
             const ry = Math.max(2, Math.ceil(f.r * 0.55));
+            const notchDir = f.notchDir || 1;
             const topPad = Math.max(ry, f.flower ? 5 : ry);
             const botPad = Math.max(ry, 4);
 
-            if (!f._sprite || f._spriteLight !== isLightMode || f._spriteR !== f.r) {
+            const drawLilyPixels = (rectFn, ox, oy) => {
+                const padDeep = isLightMode ? '#14532d' : '#083329';
+                const padMid = isLightMode ? '#15803d' : '#0f513d';
+                const padLight = isLightMode ? '#16a34a' : '#157154';
+                const padRim = isLightMode ? '#4ade80' : '#2dd4bf';
+
+                rectFn(ox - f.r + 1, oy + 2, f.r * 2 - 2, Math.max(2, Math.ceil(ry * 0.8)), 'rgba(2, 10, 18, 0.38)');
+                for (let dy = -ry; dy <= ry; dy++) {
+                    for (let dx = -f.r; dx <= f.r; dx++) {
+                        const normDist = (dx * dx) / (f.r * f.r) + (dy * dy) / (ry * ry);
+                        if (normDist <= 1) {
+                            const ndx = dx * notchDir;
+                            if (ndx > 1 && Math.abs(dy) <= Math.floor((ndx - 1) * 0.35)) continue;
+                            let col = padMid;
+                            if (normDist > 0.72 && dy <= 0) {
+                                col = padRim;
+                            } else if (normDist < 0.24) {
+                                col = padDeep;
+                            } else if (Math.abs(Math.abs(dx) - Math.abs(dy) * 2) <= 1 && normDist < 0.82) {
+                                col = dy < 0 ? padLight : padDeep;
+                            } else if (dy < 0 && normDist > 0.45) {
+                                col = padLight;
+                            }
+                            rectFn(ox + dx, oy + dy, 1, 1, col);
+                        }
+                    }
+                }
+                if (f.flower) {
+                    const flCol = f.flowerCol || '#f472b6';
+                    rectFn(ox - 3, oy - 1, 7, 1, padDeep);
+                    rectFn(ox - 3, oy - 2, 7, 1, flCol);
+                    rectFn(ox - 2, oy - 3, 5, 2, flCol);
+                    rectFn(ox - 2, oy - 3, 1, 1, '#ffffff');
+                    rectFn(ox + 1, oy - 3, 1, 1, '#ffffff');
+                    rectFn(ox - 1, oy - 4, 3, 2, '#ffffff');
+                    rectFn(ox, oy - 2, 1, 1, '#facc15');
+                }
+            };
+
+            if (!f._sprite || f._spriteLight !== isLightMode || f._spriteR !== f.r || f._spriteNotch !== notchDir) {
                 const sp = createOffscreenSprite(f.r * 2 + 4, topPad + botPad + 2);
                 if (sp) {
                     const { off, sctx } = sp;
-                    const ox = f.r + 1;
-                    const oy = topPad;
-                    const padCol1 = isLightMode ? '#15803d' : '#0f4c3a';
-                    const padCol2 = isLightMode ? '#16a34a' : '#14634b';
-                    const padRim = isLightMode ? '#4ade80' : '#2dd4bf';
-
-                    sctx.fillStyle = 'rgba(2, 10, 18, 0.38)';
-                    sctx.fillRect(ox - f.r + 1, oy + 2, f.r * 2 - 2, 2);
-                    for (let dy = -ry; dy <= ry; dy++) {
-                        for (let dx = -f.r; dx <= f.r; dx++) {
-                            const normDist = (dx * dx) / (f.r * f.r) + (dy * dy) / (ry * ry);
-                            if (normDist <= 1) {
-                                if (dx > 1 && Math.abs(dy) <= Math.floor((dx - 1) * 0.35)) continue;
-                                const isRim = normDist > 0.72 && dy < 0;
-                                sctx.fillStyle = isRim ? padRim : ((dx + dy) % 2 === 0 ? padCol1 : padCol2);
-                                sctx.fillRect(ox + dx, oy + dy, 1, 1);
-                            }
-                        }
-                    }
-                    if (f.flower) {
-                        const flCol = f.flowerCol || '#f472b6';
-                        sctx.fillStyle = padCol1;
-                        sctx.fillRect(ox - 3, oy - 1, 7, 1);
-                        sctx.fillStyle = flCol;
-                        sctx.fillRect(ox - 3, oy - 2, 7, 2);
-                        sctx.fillRect(ox - 2, oy - 3, 5, 3);
-                        sctx.fillStyle = '#ffffff';
-                        sctx.fillRect(ox - 1, oy - 4, 3, 2);
-                        sctx.fillStyle = '#fef08a';
-                        sctx.fillRect(ox, oy - 2, 1, 1);
-                    }
+                    drawLilyPixels((rx, ryPos, rw, rh, col) => {
+                        sctx.fillStyle = col;
+                        sctx.fillRect(rx, ryPos, rw, rh);
+                    }, f.r + 1, topPad);
                     f._sprite = off;
                     f._spriteLight = isLightMode;
                     f._spriteR = f.r;
+                    f._spriteNotch = notchDir;
                 }
             }
 
             if (f._sprite) {
                 ctx.drawImage(f._sprite, driftX - f.r - 1, Math.round(f.y) - topPad);
             } else {
-                const padCol1 = isLightMode ? '#15803d' : '#0f4c3a';
-                const padCol2 = isLightMode ? '#16a34a' : '#14634b';
-                const padRim = isLightMode ? '#4ade80' : '#2dd4bf';
-                pRect(driftX - f.r + 1, f.y + 2, f.r * 2 - 2, 2, 'rgba(2, 10, 18, 0.38)');
-                for (let dy = -ry; dy <= ry; dy++) {
-                    for (let dx = -f.r; dx <= f.r; dx++) {
-                        const normDist = (dx * dx) / (f.r * f.r) + (dy * dy) / (ry * ry);
-                        if (normDist <= 1) {
-                            if (dx > 1 && Math.abs(dy) <= Math.floor((dx - 1) * 0.35)) continue;
-                            const isRim = normDist > 0.72 && dy < 0;
-                            const col = isRim ? padRim : ((dx + dy) % 2 === 0 ? padCol1 : padCol2);
-                            pRect(driftX + dx, f.y + dy, 1, 1, col);
-                        }
-                    }
-                }
-                if (f.flower) {
-                    const flCol = f.flowerCol || '#f472b6';
-                    pRect(driftX - 3, f.y - 1, 7, 1, padCol1);
-                    pRect(driftX - 3, f.y - 2, 7, 2, flCol);
-                    pRect(driftX - 2, f.y - 3, 5, 3, flCol);
-                    pRect(driftX - 1, f.y - 4, 3, 2, '#ffffff');
-                    pRect(driftX, f.y - 2, 1, 1, '#fef08a');
-                }
+                drawLilyPixels(pRect, driftX, f.y);
             }
 
             // BÖLÜM SONU: SULAK ALAN VE AKVARYUM BİTKİLERİ

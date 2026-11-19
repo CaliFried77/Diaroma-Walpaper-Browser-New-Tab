@@ -9,6 +9,7 @@
 const BRIDGE_BASE_URL = 'http://127.0.0.1:47831';
 const DESKTOP_DOCK_KEY = 'diorama_desktop_dock_v1';
 const WE_SETTINGS_STORAGE_KEY = 'diorama_we_settings_v1';
+const WE_PROP_SNAPSHOT_KEY = 'diorama_we_prop_snapshot_v1';
 
 // Initialize UI language early so every desktop widget boots in the user's chosen language
 let __bootLang = 'tr';
@@ -1162,7 +1163,10 @@ const DEFAULT_WE_SETTINGS = {
   glassBlur: 2.2,
   glassOpacity: 90,
   perfMigratedV2: true,
-  taskbarHeight: 54,
+  taskbarMigratedV3: true,
+  userModified: false,
+  updatedAt: 0,
+  taskbarHeight: 48,
   centerOffsetY: 0,
   autoCycleMins: 0,
   topbarMode: 'always',
@@ -1204,6 +1208,25 @@ if (
     perfMigratedV2: true,
   };
   lsSet(WE_SETTINGS_STORAGE_KEY, weSettings);
+}
+if (rawSavedWeSettings && !rawSavedWeSettings.taskbarMigratedV3) {
+  if (!rawSavedWeSettings.userModified && Number(rawSavedWeSettings.taskbarHeight) === 54) {
+    weSettings.taskbarHeight = 48;
+  }
+  weSettings.taskbarMigratedV3 = true;
+  lsSet(WE_SETTINGS_STORAGE_KEY, weSettings);
+}
+
+const rawPropSnapshot = lsGet(WE_PROP_SNAPSHOT_KEY, null);
+let wePropSnapshot = (rawPropSnapshot && typeof rawPropSnapshot === 'object' && !Array.isArray(rawPropSnapshot))
+  ? { ...rawPropSnapshot }
+  : {};
+let hasReceivedInitialWeProps = false;
+
+function markInAppSettingsModified() {
+  weSettings.userModified = true;
+  weSettings.taskbarMigratedV3 = true;
+  weSettings.updatedAt = Date.now();
 }
 
 let weWallpaperPaused = false;
@@ -1305,7 +1328,7 @@ function applyAllWeSettings(persist = true) {
   document.documentElement.style.setProperty('--we-glass-opacity', (opacityPct / 100).toFixed(2));
 
   // 3. Taskbar Height & Center Offset
-  const tbPx = Math.max(0, Math.min(140, Number(weSettings.taskbarHeight) ?? 54));
+  const tbPx = Math.max(0, Math.min(140, Number(weSettings.taskbarHeight) ?? 48));
   window.__weTaskbarHeightPx = tbPx;
   document.documentElement.style.setProperty('--we-taskbar-height', `${tbPx}px`);
   if (typeof resizePixelCanvas === 'function') resizePixelCanvas(tierChanged);
@@ -1482,8 +1505,8 @@ weSettingsPopover.innerHTML = `
     <div id="weSetSec3Title" class="we-settings-section-title">3. Masaüstü Hizalama & Habitat Otomasyonu</div>
     <div class="we-slider-row">
       <span id="weSetTaskbarLabel" class="font-pixel">Görev Çubuğu Boşluğu (Zemin)</span>
-      <input id="weTaskbarSlider" type="range" min="0" max="120" step="2" value="54">
-      <span id="weTaskbarVal" class="we-slider-val">54px</span>
+      <input id="weTaskbarSlider" type="range" min="0" max="120" step="2" value="48">
+      <span id="weTaskbarVal" class="we-slider-val">48px</span>
     </div>
     <div class="we-slider-row mb-3">
       <span id="weSetOffsetLabel" class="font-pixel">Orta Alan Dikey Konumu</span>
@@ -1587,7 +1610,9 @@ function renderWidgetToggleChips() {
     btn.innerHTML = `<span class="truncate font-pixel">${isEn() ? labelEn : labelTr}</span><span class="we-toggle-dot"></span>`;
     btn.addEventListener('click', () => {
       weSettings[key] = !weSettings[key];
+      markInAppSettingsModified();
       applyAllWeSettings(true);
+      if (typeof window.__weFlushUserStateSync === 'function') window.__weFlushUserStateSync();
     });
     weWidgetTogglesGrid.appendChild(btn);
   });
@@ -1599,7 +1624,9 @@ function bindSegmentedGroup(groupId, settingKey, isNumeric = true) {
   group.querySelectorAll('.we-seg-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       weSettings[settingKey] = isNumeric ? Number(btn.dataset.val) : btn.dataset.val;
+      markInAppSettingsModified();
       applyAllWeSettings(true);
+      if (typeof window.__weFlushUserStateSync === 'function') window.__weFlushUserStateSync();
     });
   });
 }
@@ -1611,7 +1638,9 @@ document.getElementById('wePerfProfileGroup')?.querySelectorAll('.we-seg-btn').f
     if (WE_PERF_PROFILES[key]) {
       weSettings.perfProfile = key;
       Object.assign(weSettings, WE_PERF_PROFILES[key]);
+      markInAppSettingsModified();
       applyAllWeSettings(true);
+      if (typeof window.__weFlushUserStateSync === 'function') window.__weFlushUserStateSync();
     }
   });
 });
@@ -1623,31 +1652,32 @@ bindSegmentedGroup('weAutoCycleGroup', 'autoCycleMins', true);
 bindSegmentedGroup('weTopbarModeGroup', 'topbarMode', false);
 bindSegmentedGroup('wePixelFontGroup', 'pixelFont', false);
 
-document.getElementById('weCreatureSpeedSlider')?.addEventListener('input', (e) => {
-  weSettings.creatureSpeed = Number(e.target.value);
-  applyAllWeSettings(true);
-});
-
-document.getElementById('weGlassBlurSlider')?.addEventListener('input', (e) => {
-  weSettings.glassBlur = Number(e.target.value);
-  applyAllWeSettings(true);
-});
-document.getElementById('weGlassOpacitySlider')?.addEventListener('input', (e) => {
-  weSettings.glassOpacity = Number(e.target.value);
-  applyAllWeSettings(true);
-});
-document.getElementById('weTaskbarSlider')?.addEventListener('input', (e) => {
-  weSettings.taskbarHeight = Number(e.target.value);
-  applyAllWeSettings(true);
-});
-document.getElementById('weCenterOffsetSlider')?.addEventListener('input', (e) => {
-  weSettings.centerOffsetY = Number(e.target.value);
-  applyAllWeSettings(true);
-});
+for (const [sliderId, settingKey] of [
+  ['weCreatureSpeedSlider', 'creatureSpeed'],
+  ['weGlassBlurSlider', 'glassBlur'],
+  ['weGlassOpacitySlider', 'glassOpacity'],
+  ['weTaskbarSlider', 'taskbarHeight'],
+  ['weCenterOffsetSlider', 'centerOffsetY'],
+]) {
+  const el = document.getElementById(sliderId);
+  if (!el) continue;
+  const applySliderVal = (e, flushBridge = false) => {
+    weSettings[settingKey] = Number(e.target.value);
+    markInAppSettingsModified();
+    applyAllWeSettings(true);
+    if (flushBridge && typeof window.__weFlushUserStateSync === 'function') {
+      window.__weFlushUserStateSync();
+    }
+  };
+  el.addEventListener('input', (e) => applySliderVal(e, false));
+  el.addEventListener('change', (e) => applySliderVal(e, true));
+}
 document.getElementById('weResetDefaultsBtn')?.addEventListener('click', () => {
   const keepLang = weSettings.language;
   weSettings = { ...DEFAULT_WE_SETTINGS, language: keepLang };
+  markInAppSettingsModified();
   applyAllWeSettings(true);
+  if (typeof window.__weFlushUserStateSync === 'function') window.__weFlushUserStateSync();
   showDesktopToast(L('⚙️ Ayarlar varsayılan değerlere sıfırlandı.', 'Settings reset to defaults.'));
 });
 
@@ -1717,8 +1747,37 @@ function setAmbientVolumeFromProperty(pctValue) {
 
 export function applyWallpaperEngineProperties(properties) {
   if (!properties || typeof properties !== 'object') return;
+  const propEntries = Object.entries(properties).filter(([, v]) => v && typeof v === 'object' && 'value' in v);
+  if (!propEntries.length) return;
 
-  if (properties.we_habitat) {
+  const isInitialBulkDump = !hasReceivedInitialWeProps && propEntries.length >= 6;
+  hasReceivedInitialWeProps = true;
+
+  let snapshotDirty = false;
+  const shouldApplyWeProp = (propKey, rawVal) => {
+    let valKey;
+    try {
+      valKey = JSON.stringify(rawVal);
+    } catch {
+      valKey = String(rawVal);
+    }
+    const hadSnapshotKey = Object.prototype.hasOwnProperty.call(wePropSnapshot, propKey);
+    const snapshotChanged = !hadSnapshotKey || wePropSnapshot[propKey] !== valKey;
+    if (snapshotChanged) {
+      wePropSnapshot[propKey] = valKey;
+      snapshotDirty = true;
+    }
+    if (!isInitialBulkDump) return true;
+    // Do not let Wallpaper Engine's unchanged startup defaults overwrite in-app customizations
+    if (weSettings.userModified && !hadSnapshotKey) return false;
+    if (hadSnapshotKey && !snapshotChanged) return false;
+    return true;
+  };
+
+  let anyWeSettingChanged = false;
+  let anyOtherPropApplied = false;
+
+  if (properties.we_habitat && shouldApplyWeProp('we_habitat', properties.we_habitat.value)) {
     const habId = String(properties.we_habitat.value || 'random');
     if (habId === 'random') {
       setPinnedHabitatId(null);
@@ -1732,22 +1791,46 @@ export function applyWallpaperEngineProperties(properties) {
         }
       }
     }
+    anyOtherPropApplied = true;
   }
 
-  if (properties.we_perf_profile) {
+  if (properties.we_perf_profile && shouldApplyWeProp('we_perf_profile', properties.we_perf_profile.value)) {
     const profKey = String(properties.we_perf_profile.value || 'balanced');
     if (WE_PERF_PROFILES[profKey]) {
       weSettings.perfProfile = profKey;
       Object.assign(weSettings, WE_PERF_PROFILES[profKey]);
+      anyWeSettingChanged = true;
     }
   }
-  if (properties.we_autocycle_mins) weSettings.autoCycleMins = Number(properties.we_autocycle_mins.value) || 0;
-  if (properties.we_topbar_mode) weSettings.topbarMode = String(properties.we_topbar_mode.value || 'always');
-  if (properties.we_pixel_font) weSettings.pixelFont = String(properties.we_pixel_font.value || 'departure');
-  if (properties.we_language) weSettings.language = String(properties.we_language.value || 'tr') === 'en' ? 'en' : 'tr';
-  if (properties.we_taskbar_height !== undefined) weSettings.taskbarHeight = Number(properties.we_taskbar_height.value) || 0;
-  if (properties.we_center_offset_y !== undefined) weSettings.centerOffsetY = Number(properties.we_center_offset_y.value) || 0;
-  if (properties.we_clock_seconds !== undefined) weSettings.clockSeconds = Boolean(properties.we_clock_seconds.value);
+  if (properties.we_autocycle_mins && shouldApplyWeProp('we_autocycle_mins', properties.we_autocycle_mins.value)) {
+    weSettings.autoCycleMins = Number(properties.we_autocycle_mins.value) || 0;
+    anyWeSettingChanged = true;
+  }
+  if (properties.we_topbar_mode && shouldApplyWeProp('we_topbar_mode', properties.we_topbar_mode.value)) {
+    weSettings.topbarMode = String(properties.we_topbar_mode.value || 'always');
+    anyWeSettingChanged = true;
+  }
+  if (properties.we_pixel_font && shouldApplyWeProp('we_pixel_font', properties.we_pixel_font.value)) {
+    weSettings.pixelFont = String(properties.we_pixel_font.value || 'departure');
+    anyWeSettingChanged = true;
+  }
+  if (properties.we_language && shouldApplyWeProp('we_language', properties.we_language.value)) {
+    weSettings.language = String(properties.we_language.value || 'tr') === 'en' ? 'en' : 'tr';
+    anyWeSettingChanged = true;
+  }
+  if (properties.we_taskbar_height !== undefined && shouldApplyWeProp('we_taskbar_height', properties.we_taskbar_height.value)) {
+    const n = Number(properties.we_taskbar_height.value);
+    weSettings.taskbarHeight = Number.isFinite(n) ? n : 48;
+    anyWeSettingChanged = true;
+  }
+  if (properties.we_center_offset_y !== undefined && shouldApplyWeProp('we_center_offset_y', properties.we_center_offset_y.value)) {
+    weSettings.centerOffsetY = Number(properties.we_center_offset_y.value) || 0;
+    anyWeSettingChanged = true;
+  }
+  if (properties.we_clock_seconds !== undefined && shouldApplyWeProp('we_clock_seconds', properties.we_clock_seconds.value)) {
+    weSettings.clockSeconds = Boolean(properties.we_clock_seconds.value);
+    anyWeSettingChanged = true;
+  }
 
   const propToSetting = [
     ['we_show_clock', 'showClock'],
@@ -1767,12 +1850,13 @@ export function applyWallpaperEngineProperties(properties) {
     ['we_show_data_btn', 'showDataBtn'],
   ];
   for (const [propKey, settingKey] of propToSetting) {
-    if (properties[propKey] !== undefined) {
+    if (properties[propKey] !== undefined && shouldApplyWeProp(propKey, properties[propKey].value)) {
       weSettings[settingKey] = Boolean(properties[propKey].value);
+      anyWeSettingChanged = true;
     }
   }
 
-  if (properties.we_theme_mode) {
+  if (properties.we_theme_mode && shouldApplyWeProp('we_theme_mode', properties.we_theme_mode.value)) {
     const mode = String(properties.we_theme_mode.value || 'dark');
     const atBox = document.getElementById('wxAutoTheme');
     if (mode === 'auto') {
@@ -1789,39 +1873,45 @@ export function applyWallpaperEngineProperties(properties) {
       lsPut('diorama_theme', wantLight ? 'light' : 'dark');
       renderWxPreviewButtons();
     }
+    anyOtherPropApplied = true;
   }
 
-  if (properties.we_weather_fx) {
+  if (properties.we_weather_fx && shouldApplyWeProp('we_weather_fx', properties.we_weather_fx.value)) {
     wxFxEnabled = Boolean(properties.we_weather_fx.value);
     const fxBox = document.getElementById('wxFxToggle');
     if (fxBox) fxBox.checked = wxFxEnabled;
     lsPut('diorama_wxfx', wxFxEnabled ? 'on' : 'off');
+    anyOtherPropApplied = true;
   }
 
-  if (properties.we_username !== undefined) {
+  if (properties.we_username !== undefined && shouldApplyWeProp('we_username', properties.we_username.value)) {
     const newName = String(properties.we_username.value || '').trim() || 'Gezgin';
     if (editableUserName && editableUserName.textContent !== newName) {
       editableUserName.textContent = newName;
       lsPut('diorama_username', newName);
     }
+    anyOtherPropApplied = true;
   }
 
-  if (properties.we_city !== undefined) {
+  if (properties.we_city !== undefined && shouldApplyWeProp('we_city', properties.we_city.value)) {
     const newCity = String(properties.we_city.value || '').trim();
     if (newCity && newCity.toLowerCase() !== String(userCity || '').toLowerCase()) {
       fetchWeather(newCity, { silent: true });
     }
+    anyOtherPropApplied = true;
   }
 
-  if (properties.we_ambient_volume !== undefined) {
+  if (properties.we_ambient_volume !== undefined && shouldApplyWeProp('we_ambient_volume', properties.we_ambient_volume.value)) {
     setAmbientVolumeFromProperty(properties.we_ambient_volume.value);
+    anyOtherPropApplied = true;
   }
-  if (properties.we_biome_creature_sounds !== undefined) {
+  if (properties.we_biome_creature_sounds !== undefined && shouldApplyWeProp('we_biome_creature_sounds', properties.we_biome_creature_sounds.value)) {
     if (typeof window.__weSetBiomeCreatureSounds === 'function') {
       window.__weSetBiomeCreatureSounds(Boolean(properties.we_biome_creature_sounds.value));
     }
+    anyOtherPropApplied = true;
   }
-  if (properties.we_ambient_sound !== undefined) {
+  if (properties.we_ambient_sound !== undefined && shouldApplyWeProp('we_ambient_sound', properties.we_ambient_sound.value)) {
     const sound = String(properties.we_ambient_sound.value || 'off');
     if (sound === 'off') {
       if (typeof window.__weSetBiomeAutoAudio === 'function') window.__weSetBiomeAutoAudio(false);
@@ -1832,9 +1922,17 @@ export function applyWallpaperEngineProperties(properties) {
       if (typeof window.__weSetBiomeAutoAudio === 'function') window.__weSetBiomeAutoAudio(false);
       if (activeSoundType !== sound) toggleAmbientSound(sound);
     }
+    anyOtherPropApplied = true;
   }
 
-  applyAllWeSettings(true);
+  if (snapshotDirty) {
+    lsSet(WE_PROP_SNAPSHOT_KEY, wePropSnapshot);
+  }
+  if (anyWeSettingChanged) {
+    applyAllWeSettings(true);
+  } else if (anyOtherPropApplied) {
+    applyAllWeSettings(false);
+  }
 }
 
 window.wallpaperPropertyListener = {
@@ -4127,29 +4225,59 @@ function collectCoreAppStorageSnapshot() {
 }
 
 let userStateSyncTimer = null;
+let userStateDirty = false;
 let isHydratingFromBridge = false;
 
-window.__weScheduleUserStateSync = function scheduleUserStateSync() {
-  if (isHydratingFromBridge || !bridgeOnline) return;
-  if (userStateSyncTimer) clearTimeout(userStateSyncTimer);
-  userStateSyncTimer = setTimeout(() => {
+function buildUserStatePayload() {
+  const payload = {
+    weSettings,
+    wePropSnapshot,
+    desktopDockItems,
+    biomeAudioPrefs,
+    appStorage: collectCoreAppStorageSnapshot(),
+  };
+  if (xiaomiConfig && (xiaomiConfig.ip || xiaomiConfig.token)) {
+    payload.xiaomi = { ip: xiaomiConfig.ip, token: xiaomiConfig.token };
+  }
+  return payload;
+}
+
+function sendUserStateSyncNow(useKeepalive = false) {
+  if (userStateSyncTimer) {
+    clearTimeout(userStateSyncTimer);
     userStateSyncTimer = null;
-    const payload = {
-      weSettings,
-      desktopDockItems,
-      biomeAudioPrefs,
-      appStorage: collectCoreAppStorageSnapshot(),
-    };
-    if (xiaomiConfig && (xiaomiConfig.ip || xiaomiConfig.token)) {
-      payload.xiaomi = { ip: xiaomiConfig.ip, token: xiaomiConfig.token };
-    }
+  }
+  userStateDirty = false;
+  if (isHydratingFromBridge || !bridgeOnline) return;
+  try {
     fetch(`${BRIDGE_BASE_URL}/api/desktop/user-state`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(buildUserStatePayload()),
+      keepalive: useKeepalive,
     }).catch(() => {});
-  }, 550);
+  } catch {}
+}
+
+window.__weFlushUserStateSync = function flushUserStateSyncNow(useKeepalive = false) {
+  sendUserStateSyncNow(useKeepalive);
 };
+
+window.__weScheduleUserStateSync = function scheduleUserStateSync() {
+  if (isHydratingFromBridge || !bridgeOnline) return;
+  userStateDirty = true;
+  if (userStateSyncTimer) clearTimeout(userStateSyncTimer);
+  userStateSyncTimer = setTimeout(() => sendUserStateSyncNow(false), 550);
+};
+
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('pagehide', () => {
+    if (userStateDirty || userStateSyncTimer) sendUserStateSyncNow(true);
+  });
+  window.addEventListener('beforeunload', () => {
+    if (userStateDirty || userStateSyncTimer) sendUserStateSyncNow(true);
+  });
+}
 
 // Mirror core localStorage writes (tasks, notes, calendar, city, theme, username) automatically
 try {
@@ -4202,12 +4330,29 @@ window.__weHydrateUserState = async function hydrateUserStateFromBridge() {
       shouldSyncBackToDisk = true;
     }
 
-    // 3. Restore Wallpaper & Liquid Glass settings if missing in localStorage
-    if (state.weSettings && typeof state.weSettings === 'object' && lsRaw(WE_SETTINGS_STORAGE_KEY) === null) {
-      weSettings = { ...DEFAULT_WE_SETTINGS, ...state.weSettings };
+    // 3. Restore Wallpaper Engine property snapshot & user-modified settings (even if reload wiped localStorage)
+    if (state.wePropSnapshot && typeof state.wePropSnapshot === 'object' && Object.keys(wePropSnapshot).length === 0) {
+      wePropSnapshot = { ...state.wePropSnapshot };
+      lsSet(WE_PROP_SNAPSHOT_KEY, wePropSnapshot);
+    } else if (Object.keys(wePropSnapshot).length > 0 && !state.wePropSnapshot) {
+      shouldSyncBackToDisk = true;
+    }
+
+    const diskWeSettings = state.weSettings && typeof state.weSettings === 'object' ? state.weSettings : null;
+    const diskIsModified = Boolean(diskWeSettings?.userModified);
+    const diskUpdatedAt = Number(diskWeSettings?.updatedAt) || 0;
+    const localUpdatedAt = Number(weSettings.updatedAt) || 0;
+    const shouldRestoreWeSettings = Boolean(
+      diskWeSettings && (
+        lsRaw(WE_SETTINGS_STORAGE_KEY) === null ||
+        (diskIsModified && (!weSettings.userModified || diskUpdatedAt > localUpdatedAt))
+      )
+    );
+    if (shouldRestoreWeSettings) {
+      weSettings = { ...DEFAULT_WE_SETTINGS, ...diskWeSettings };
       lsSet(WE_SETTINGS_STORAGE_KEY, weSettings);
       applyAllWeSettings(false);
-    } else if (lsRaw(WE_SETTINGS_STORAGE_KEY) !== null && !state.weSettings) {
+    } else if (lsRaw(WE_SETTINGS_STORAGE_KEY) !== null && !diskWeSettings) {
       shouldSyncBackToDisk = true;
     }
 
@@ -4707,8 +4852,9 @@ document.getElementById('weMusicPlatterBtn')?.addEventListener('click', (e) => {
 
 function setMusicCompactMode(compact) {
   weSettings.musicCompact = Boolean(compact);
+  markInAppSettingsModified();
   lsSet(WE_SETTINGS_STORAGE_KEY, weSettings);
-  if (typeof window.__weScheduleUserStateSync === 'function') window.__weScheduleUserStateSync();
+  if (typeof window.__weFlushUserStateSync === 'function') window.__weFlushUserStateSync();
   renderMusicPlayerUI();
   window.__weGlassRectsDirty = true;
   if (typeof window.__weTrackGlassTransition === 'function') window.__weTrackGlassTransition(380);
@@ -7539,8 +7685,9 @@ function setSystemCompactMode(compact) {
   if (kickerEl) {
     kickerEl.textContent = weSettings.systemCompact ? L('SİSTEM', 'SYSTEM') : L('SİSTEM · CANLI', 'SYSTEM · LIVE');
   }
+  markInAppSettingsModified();
   lsSet(WE_SETTINGS_STORAGE_KEY, weSettings);
-  if (typeof window.__weScheduleUserStateSync === 'function') window.__weScheduleUserStateSync();
+  if (typeof window.__weFlushUserStateSync === 'function') window.__weFlushUserStateSync();
   window.__weGlassRectsDirty = true;
   if (typeof window.__weTrackGlassTransition === 'function') window.__weTrackGlassTransition(380);
   repaintGlassNow();

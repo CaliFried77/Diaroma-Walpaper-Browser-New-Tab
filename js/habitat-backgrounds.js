@@ -1404,41 +1404,70 @@ export function buildStaticEnvironmentLayer(hab) {
     }
 
    else if (hab.sceneProfile === 'rainforest') {
-        // BÖLÜM BAŞI: YAĞMUR ORMANI STATİK ÇEVRESİ
+        // BÖLÜM BAŞI: YAĞMUR ORMANI STATİK ÇEVRESİ (YAŞAYAN PİKSEL SANAT DİORAMASI)
         const canopyShades = isLightMode
-            ? ['#0b3d2e', '#115e40', '#16784d', '#22995e']
-            : ['#041f1a', '#073026', '#0c4432', '#135e42'];
+            ? ['#063125', '#0b4d37', '#116b46', '#1e8c54', '#3ab56d']
+            : ['#031a16', '#062c24', '#0b4232', '#135c42', '#1d7a55'];
 
-        const farJungleCol = isLightMode ? 'rgba(11, 61, 46, 0.24)' : 'rgba(4, 22, 19, 0.48)';
-        const midJungleCol = isLightMode ? 'rgba(13, 74, 56, 0.38)' : 'rgba(5, 32, 27, 0.68)';
-        const understoryCol = isLightMode ? 'rgba(15, 82, 58, 0.52)' : 'rgba(6, 38, 30, 0.78)';
+        const farTepuiCol = isLightMode ? 'rgba(13, 74, 62, 0.22)' : 'rgba(6, 30, 28, 0.45)';
+        const farTepuiRim = isLightMode ? 'rgba(167, 243, 208, 0.24)' : 'rgba(45, 212, 191, 0.14)';
+        const valleyMistCol = isLightMode ? 'rgba(236, 253, 245, 0.28)' : 'rgba(20, 83, 75, 0.18)';
+        const farJungleCol = isLightMode ? 'rgba(11, 61, 46, 0.28)' : 'rgba(4, 24, 21, 0.52)';
+        const midJungleCol = isLightMode ? 'rgba(13, 74, 56, 0.44)' : 'rgba(5, 34, 28, 0.72)';
+        const understoryCol = isLightMode ? 'rgba(15, 82, 58, 0.58)' : 'rgba(6, 40, 31, 0.84)';
 
+        // 1. Uzak sisli Tepui masa dağları (atmosferik perspektif derinliği)
+        const tepuis = [
+            { cx: pw * 0.30, topW: pw * 0.11, baseW: pw * 0.22, h: Math.round(ph * 0.44) },
+            { cx: pw * 0.68, topW: pw * 0.13, baseW: pw * 0.25, h: Math.round(ph * 0.48) }
+        ];
+        tepuis.forEach(tp => {
+            const topY = ph - tp.h;
+            for (let y = topY; y < ph - 20; y++) {
+                const prog = (y - topY) / Math.max(1, tp.h - 20);
+                const halfW = Math.round(tp.topW * 0.5 + (tp.baseW - tp.topW) * 0.5 * Math.pow(prog, 0.75) + Math.sin(y * 0.22) * 1.4);
+                sRect(tp.cx - halfW, y, halfW * 2, 1, farTepuiCol);
+                if (y <= topY + 2) {
+                    sRect(tp.cx - halfW + 1, y, Math.max(2, halfW - 2), 1, farTepuiRim);
+                }
+            }
+        });
+        sRect(0, ph - 66, pw, 16, valleyMistCol);
+
+        // 2. Katmanlı uzak & orta yağmur ormanı sırtları
         for (let x = 0; x < pw; x += 2) {
             const nx = x / Math.max(1, pw);
-            const valleyDip = 0.48 + Math.pow(Math.abs(nx - 0.5) * 1.9, 1.35) * 0.85;
-            const farH = Math.round((56 + Math.sin(x * 0.018 + 0.6) * 14 + Math.cos(x * 0.045) * 6) * valleyDip);
+            const valleyDip = 0.46 + Math.pow(Math.abs(nx - 0.5) * 1.92, 1.35) * 0.88;
+            const farH = Math.round((58 + Math.sin(x * 0.018 + 0.6) * 14 + Math.cos(x * 0.045) * 6) * valleyDip);
             sRect(x, ph - farH, 2, farH, farJungleCol);
 
-            const h = Math.round((38 + Math.sin(x * 0.025) * 10 + Math.cos(x * 0.07) * 6) * valleyDip);
+            const h = Math.round((40 + Math.sin(x * 0.025) * 10 + Math.cos(x * 0.07) * 6) * valleyDip);
             sRect(x, ph - h, 2, h, midJungleCol);
 
-            const bushH = Math.round(16 + Math.sin(x * 0.09) * 5 + Math.cos(x * 0.19) * 3);
+            const bushH = Math.round(18 + Math.sin(x * 0.09) * 5 + Math.cos(x * 0.19) * 3);
             sRect(x, ph - bushH, 2, bushH, understoryCol);
         }
 
         const drawFoliageDome = (cx, cy, rx, ry, shadeIdx) => {
-            const baseCol = canopyShades[shadeIdx];
-            const hiCol = canopyShades[Math.min(3, shadeIdx + 1)];
+            const maxIdx = canopyShades.length - 1;
+            const baseCol = canopyShades[Math.min(maxIdx, Math.max(0, shadeIdx))];
+            const hiCol = canopyShades[Math.min(maxIdx, shadeIdx + 1)];
+            const tipCol = canopyShades[Math.min(maxIdx, shadeIdx + 2)];
             const shadowCol = canopyShades[Math.max(0, shadeIdx - 1)];
             for (let dy = -ry; dy <= ry; dy++) {
                 const ratio = 1 - (dy * dy) / (ry * ry);
                 if (ratio <= 0) continue;
-                const scallop = Math.sin(dy * 0.65 + cx * 0.1) * 2.2;
+                const scallop = Math.sin(dy * 0.68 + cx * 0.1) * 2.4 + Math.cos(dy * 1.25) * 1.1;
                 const span = Math.max(1, Math.round(rx * Math.sqrt(ratio) + scallop));
-                const col = dy < -ry * 0.28 ? hiCol : (dy > ry * 0.35 ? shadowCol : baseCol);
+                let col = baseCol;
+                if (dy < -ry * 0.52) col = tipCol;
+                else if (dy < -ry * 0.18) col = hiCol;
+                else if (dy > ry * 0.34) col = shadowCol;
                 sRect(cx - span, cy + dy, span * 2, 1, col);
-                if (dy < -ry * 0.1 && dy > -ry * 0.8 && dy % 3 === 0 && span > 6) {
-                    sRect(cx - Math.floor(span * 0.55), cy + dy, Math.floor(span * 0.5), 1, hiCol);
+                if (dy > -ry * 0.6 && dy < ry * 0.25 && dy % 3 === 0 && span > 5) {
+                    const clusterW = Math.max(3, Math.floor(span * 0.45));
+                    const shift = ((Math.abs(Math.round(cx)) + dy) % 5) - 2;
+                    sRect(cx - Math.floor(span * 0.52) + shift, cy + dy, clusterW, 1, dy < 0 ? tipCol : hiCol);
                 }
             }
         };
@@ -1466,12 +1495,14 @@ export function buildStaticEnvironmentLayer(hab) {
         midgroundTrees.forEach((tree, idx) => {
             const isFarTree = tree.depth === 'far';
             const trunkCol = isFarTree
-                ? (isLightMode ? '#2b3530' : '#0d1917')
-                : (isLightMode ? '#2c221e' : '#101c1a');
+                ? (isLightMode ? '#29352f' : '#0b1816')
+                : (isLightMode ? '#2c201b' : '#0e1b19');
             const barkCol = isFarTree
-                ? (isLightMode ? '#3f4d46' : '#162925')
-                : (isLightMode ? '#4a372d' : '#1c302b');
-            const mossCol = isLightMode ? '#15803d' : '#0d593d';
+                ? (isLightMode ? '#3e4e46' : '#152925')
+                : (isLightMode ? '#523a2e' : '#1f3630');
+            const barkRim = isLightMode ? '#735342' : '#2d4d44';
+            const mossCol = isLightMode ? '#16a34a' : '#0f766e';
+            const fungiCol = isLightMode ? '#f59e0b' : '#b45309';
             const groundBase = ph;
 
             for (let y = tree.top + 4; y < groundBase; y++) {
@@ -1482,10 +1513,17 @@ export function buildStaticEnvironmentLayer(hab) {
                 const w = Math.round(6 + prog * 6 + crownFlare + rootFlare);
                 const tx = Math.round(tree.x + curve - w * 0.5);
                 sRect(tx, y, w, 1, trunkCol);
-                sRect(tx + 1, y, Math.max(1, Math.floor(w * 0.38)), 1, barkCol);
-                if (!isFarTree && ((y + idx * 3) % 11 === 0) && prog > 0.22 && prog < 0.82) {
+                sRect(tx + 1, y, Math.max(1, Math.floor(w * 0.40)), 1, barkCol);
+                if (!isFarTree && w >= 7) {
+                    sRect(tx + 1, y, 1, 1, barkRim);
+                }
+                if (!isFarTree && ((y + idx * 3) % 10 === 0) && prog > 0.20 && prog < 0.84) {
                     const vineOffset = Math.round(Math.sin(y * 0.12 + idx) * (w * 0.3));
                     sRect(tree.x + vineOffset, y, 2, 2, mossCol);
+                }
+                if (!isFarTree && ((y + idx * 7) % 23 === 0) && prog > 0.42 && prog < 0.78) {
+                    const fSide = (idx % 2 === 0) ? tx + w - 1 : tx - 2;
+                    sRect(fSide, y, 3, 1, fungiCol);
                 }
             }
 
@@ -1505,7 +1543,7 @@ export function buildStaticEnvironmentLayer(hab) {
                 );
             });
 
-            // Papağanların ve epifitlerin üzerinde durduğu, taç kubbesinin altından dışarı uzanan gerçek yan dal!
+            // Papağanların, Tukan'ın, Tembel Hayvan'ın ve epifitlerin tutunduğu gerçek yosunlu yan dal
             const pDir = tree.perchDir || 1;
             const perchY = tree.top + 22;
             const perchStartX = tree.x + Math.round(Math.sin(0.2 * Math.PI * 1.1 + idx) * 2);
@@ -1517,24 +1555,97 @@ export function buildStaticEnvironmentLayer(hab) {
                 const ly = perchY + Math.round((1 - t) * 4 - Math.sin(t * Math.PI) * 1.5);
                 const lThick = Math.max(2, Math.round(4 * (1 - t * 0.45)));
                 sRect(lx, ly, 2, lThick, trunkCol);
-                sRect(lx, ly, 2, 1, barkCol);
+                sRect(lx, ly, 2, 1, (s % 4 === 0 && s > 4 && s < 20) ? mossCol : barkCol);
             }
 
-            // Çok katmanlı, geniş yağmur ormanı ağacı tacı
+            // Çok katmanlı, güneş benekli yağmur ormanı tacı
             drawFoliageDome(tree.x - Math.round(tree.rx * 0.55), tree.top + 7, Math.round(tree.rx * 0.78), Math.round(tree.ry * 0.78), 1);
             drawFoliageDome(tree.x + Math.round(tree.rx * 0.55), tree.top + 8, Math.round(tree.rx * 0.78), Math.round(tree.ry * 0.78), 1);
             drawFoliageDome(tree.x, tree.top, tree.rx, tree.ry, isFarTree ? 1 : 2);
             drawFoliageDome(tree.x - pDir * 6, tree.top - 5, Math.round(tree.rx * 0.68), Math.round(tree.ry * 0.65), isFarTree ? 2 : 3);
         });
 
+        // 3. Zeminle Bütünleşik İki Kademeli Yosunlu Kireçtaşı Falez & Turkuaz Orman Lagünü (Havada durmaz!)
+        const wfX = Math.round(pw * 0.50);
+        const poolSurfY = ph - 8;
+        const cliffH = Math.min(72, Math.max(48, Math.round(ph * 0.25)));
+        const cliffTopY = poolSurfY - cliffH;
+        const midShelfY = poolSurfY - Math.round(cliffH * 0.46);
+        const cliffBaseHalfW = Math.min(38, Math.max(24, Math.round(pw * 0.068)));
+        const cliffTopHalfW = Math.round(cliffBaseHalfW * 0.60);
+        const poolHalfW = Math.round(cliffBaseHalfW * 0.94);
+
+        const rockDark = isLightMode ? '#1e293b' : '#091119';
+        const rockMid = isLightMode ? '#334155' : '#13202d';
+        const rockWet = isLightMode ? '#0f2933' : '#06151c';
+        const rockHi = isLightMode ? '#64748b' : '#263a4d';
+        const mossDeep = isLightMode ? '#064e3b' : '#052e22';
+        const mossMid = isLightMode ? '#15803d' : '#0d593d';
+        const mossBright = isLightMode ? '#4ade80' : '#10b981';
+
+        for (let y = cliffTopY; y <= poolSurfY + 2; y++) {
+            const prog = (y - cliffTopY) / Math.max(1, cliffH);
+            const ledgeStep = Math.sin(y * 0.24) * 2.4 + (prog > 0.48 && prog < 0.60 ? 3 : 0);
+            const halfW = Math.round(cliffTopHalfW + (cliffBaseHalfW - cliffTopHalfW) * Math.pow(prog, 0.72) + ledgeStep);
+            const leftX = wfX - halfW;
+            const totalW = halfW * 2;
+            sRect(leftX, y, totalW, 1, rockDark);
+            const litW = Math.max(2, Math.floor(totalW * 0.34));
+            sRect(leftX + 1, y, litW, 1, rockMid);
+            if (y % 5 === 0) {
+                sRect(leftX + 2, y, Math.max(2, Math.floor(litW * 0.7)), 1, rockHi);
+            }
+            if (y % 9 === 0 && totalW > 14) {
+                sRect(leftX + 4, y, totalW - 8, 1, rockDark);
+            }
+            // Merkezdeki ıslak koyu şelale oluğu (arka falez oyuğu)
+            const gorgeHalf = prog < 0.45 ? 4 : 6;
+            sRect(wfX - gorgeHalf, y, gorgeHalf * 2, 1, rockWet);
+        }
+
+        // Üst kaynak yarığı + kayanın zirvesinden sarkan gür yosun yastıkları
+        sRect(wfX - 4, cliffTopY + 1, 8, 4, '#020617');
+        for (let dx = -cliffTopHalfW - 1; dx <= cliffTopHalfW + 1; dx++) {
+            const x = wfX + dx;
+            const droop = 2 + Math.abs(Math.round(Math.sin(dx * 0.45) * 3));
+            const crownOff = Math.round((dx * dx) / Math.max(1, cliffTopHalfW * cliffTopHalfW) * 3);
+            const topEdge = cliffTopY - 2 + crownOff;
+            sRect(x, topEdge, 1, droop, mossDeep);
+            sRect(x, topEdge, 1, 2, mossMid);
+            if (Math.abs(dx) < cliffTopHalfW - 2) sRect(x, topEdge, 1, 1, mossBright);
+        }
+
+        // Orta kademedeki ıslak çıkıntı kaya rafı & yosunlu basamak (şelaleyi doğal olarak iki kola ayırır)
+        sRect(wfX - 10, midShelfY, 21, 5, rockDark);
+        sRect(wfX - 9, midShelfY - 1, 18, 3, rockMid);
+        sRect(wfX - 8, midShelfY - 1, 12, 1, rockHi);
+        sRect(wfX - 10, midShelfY - 2, 7, 2, mossMid);
+        sRect(wfX + 4, midShelfY - 2, 7, 2, mossMid);
+        sRect(wfX - 9, midShelfY - 2, 4, 1, mossBright);
+
+        // Turkuaz orman lagünü havzası (zemine gömülü kaya kenarlı gölet)
+        const lagoonTop = isLightMode ? '#0e7490' : '#083344';
+        const lagoonMid = isLightMode ? '#0f766e' : '#064e3b';
+        const lagoonDeep = isLightMode ? '#064e3b' : '#022c22';
+        for (let y = poolSurfY; y < ph; y++) {
+            const t = (y - poolSurfY) / Math.max(1, ph - poolSurfY);
+            const edgeTrim = Math.round(t * 2);
+            const span = Math.max(6, poolHalfW - edgeTrim);
+            const col = t < 0.45 ? lerpHex(lagoonTop, lagoonMid, t * 2) : lerpHex(lagoonMid, lagoonDeep, (t - 0.45) * 2);
+            sRect(wfX - span, y, span * 2, 1, col);
+        }
+        sRect(wfX - poolHalfW + 3, poolSurfY, (poolHalfW - 3) * 2, 2, 'rgba(2, 16, 24, 0.35)');
+        sRect(wfX - poolHalfW + 1, poolSurfY - 1, 4, 3, mossDeep);
+        sRect(wfX + poolHalfW - 5, poolSurfY - 1, 4, 3, mossDeep);
+
         const edgeGiants = [
             { x: 0, width: 20, side: 1 },
             { x: pw - 22, width: 22, side: -1 }
         ];
         edgeGiants.forEach((giant) => {
-            const trunkDark = isLightMode ? '#321e17' : '#141115';
-            const trunkMid = isLightMode ? '#523225' : '#241c22';
-            const trunkHi = isLightMode ? '#734834' : '#382b31';
+            const trunkDark = isLightMode ? '#2b1812' : '#111014';
+            const trunkMid = isLightMode ? '#4a2c20' : '#211b21';
+            const trunkHi = isLightMode ? '#6d4330' : '#352b31';
             const mossCol = isLightMode ? '#15803d' : '#0d593d';
 
             for (let y = 0; y < ph; y++) {
@@ -1546,9 +1657,13 @@ export function buildStaticEnvironmentLayer(hab) {
                 sRect(left + (giant.side === 1 ? w - 6 : 2), y, 4, 1, trunkMid);
                 sRect(left + (giant.side === 1 ? w - 2 : 0), y, 2, 1, trunkHi);
 
-                if (y % 18 === 0 && y > 24 && y < ph - 20) {
+                if (y % 16 === 0 && y > 24 && y < ph - 20) {
                     const mx = giant.side === 1 ? w - 4 : pw - w;
                     sRect(mx, y, 4, 2, mossCol);
+                }
+                if (y % 37 === 0 && y > 40 && y < ph - 28) {
+                    const fx = giant.side === 1 ? w - 1 : pw - w - 2;
+                    sRect(fx, y, 3, 1, '#d97706');
                 }
             }
 
@@ -1583,7 +1698,7 @@ export function buildStaticEnvironmentLayer(hab) {
             for (let k = -2; k <= 2; k++) {
                 const hx = Math.round(d.cx + k * (d.rx * 0.28));
                 const hy = Math.max(1, Math.round(d.cy + ((Math.abs(k) + dIdx) % 3) * 3 - 2));
-                const shade = (k + dIdx) % 2 === 0 ? canopyShades[3] : canopyShades[1];
+                const shade = (k + dIdx) % 2 === 0 ? canopyShades[4] : canopyShades[1];
                 sRect(hx, hy, 3, 2, shade);
             }
         });
@@ -1594,6 +1709,8 @@ export function buildStaticEnvironmentLayer(hab) {
         const floorHi = isLightMode ? '#22c55e' : '#10b981';
 
         for (let x = 0; x < pw; x++) {
+            // Lagün havzası zemini açık tutulur; falez havuzu tam olarak suya iner
+            if (Math.abs(x - wfX) < poolHalfW - 2) continue;
             const gy = getGroundY(x, 'rainforest', pw, ph);
             sRect(x, gy, 1, ph - gy, floorDeep);
             sRect(x, gy + 3, 1, Math.max(1, ph - gy - 3), floorLoam);
@@ -1603,11 +1720,34 @@ export function buildStaticEnvironmentLayer(hab) {
             }
         }
 
-        // Buttress roots sit above the forest floor so they remain visible after ground fill.
+        // Havuz kıyısındaki ıslak yosunlu nehir kayaları (sol kurbağa taşı & sağ kıyıda kaya)
+        const frogRockX = wfX - poolHalfW - 3;
+        const frogRockY = getGroundY(frogRockX, 'rainforest', pw, ph);
+        sRect(frogRockX - 6, frogRockY - 3, 12, 5, rockDark);
+        sRect(frogRockX - 5, frogRockY - 4, 10, 3, rockMid);
+        sRect(frogRockX - 4, frogRockY - 4, 8, 1, mossMid);
+        sRect(frogRockX - 3, frogRockY - 5, 5, 1, mossBright);
+
+        const rightRockX = wfX + poolHalfW - 1;
+        const rightRockY = getGroundY(rightRockX, 'rainforest', pw, ph);
+        sRect(rightRockX - 4, rightRockY - 3, 9, 5, rockDark);
+        sRect(rightRockX - 3, rightRockY - 4, 7, 3, rockMid);
+        sRect(rightRockX - 2, rightRockY - 4, 5, 1, mossMid);
+
+        // Sol kıyıda devrilmiş yosunlu kütük & mantar detayları
+        const logX = Math.round(pw * 0.21);
+        const logY = getGroundY(logX, 'rainforest', pw, ph);
+        sRect(logX - 10, logY - 3, 18, 4, isLightMode ? '#3e2723' : '#1a1412');
+        sRect(logX - 9, logY - 3, 16, 1, isLightMode ? '#5d4037' : '#2d221e');
+        sRect(logX - 6, logY - 4, 10, 1, mossMid);
+        sRect(logX - 2, logY - 5, 2, 1, '#facc15');
+        sRect(logX + 2, logY - 5, 2, 1, '#fb923c');
+
+        // Payanda kökleri orman zemininin üzerinde oturur
         midgroundTrees.filter(tree => tree.depth !== 'far').forEach(tree => {
             const groundY = getGroundY(tree.x, 'rainforest', pw, ph);
-            const rootCol = isLightMode ? '#2c221e' : '#101c1a';
-            const rootHi = isLightMode ? '#4a372d' : '#1c302b';
+            const rootCol = isLightMode ? '#2c201b' : '#0e1b19';
+            const rootHi = isLightMode ? '#523a2e' : '#1f3630';
             [-1, 1].forEach(dir => {
                 for (let step = 0; step <= 16; step++) {
                     const t = step / 16;

@@ -55,12 +55,6 @@ function transformForWallpaper(code, relPath) {
       'async function loadNewsCategory(categoryId, { force = false } = {}) {\n  if (window.__weLang === \'en\' && typeof window.__weLoadEnglishNewsCategory === \'function\') {\n    return window.__weLoadEnglishNewsCategory(categoryId, { force });\n  }',
       '02-news loadNewsCategory',
     );
-    transformed = replaceRequired(
-      transformed,
-      'function renderNewsCards(emptyMessage = \'\') {',
-      'function renderNewsCards(emptyMessage = \'\') {\n  if (typeof window.__weCustomRenderNewsCards === \'function\') {\n    window.__weCustomRenderNewsCards(emptyMessage);\n    return;\n  }',
-      '02-news renderNewsCards',
-    );
   }
 
   if (relPath === 'js/03-weather.js') {
@@ -97,7 +91,7 @@ function transformForWallpaper(code, relPath) {
     transformed = replaceRequired(
       transformed,
       `        function resizePixelCanvas() {\n            const previousWidth = pw;\n            const previousHeight = ph;\n            const nextWidth = Math.max(1, Math.ceil(window.innerWidth / PIXEL_SCALE));\n            const nextHeight = Math.max(1, Math.ceil(window.innerHeight / PIXEL_SCALE));\n            if (nextWidth === previousWidth && nextHeight === previousHeight) return;\n\n            pw = nextWidth;\n            ph = nextHeight;\n            canvas.width = pw;\n            canvas.height = ph;\n            lastFillStyle = '';\n            ctx.imageSmoothingEnabled = false;\n            invalidateBackgroundCache();\n\n            if (previousWidth > 0 && previousHeight > 0 && creatures.length + stimuli.length + ambientParticles.length + flora.length + shootingStars.length > 0) {\n                scaleSceneCollections(\n                    [creatures, stimuli, ambientParticles, flora, shootingStars],\n                    pw / previousWidth,\n                    ph / previousHeight,\n                );\n            }\n        }`,
-      `        let cachedDetailTier = [1, 2, 3].includes(Number(window.__weDetailTier)) ? Number(window.__weDetailTier) : 1;\n\n        function resizePixelCanvas(forceRebuild = false) {\n            const previousWidth = pw;\n            const previousHeight = ph;\n            const taskbarPx = Math.max(0, Math.min(140, Number(window.__weTaskbarHeightPx ?? 54)));\n            const visibleWinH = Math.max(240, window.innerHeight - taskbarPx);\n            const rScale = [1, 2, 3].includes(Number(window.__weDetailTier)) ? Number(window.__weDetailTier) : 1;\n            cachedDetailTier = rScale;\n            const nextWidth = Math.max(1, Math.ceil(window.innerWidth / PIXEL_SCALE));\n            const nextHeight = Math.max(80, Math.ceil(visibleWinH / PIXEL_SCALE));\n            const targetCanvasW = nextWidth * rScale;\n            const targetCanvasH = nextHeight * rScale;\n            if (!forceRebuild && nextWidth === previousWidth && nextHeight === previousHeight && canvas.width === targetCanvasW && canvas.height === targetCanvasH) return;\n\n            pw = nextWidth;\n            ph = nextHeight;\n            canvas.width = targetCanvasW;\n            canvas.height = targetCanvasH;\n            lastFillStyle = '';\n            ctx.setTransform(rScale, 0, 0, rScale, 0, 0);\n            ctx.imageSmoothingEnabled = false;\n            invalidateBackgroundCache();\n\n            if (previousWidth > 0 && previousHeight > 0) {\n                if (creatures.length + stimuli.length + ambientParticles.length + shootingStars.length > 0) {\n                    scaleSceneCollections(\n                        [creatures, stimuli, ambientParticles, shootingStars],\n                        pw / previousWidth,\n                        ph / previousHeight,\n                    );\n                }\n                if (typeof populateHabitatFlora === 'function' && HABITATS[currentHabitatIdx]) {\n                    flora.length = 0;\n                    populateHabitatFlora(HABITATS[currentHabitatIdx]);\n                }\n            }\n        }`,
+      `        let cachedDetailTier = [1, 2, 3].includes(Number(window.__weDetailTier)) ? Number(window.__weDetailTier) : 1;\n\n        function resizePixelCanvas(forceRebuild = false) {\n            const previousWidth = pw;\n            const previousHeight = ph;\n            const taskbarPx = Math.max(0, Math.min(140, Number(window.__weTaskbarHeightPx ?? 48)));\n            const visibleWinH = Math.max(240, window.innerHeight - taskbarPx);\n            const rScale = [1, 2, 3].includes(Number(window.__weDetailTier)) ? Number(window.__weDetailTier) : 1;\n            cachedDetailTier = rScale;\n            const nextWidth = Math.max(1, Math.ceil(window.innerWidth / PIXEL_SCALE));\n            const nextHeight = Math.max(80, Math.ceil(visibleWinH / PIXEL_SCALE));\n            const targetCanvasW = nextWidth * rScale;\n            const targetCanvasH = nextHeight * rScale;\n            if (!forceRebuild && nextWidth === previousWidth && nextHeight === previousHeight && canvas.width === targetCanvasW && canvas.height === targetCanvasH) return;\n\n            pw = nextWidth;\n            ph = nextHeight;\n            canvas.width = targetCanvasW;\n            canvas.height = targetCanvasH;\n            lastFillStyle = '';\n            ctx.setTransform(rScale, 0, 0, rScale, 0, 0);\n            ctx.imageSmoothingEnabled = false;\n            invalidateBackgroundCache();\n\n            if (previousWidth > 0 && previousHeight > 0) {\n                if (creatures.length + stimuli.length + ambientParticles.length + shootingStars.length > 0) {\n                    scaleSceneCollections(\n                        [creatures, stimuli, ambientParticles, shootingStars],\n                        pw / previousWidth,\n                        ph / previousHeight,\n                    );\n                }\n                if (typeof populateHabitatFlora === 'function' && HABITATS[currentHabitatIdx]) {\n                    flora.length = 0;\n                    populateHabitatFlora(HABITATS[currentHabitatIdx]);\n                }\n            }\n        }`,
       '07-habitat-state resizePixelCanvas',
     );
     transformed = replaceRequired(
@@ -175,35 +169,6 @@ function transformForWallpaper(code, relPath) {
     );
   }
 
-  // Hook js/11-calendar.js for Wallpaper Engine's Smart Calendar (Turkish holidays, live match fixtures,
-  // academic/work weekly timetables with holiday skipping, and daily/weekly free-time calculator)
-  if (relPath === 'js/11-calendar.js') {
-    transformed = replaceRequired(
-      transformed,
-      "return new Intl.DateTimeFormat('tr-TR', options).format(date);",
-      "return new Intl.DateTimeFormat(window.__weLang === 'en' ? 'en-US' : 'tr-TR', options).format(date);",
-      '11-calendar date format',
-    );
-    transformed = replaceRequired(
-      transformed,
-      'function renderCalendar() {',
-      'function renderCalendar() {\n  if (typeof window.__weCustomRenderCalendar === \'function\') {\n    window.__weCustomRenderCalendar();\n    return;\n  }',
-      '11-calendar renderCalendar',
-    );
-    transformed = replaceRequired(
-      transformed,
-      'function renderSelectedDay() {',
-      'function renderSelectedDay() {\n  if (typeof window.__weCustomRenderSelectedDay === \'function\') {\n    window.__weCustomRenderSelectedDay();\n    return;\n  }',
-      '11-calendar renderSelectedDay',
-    );
-    transformed = replaceRequired(
-      transformed,
-      'renderCalendar();\nrenderSelectedDay();',
-      `window.__weCalendarBridge = {\n  getSelectedDate: () => selectedDate,\n  setSelectedDate: (d) => { selectedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()); },\n  getVisibleMonth: () => visibleMonth,\n  setVisibleMonth: (m) => { visibleMonth = new Date(m.getFullYear(), m.getMonth(), 1); },\n  getEvents: () => events,\n  removeEvent: (id) => { events = events.filter((item) => item.id !== id); persistEvents(); },\n  reloadEvents: () => { events = normalizeEvents(lsGet(STORAGE_KEY, [])); },\n  dateKey,\n  formatDate,\n  renderAll: () => { renderCalendar(); renderSelectedDay(); },\n};\nrenderCalendar();\nrenderSelectedDay();`,
-      '11-calendar bridge',
-    );
-  }
-
   return transformed
     .replace(/^\s*import\s+[\s\S]*?from\s*['"][^'"]+['"];?\s*$/gm, '')
     .replace(/^\s*import\s*['"][^'"]+['"];?\s*$/gm, '')
@@ -211,7 +176,7 @@ function transformForWallpaper(code, relPath) {
     .replace(/^(\s*)export\s+(const|let|var|function|class|async\s+function)\b/gm, '$1$2');
 }
 
-let bundleCode = `/* Living Pixel Diorama — Wallpaper Engine Classic Bundle (file:// CORS-safe) */\n(function () {\n"use strict";\nwindow.__weTaskbarHeightPx = 54;\nwindow.__weDetailTier = 1;\nwindow.__weSceneFps = 30;\nwindow.__weGlassFps = 20;\nwindow.__weGlassQualityScale = 0.75;\nwindow.__weCreatureSpeed = 1.0;\nwindow.__wePaused = false;\n\n`;
+let bundleCode = `/* Living Pixel Diorama — Wallpaper Engine Classic Bundle (file:// CORS-safe) */\n(function () {\n"use strict";\nwindow.__weTaskbarHeightPx = 48;\nwindow.__weDetailTier = 1;\nwindow.__weSceneFps = 30;\nwindow.__weGlassFps = 20;\nwindow.__weGlassQualityScale = 0.75;\nwindow.__weCreatureSpeed = 1.0;\nwindow.__wePaused = false;\n\n`;
 for (const mod of orderedModules) {
   if (
     mod.relPath === 'js/main.js' ||
@@ -348,7 +313,7 @@ const projectJson = {
         type: 'slider',
         min: 0,
         max: 120,
-        value: 54,
+        value: 48,
       },
       we_pixel_font: {
         order: 7,

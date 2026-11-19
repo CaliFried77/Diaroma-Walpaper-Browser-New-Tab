@@ -9,6 +9,19 @@ import { getGroundY } from './habitat-geometry.js';
 // Yalnızca bitki verisini üretir; çizim davranışı habitat-flora-renderer.js içindedir.
 // ============================================================================
 
+function canPlaceLily(placedLilies, lx, ly, r, padMarginX = 7, padMarginY = 5) {
+    for (let i = 0; i < placedLilies.length; i++) {
+        const p = placedLilies[i];
+        if (
+            Math.abs(lx - p.x) < (r + p.r + padMarginX) &&
+            Math.abs(ly - p.y) < (Math.ceil((r + p.r) * 0.6) + padMarginY)
+        ) {
+            return false;
+        }
+    }
+    return true;
+}
+
 export function populateHabitatFlora(hab) {
 if (hab.sceneProfile === 'meadow') {
         // BÖLÜM BAŞI: ÇAYIR BAŞLANGIÇ FLORASI
@@ -253,31 +266,54 @@ if (hab.sceneProfile === 'meadow') {
             }
         }
 
-        const waterCorridors = [
-            [0.24, 0.39],
-            [0.49, 0.54],
-            [0.62, 0.74]
+        const placedLilies = [];
+        const isWetlandWaterClear = (lx, ly, r) => {
+            if (lx < 68 || lx > pw - 68 || Math.abs(lx - (pw - 74)) < 18) return false;
+            const ry = Math.ceil(r * 0.55);
+            // Avoid overlapping mid-water mossy islands or right bank snag
+            if (Math.abs(lx - Math.round(pw * 0.44)) < 25 + r && Math.abs(ly - (ph - 21)) < 9 + ry) return false;
+            if (Math.abs(lx - Math.round(pw * 0.58)) < 22 + r && Math.abs(ly - (ph - 25)) < 8 + ry) return false;
+            if (Math.abs(lx - Math.round(pw * 0.66)) < 18 + r && ly > ph - 26) return false;
+            const nx = lx / Math.max(1, pw);
+            if ((nx <= 0.37 || nx >= 0.63) && ly > getGroundY(lx, 'wetland', pw, ph) - ry - 4) return false;
+            return true;
+        };
+
+        const wetlandLilyZones = [
+            { xStart: 0.18, xEnd: 0.37, minY: ph - 45, maxYFn: (lx, r) => Math.min(ph - 16, getGroundY(lx, 'wetland', pw, ph) - Math.ceil(r * 0.55) - 5), target: 3, minR: 4, maxR: 6 },
+            { xStart: 0.49, xEnd: 0.54, minY: ph - 45, maxYFn: () => ph - 30, target: 1, minR: 4, maxR: 5 },
+            { xStart: 0.38, xEnd: 0.62, minY: ph - 14, maxYFn: () => ph - 6, target: 3, minR: 6, maxR: 8 },
+            { xStart: 0.64, xEnd: 0.80, minY: ph - 45, maxYFn: (lx, r) => Math.min(ph - 20, getGroundY(lx, 'wetland', pw, ph) - Math.ceil(r * 0.55) - 6), target: 3, minR: 4, maxR: 6 }
         ];
-        for (let i = 0; i < 16; i++) {
-            const [cStart, cEnd] = waterCorridors[i % waterCorridors.length];
-            const lx = Math.round(pw * (cStart + Math.random() * (cEnd - cStart)));
-            if (lx < 68 || Math.abs(lx - (pw - 74)) < 18) continue;
-            const minWaterY = (lx < pw * 0.36 || lx > pw * 0.64)
-                ? Math.max(ph - 44, getGroundY(lx, 'wetland', pw, ph) + 6)
-                : ph - 44;
-            const maxWaterY = ph - 6;
-            if (minWaterY >= maxWaterY - 2) continue;
-            const ly = Math.round(minWaterY + Math.random() * (maxWaterY - minWaterY));
+
+        wetlandLilyZones.forEach(zone => {
+            let count = 0;
+            for (let attempt = 0; attempt < 32 && count < zone.target; attempt++) {
+                const r = zone.minR + Math.floor(Math.random() * (zone.maxR - zone.minR + 1));
+                const lx = Math.round(pw * (zone.xStart + Math.random() * (zone.xEnd - zone.xStart)));
+                const maxY = zone.maxYFn(lx, r);
+                if (zone.minY >= maxY - 1) continue;
+                const ly = Math.round(zone.minY + Math.random() * (maxY - zone.minY));
+                if (!isWetlandWaterClear(lx, ly, r)) continue;
+                if (!canPlaceLily(placedLilies, lx, ly, r, 7, 5)) continue;
+                placedLilies.push({ x: lx, y: ly, r });
+                count++;
+            }
+        });
+
+        placedLilies.sort((a, b) => a.y - b.y);
+        placedLilies.forEach((pad, idx) => {
             flora.push({
                 type: 'lily',
-                x: lx,
-                y: ly,
-                r: 5 + Math.floor(Math.random() * 4),
-                flower: i % 2 === 0,
-                flowerCol: ['#fde047', '#f472b6', '#f8fafc'][i % 3],
+                x: pad.x,
+                y: pad.y,
+                r: pad.r,
+                notchDir: idx % 2 === 0 ? 1 : -1,
+                flower: idx % 2 === 0,
+                flowerCol: ['#fde047', '#f472b6', '#f8fafc'][idx % 3],
                 phase: Math.random() * Math.PI * 2
             });
-        }
+        });
 
         // BÖLÜM SONU: SULAK ALAN BAŞLANGIÇ FLORASI
         
@@ -517,24 +553,46 @@ if (hab.sceneProfile === 'meadow') {
             });
         }
 
-        for (let i = 0; i < 14; i++) {
-            const lx = 26 + Math.random() * (pw - 95);
-            const ly = 36 + Math.random() * (ph - 58);
+        const placedKoiLilies = [];
+        for (let i = 0; i < 12; i++) {
+            for (let attempt = 0; attempt < 30; attempt++) {
+                const r = 6 + Math.floor(Math.random() * 5);
+                const ry = Math.ceil(r * 0.55);
+                const minX = 32 + r;
+                const maxX = Math.max(minX + 4, pw - 82 - r);
+                const minY = 34 + ry;
+                const maxY = Math.max(minY + 4, ph - 12 - ry);
+                const lx = Math.round(minX + Math.random() * (maxX - minX));
+                const ly = Math.round(minY + Math.random() * (maxY - minY));
+                if (lx < 82 && ly > ph - 22 - r) continue;
+                const nx = lx / Math.max(1, pw);
+                if ((nx <= 0.28 || nx >= 0.70) && ly > getGroundY(lx, 'koi-pond', pw, ph) - ry - 5) continue;
+                if (!canPlaceLily(placedKoiLilies, lx, ly, r, 8, 6)) continue;
+                placedKoiLilies.push({ x: lx, y: ly, r });
+                break;
+            }
+        }
+        placedKoiLilies.sort((a, b) => a.y - b.y);
+        placedKoiLilies.forEach((pad, idx) => {
             flora.push({
                 type: 'lily',
-                x: Math.round(lx),
-                y: Math.round(ly),
-                r: 7 + Math.floor(Math.random() * 5),
-                flower: i % 2 === 0,
-                flowerCol: ['#f472b6', '#f8fafc', '#fde047'][i % 3],
+                x: pad.x,
+                y: pad.y,
+                r: pad.r,
+                notchDir: idx % 2 === 0 ? 1 : -1,
+                flower: idx % 2 === 0,
+                flowerCol: ['#f472b6', '#f8fafc', '#fde047'][idx % 3],
                 phase: Math.random() * Math.PI * 2
             });
-        }
+        });
 
         // BÖLÜM SONU: KOİ GÖLETİ BAŞLANGIÇ FLORASI
     } else if (hab.sceneProfile === 'rainforest') {
         // BÖLÜM BAŞI: YAĞMUR ORMANI BAŞLANGIÇ FLORASI
+        const cliffCenterX = Math.round(pw * 0.50);
+        const lagoonClearHalfW = Math.max(30, Math.round(pw * 0.068));
         for (let x = 7; x < pw - 7; x += 7 + Math.floor(Math.random() * 8)) {
+            if (Math.abs(x - cliffCenterX) < lagoonClearHalfW) continue;
             const nx = x / Math.max(1, pw);
             const inCenterValley = nx > 0.34 && nx < 0.66;
             if (inCenterValley && Math.random() < 0.18) continue;
@@ -603,10 +661,10 @@ if (hab.sceneProfile === 'meadow') {
             });
         });
 
-        // Tüm kanopi sarmaşıkları doğrudan üstteki taç kubbelerinin içinden (startY: 6..12) sarkar; gökyüzünde havada başlamaz
+        // Tüm kanopi sarmaşıkları doğrudan üstteki taç kubbelerinin içinden sarkar; orta şelale penceresini çerçeveler
         const vineXPositions = [
-            pw * 0.06, pw * 0.16, pw * 0.28, pw * 0.40, pw * 0.50,
-            pw * 0.60, pw * 0.72, pw * 0.84, pw * 0.94
+            pw * 0.06, pw * 0.16, pw * 0.28, pw * 0.44, pw * 0.56,
+            pw * 0.72, pw * 0.84, pw * 0.94
         ];
         vineXPositions.forEach((vx, i) => {
             flora.push({

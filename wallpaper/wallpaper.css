@@ -422,11 +422,11 @@ body.theme-light .popover-panel.editorial-modal {
 
 /* Reserve bottom space for Windows Taskbar so bottom UI & creatures stay above it without any stretched fill artifacts */
 body {
-  padding-bottom: var(--we-taskbar-height, 54px);
+  padding-bottom: var(--we-taskbar-height, 48px);
 }
 
 #habitatCanvas {
-  height: calc(100vh - var(--we-taskbar-height, 54px)) !important;
+  height: calc(100vh - var(--we-taskbar-height, 48px)) !important;
 }
 
 /* Centerpiece vertical positioning offset */
@@ -503,7 +503,7 @@ body.theme-light .optical-glass > canvas.glass-lens {
 
 /* Ensure all popovers stay above the Windows Taskbar and remain scrollable */
 .popover-panel {
-  max-height: calc(100vh - var(--we-taskbar-height, 54px) - 92px) !important;
+  max-height: calc(100vh - var(--we-taskbar-height, 48px) - 92px) !important;
   overflow-y: auto !important;
 }
 
@@ -1568,7 +1568,7 @@ body.theme-light .desktop-launcher-drawer > canvas.glass-lens {
 /* Toast message for launcher feedback */
 .desktop-launcher-toast {
   position: fixed;
-  bottom: calc(var(--we-taskbar-height, 54px) + 18px);
+  bottom: calc(var(--we-taskbar-height, 48px) + 18px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 80;
@@ -1763,7 +1763,7 @@ body.we-hide-music #weMusicWidget {
   --disc-accent: #4ade80;
   position: fixed;
   left: 20px;
-  bottom: calc(var(--we-taskbar-height, 54px) + 18px);
+  bottom: calc(var(--we-taskbar-height, 48px) + 18px);
   z-index: 26;
   width: min(344px, calc(100vw - 40px));
   border-radius: 22px;
@@ -2122,7 +2122,7 @@ body.we-hide-music #weMusicWidget {
    ========================================================================== */
 #calendarPopover.calendar-popover {
   width: min(580px, calc(100vw - 28px)) !important;
-  max-height: calc(100vh - var(--we-taskbar-height, 54px) - 92px) !important;
+  max-height: calc(100vh - var(--we-taskbar-height, 48px) - 92px) !important;
   padding: 1.25rem 1.3rem 2.8rem !important;
 }
 
@@ -2907,7 +2907,7 @@ body.we-hide-system #weSystemWidget {
 #weSystemWidget {
   position: fixed;
   right: 20px;
-  bottom: calc(var(--we-taskbar-height, 54px) + 18px);
+  bottom: calc(var(--we-taskbar-height, 48px) + 18px);
   z-index: 26;
   width: min(344px, calc(100vw - 40px));
   border-radius: 22px;

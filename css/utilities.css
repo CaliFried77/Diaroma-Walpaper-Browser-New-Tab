@@ -140,6 +140,7 @@ input[type="file"]::file-selector-button:hover{background-color:rgb(255 255 255 
 .max-w-\[30vw\]{max-width:30vw}
 .max-w-sm{max-width:24rem}
 .max-w-xl{max-width:36rem}
+.mb-0{margin-bottom:0}
 .mb-1{margin-bottom:.25rem}
 .mb-1\.5{margin-bottom:.375rem}
 .mb-2{margin-bottom:.5rem}

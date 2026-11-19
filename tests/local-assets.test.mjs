@@ -186,11 +186,22 @@ test('rainforest habitat connects its layered canopy, flora, parrot flock and ed
   assert.ok(creatureParrotModule.includes('this.palette'));
   assert.ok(creatureParrotModule.includes('const tailLen = 23'));
   assert.ok(creatureParrotModule.includes('p.beakUpper'));
+  assert.equal(creatureParrotModule.includes('PARROT_RENDER_SCALE'), false, 'Parrot must draw at native 1:1 grid to prevent tail/pixel splits');
+  assert.ok(creatureParrotModule.includes('let prevTy = null;'));
+  assert.ok(backgroundsModule.includes('const cliffTopY = poolSurfY - cliffH;'));
+  assert.ok(backgroundsModule.includes('lagoonTop'));
+  assert.ok(sceneryModule.includes('Toco Tukan'));
+  assert.ok(sceneryModule.includes('Tembel Hayvan'));
+  assert.ok(sceneryModule.includes('Ağaç Kurbağası'));
+  assert.ok(sceneryModule.includes('Mavi Morpho Kelebeği'));
 });
 
 test('existing habitat improvements preserve bespoke scene layers', () => {
   assert.ok(backgroundsModule.includes('const drawOrchardTree ='));
   assert.ok(backgroundsModule.includes('const leftTree1X = 24'));
+  assert.ok(floraGeneratorModule.includes('function canPlaceLily'));
+  assert.ok(floraGeneratorModule.includes('wetlandLilyZones'));
+  assert.ok(floraGeneratorModule.includes('placedKoiLilies'));
   assert.ok(floraGeneratorModule.includes('const willowZones = ['));
   assert.ok(floraGeneratorModule.includes("type: 'willow_frond'"));
   assert.ok(floraGeneratorModule.includes("type: 'pebble'"));

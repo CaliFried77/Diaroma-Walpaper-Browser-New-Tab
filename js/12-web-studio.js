@@ -1,5 +1,19 @@
 import { lsGet, lsSet, esc } from './storage.js';
-import { getWebPublicObservances, formatYmd } from './calendar-observances.js';
+import { createArticleId, filterNewsArticles, formatNewsDate } from './news-utils.js';
+import {
+  getWebPublicObservances,
+  formatYmd,
+  parseTimeToMins,
+  formatMinsToTime,
+  parseFlexibleDateInput,
+  formatIsoToDisplayDate,
+  getIsoWeekdayFromKey,
+  normalizeWebCalendarConfig,
+  normalizeWebCalendarRoutines,
+  computeFreeTimeWindows,
+  getWebSmartDayData,
+  getUpcomingWebObservances,
+} from './calendar-observances.js';
 import {
   popovers,
   setPopoverOpen,
@@ -13,11 +27,14 @@ import { initHabitat } from './habitat-initializer.js';
 import { updateOpticalLiquidGlass, renderHabitatMenu } from './10-glass-renderer.js';
 
 /* WEB-STUDIO — Unified Hybrid Smoked-Crystal Liquid Glass, 16x16 Pixel Habitat Icons,
-   Web Settings & Laptop Performance Profiles, 8-Channel Organic Biome Audio,
-   Bilingual TR/EN Switching & Offline Smart Calendar Holiday Ribbon for the Web App. */
+   Web Settings & Laptop Performance Profiles, Switchable Pixel Fonts, 2-Column Editorial
+   News Reader (60 FPS FLIP), Complete 3-Tab Offline Smart Calendar (Weekly Routines,
+   Holiday Skipping, Free-Time Calculator) & 8-Channel Organic Biome Audio for Web/Cloudflare. */
 
 const WEB_SETTINGS_KEY = 'diorama_web_settings_v1';
-const WEB_CAL_COUNTRY_KEY = 'diorama_web_cal_country_v1';
+const LEGACY_CAL_COUNTRY_KEY = 'diorama_web_cal_country_v1';
+const SMART_CAL_CFG_KEY = 'diorama_smart_calendar_cfg_v1';
+const SMART_CAL_ROUTINES_KEY = 'diorama_smart_calendar_routines_v1';
 
 const WEB_PERF_PROFILES = Object.freeze({
   eco: { sceneFps: 24, glassFps: 15, glassQuality: 0.75 },
@@ -58,16 +75,36 @@ function isDomEl(el) {
 }
 
 // ============================================================================
-// 1. SETTINGS STATE, PERFORMANCE PROFILES & BILINGUAL TRANSLATION
+// 1. SETTINGS STATE, PERFORMANCE PROFILES & BILINGUAL HELPERS
 // ============================================================================
 const rawSettings = lsGet(WEB_SETTINGS_KEY, null);
 let webSettings = { ...DEFAULT_WEB_SETTINGS, ...(rawSettings && typeof rawSettings === 'object' ? rawSettings : {}) };
 let autoCycleIntervalId = null;
 let clockSecondsIntervalId = null;
 let lastClockStr = '';
+let webToastTimerId = null;
 
 const isEn = () => webSettings.language === 'en';
 const L = (tr, en) => (isEn() ? en : tr);
+
+function showWebToast(message, durationMs = 2400) {
+  if (!message || typeof document === 'undefined' || !isDomEl(document.body)) return;
+  let toast = document.getElementById('weWebToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'weWebToast';
+    toast.className = 'we-web-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    document.body.appendChild(toast);
+  }
+  toast.textContent = String(message);
+  toast.classList.add('is-visible');
+  if (webToastTimerId) clearTimeout(webToastTimerId);
+  webToastTimerId = setTimeout(() => {
+    toast.classList.remove('is-visible');
+  }, durationMs);
+}
 
 const heroClockEl = document.getElementById('heroClock');
 window.__weSetHeroClock = function renderWebHeroClock(formatted) {
@@ -120,8 +157,21 @@ function detectPerfProfileKey() {
   return 'custom';
 }
 
+function preloadSelectedPixelFont(fontKey) {
+  if (typeof document === 'undefined' || !document.fonts || typeof document.fonts.load !== 'function') return;
+  const familyMap = {
+    departure: "'Departure Mono'",
+    jersey20: "'Jersey 20'",
+    jersey15: "'Jersey 15'",
+  };
+  const family = familyMap[fontKey];
+  if (!family) return;
+  document.fonts.load(`16px ${family}`).catch(() => {});
+  document.fonts.load(`400 48px ${family}`).catch(() => {});
+}
+
 // ============================================================================
-// 3. UNIFIED HYBRID LIQUID GLASS TOP PILLS & POPOVER BACKING PLATE
+// 2. UNIFIED HYBRID LIQUID GLASS TOP PILLS & POPOVER BACKING PLATE
 // ============================================================================
 let wePopoverGlassPlate = null;
 let lastPlateRectKey = '';
@@ -215,6 +265,13 @@ function initHybridGlassLayer() {
     });
   }
 
+  if (typeof ResizeObserver === 'function') {
+    const ro = new ResizeObserver(() => {
+      if (typeof window.__weSyncPopoverGlassPlate === 'function') window.__weSyncPopoverGlassPlate();
+    });
+    document.querySelectorAll('.popover-panel').forEach((panel) => ro.observe(panel));
+  }
+
   document.addEventListener('pointermove', (e) => {
     if (!wePopoverGlassPlate || !wePopoverGlassPlate.classList.contains('is-visible')) return;
     const panel = e.target instanceof Element ? e.target.closest('.popover-panel.open') : null;
@@ -232,7 +289,7 @@ function initHybridGlassLayer() {
 }
 
 // ============================================================================
-// 4. 16x16 PIXEL-ART HABITAT MENU ICONS (ALL 8 ECOSYSTEMS)
+// 3. 16x16 PIXEL-ART HABITAT MENU ICONS (ALL 8 ECOSYSTEMS)
 // ============================================================================
 const HABITAT_PIXEL_SPRITES = {
   bees: {
@@ -359,6 +416,362 @@ function syncTopBarHabitatPixelIcon(hab) {
     if (nameEl) nameEl.textContent = disp.name;
     if (hintEl) hintEl.textContent = disp.hint;
   }
+}
+
+// ============================================================================
+// 4. 2-COLUMN EDITORIAL NEWS READER & 60 FPS FLIP ACCORDION
+// ============================================================================
+const NEWS_CHEVRON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
+const NEWS_COPY_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const NEWS_CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+function parseEditorialHeadline(rawTitle = '', index = 0, query = '', filter = 'all') {
+  let cleanTitle = String(rawTitle || '').trim();
+  const breakingRe = /^(?:son\s+dak[iİ]ka(?:\s+haber[iİ])?|flaş(?:\s+haber)?|breaking(?:\s+news)?|live\s+updates?)\s*[:\-–—|]\s*/i;
+  let isBreaking = false;
+  if (breakingRe.test(cleanTitle)) {
+    isBreaking = true;
+    cleanTitle = cleanTitle.replace(breakingRe, '').trim() || cleanTitle;
+  } else if (/\bson\s+dak[iİ]ka\b|\bbreaking\s+news\b/i.test(cleanTitle)) {
+    isBreaking = true;
+  }
+  const isLead = !isBreaking && index === 0 && !query && filter === 'all';
+  return {
+    cleanTitle,
+    badgeType: isBreaking ? 'breaking' : isLead ? 'lead' : null,
+    badgeText: isBreaking ? L('Son Dakika', 'Breaking') : isLead ? L('Manşet', 'Top Story') : '',
+  };
+}
+
+function syncEditorialCardState(card, isExpanded, isRead) {
+  if (!card) return;
+  card.classList.toggle('is-expanded', isExpanded);
+  card.classList.toggle('is-read', isRead);
+  const bodyBtn = card.querySelector('.we-news-body-btn');
+  if (bodyBtn) bodyBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+  const statusPill = card.querySelector('.we-news-status-pill');
+  if (statusPill) statusPill.textContent = isRead ? L('Okundu', 'Read') : L('Yeni', 'New');
+  const expandLabel = card.querySelector('.we-news-expand-label');
+  if (expandLabel) expandLabel.textContent = isExpanded ? L('Özeti gizle', 'Hide summary') : L('Özeti gör', 'Read summary');
+  const drawer = card.querySelector('.we-news-drawer');
+  if (drawer) {
+    drawer.inert = !isExpanded;
+    drawer.setAttribute('aria-hidden', isExpanded ? 'false' : 'true');
+  }
+}
+
+function toggleNewsCardWithFlip(clickedCard, itemId) {
+  const bridge = window.__weNewsBridge;
+  const listEl = document.getElementById('newsListContainer');
+  if (!bridge || !listEl || !clickedCard) return;
+
+  const expandedIds = bridge.getExpandedIds();
+  const readIds = bridge.getReadIds();
+  const allCards = Array.from(listEl.querySelectorAll('.news-card.we-editorial-card'));
+  const reducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+
+  const firstRects = new Map();
+  if (!reducedMotion) {
+    allCards.forEach((c) => {
+      if (typeof c.getBoundingClientRect === 'function') firstRects.set(c, c.getBoundingClientRect());
+    });
+    allCards.forEach((c) => {
+      c.style.transition = 'none';
+      c.style.transform = '';
+    });
+  }
+
+  const willExpand = !expandedIds.has(itemId);
+  if (willExpand) {
+    allCards.forEach((c) => {
+      const otherId = c.dataset.itemId;
+      if (otherId && otherId !== itemId && expandedIds.has(otherId)) {
+        expandedIds.delete(otherId);
+        syncEditorialCardState(c, false, readIds.has(otherId));
+      }
+    });
+    expandedIds.add(itemId);
+    if (expandedIds.size > 80) expandedIds.delete(expandedIds.values().next().value);
+    bridge.markRead(itemId);
+  } else {
+    expandedIds.delete(itemId);
+  }
+
+  syncEditorialCardState(clickedCard, willExpand, readIds.has(itemId));
+
+  if (!reducedMotion) {
+    const lastRects = new Map();
+    allCards.forEach((c) => {
+      if (typeof c.getBoundingClientRect === 'function') lastRects.set(c, c.getBoundingClientRect());
+    });
+
+    allCards.forEach((c) => {
+      const first = firstRects.get(c);
+      const last = lastRects.get(c);
+      if (!first || !last) return;
+      const dx = first.left - last.left;
+      const dy = first.top - last.top;
+      if (c === clickedCard) {
+        const startScale = willExpand ? 0.985 : 1.008;
+        c.style.transform = `translate3d(${dx.toFixed(1)}px, ${dy.toFixed(1)}px, 0) scale(${startScale})`;
+      } else if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+        c.style.transform = `translate3d(${dx.toFixed(1)}px, ${dy.toFixed(1)}px, 0)`;
+      }
+    });
+
+    void listEl.offsetHeight;
+
+    const flipEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
+    allCards.forEach((c) => {
+      if (!c.style.transform) return;
+      c.style.transition = `transform 0.42s ${flipEasing}, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease`;
+      c.style.transform = 'translate3d(0, 0, 0) scale(1)';
+      const clearFlip = (ev) => {
+        if (ev.propertyName !== 'transform') return;
+        c.style.transition = '';
+        c.style.transform = '';
+        c.removeEventListener('transitionend', clearFlip);
+      };
+      c.addEventListener('transitionend', clearFlip);
+    });
+  }
+
+  trackGlassTransition(420);
+
+  if (willExpand) {
+    setTimeout(() => {
+      const pop = document.getElementById('newsPopover');
+      if (!pop || !clickedCard.isConnected || typeof pop.scrollBy !== 'function') return;
+      const popRect = pop.getBoundingClientRect();
+      const cardRect = clickedCard.getBoundingClientRect();
+      const overflowBottom = cardRect.bottom - (popRect.bottom - 28);
+      if (overflowBottom > 16) {
+        pop.scrollBy({ top: Math.min(overflowBottom + 24, 260), behavior: 'smooth' });
+      }
+    }, 190);
+  }
+}
+
+function initEditorialNewsReader() {
+  const listEl = document.getElementById('newsListContainer');
+  if (!listEl || !window.__weNewsBridge) return;
+
+  window.__weCustomRenderNewsCards = function renderEditorialNewsCards(emptyMessage = '') {
+    const bridge = window.__weNewsBridge;
+    const container = document.getElementById('newsListContainer');
+    if (!bridge || !container) return;
+
+    container.replaceChildren();
+    const items = bridge.getItems();
+    const cat = bridge.getCategory();
+    const query = bridge.getSearchQuery();
+    const filter = bridge.getFilter();
+    const readIds = bridge.getReadIds();
+    const savedIds = bridge.getSavedIds();
+    const expandedIds = bridge.getExpandedIds();
+
+    const filtered = filterNewsArticles(items, { query, filter, readIds, savedIds });
+    const metaEl = document.getElementById('newsListMeta');
+    if (metaEl) {
+      metaEl.textContent = isEn()
+        ? `${filtered.length} stories · ${items.length} fetched`
+        : `${filtered.length} haber gösteriliyor · ${items.length} haber bulundu`;
+    }
+    bridge.updateFilterButtons();
+
+    if (!filtered.length) {
+      const empty = document.createElement('div');
+      empty.className = 'news-empty-state';
+      empty.textContent = emptyMessage || (query
+        ? L('Aramanla eşleşen haber bulunamadı.', 'No stories match your search.')
+        : filter === 'saved'
+          ? L('Henüz kaydettiğin haber yok. Kart üzerindeki yer imi simgesini kullanabilirsin.', 'No saved stories yet. Click the bookmark icon on any card.')
+          : filter === 'unread'
+            ? L('Okunmamış haber kalmadı. Yeni haberler için akışı yenileyebilirsin.', 'All caught up! Refresh to check for new stories.')
+            : L('Bu kategoride şu anda gösterilebilecek haber yok.', 'No stories available in this category right now.'));
+      container.appendChild(empty);
+      bridge.updateHeadlineTicker();
+      if (typeof window.__weSyncPopoverGlassPlate === 'function') {
+        requestAnimationFrame(() => window.__weSyncPopoverGlassPlate());
+      }
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    const catSources = bridge.getAllSources(cat);
+    const dateLocale = isEn() ? 'en-US' : 'tr-TR';
+
+    filtered.forEach((item, index) => {
+      const itemId = item.itemId || createArticleId(item);
+      const isRead = readIds.has(itemId);
+      const isSaved = savedIds.has(itemId);
+      const isExpanded = expandedIds.has(itemId);
+      const source = catSources.find((entry) => entry.id === item.sourceId);
+      const sourceUrl = bridge.safeExternalUrl(item.link, source?.homepage);
+      const publisherName = item.source || source?.publisher || L('Haber kaynağı', 'News source');
+      const { cleanTitle, badgeType, badgeText } = parseEditorialHeadline(item.title, index, query, filter);
+
+      const card = document.createElement('article');
+      card.className = `news-card we-editorial-card${isRead ? ' is-read' : ''}${isExpanded ? ' is-expanded' : ''}`;
+      card.dataset.itemId = itemId;
+
+      const topBar = document.createElement('div');
+      topBar.className = 'we-news-card-top';
+
+      const pubGroup = document.createElement('div');
+      pubGroup.className = 'we-news-pub-group';
+
+      const pubTag = document.createElement('span');
+      pubTag.className = 'we-news-pub-tag';
+      const pubLabel = document.createElement('span');
+      pubLabel.className = 'truncate';
+      pubLabel.textContent = publisherName;
+      pubTag.appendChild(pubLabel);
+      pubGroup.appendChild(pubTag);
+
+      if (badgeType) {
+        const badge = document.createElement('span');
+        badge.className = badgeType === 'breaking' ? 'we-news-breaking-badge' : 'we-news-lead-badge';
+        badge.textContent = badgeText;
+        pubGroup.appendChild(badge);
+      }
+
+      const metaRight = document.createElement('div');
+      metaRight.className = 'we-news-meta-right';
+
+      const dateEl = document.createElement('time');
+      dateEl.className = 'we-news-time';
+      dateEl.textContent = item.publishedAt ? formatNewsDate(item.publishedAt, dateLocale) : (item.time || '');
+      if (item.publishedAt) dateEl.dateTime = item.publishedAt;
+
+      const statusPill = document.createElement('span');
+      statusPill.className = 'we-news-status-pill';
+      statusPill.textContent = isRead ? L('Okundu', 'Read') : L('Yeni', 'New');
+
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = `we-news-bookmark-btn news-save-btn${isSaved ? ' is-saved' : ''}`;
+      saveBtn.setAttribute('aria-label', isSaved ? L('Haberi kayıtlardan çıkar', 'Remove bookmark') : L('Haberi kaydet', 'Bookmark story'));
+      saveBtn.setAttribute('aria-pressed', isSaved ? 'true' : 'false');
+      saveBtn.title = isSaved ? L('Kaydedilenlerden çıkar', 'Remove from saved') : L('Haberi kaydet', 'Save story');
+      saveBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-3.8L6 21V4.75Z"/></svg>';
+      saveBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const nowSaved = bridge.toggleSaved(itemId);
+        if (bridge.getFilter() === 'saved') {
+          renderEditorialNewsCards();
+          return;
+        }
+        saveBtn.classList.toggle('is-saved', nowSaved);
+        saveBtn.setAttribute('aria-pressed', nowSaved ? 'true' : 'false');
+        saveBtn.setAttribute('aria-label', nowSaved ? L('Haberi kayıtlardan çıkar', 'Remove bookmark') : L('Haberi kaydet', 'Bookmark story'));
+        saveBtn.title = nowSaved ? L('Kaydedilenlerden çıkar', 'Remove from saved') : L('Haberi kaydet', 'Save story');
+        showWebToast(nowSaved ? L('Haber kaydedilenlere eklendi.', 'Story saved.') : L('Haber kaydedilenlerden çıkarıldı.', 'Removed from saved.'), 2000);
+      });
+
+      metaRight.append(dateEl, statusPill, saveBtn);
+      topBar.append(pubGroup, metaRight);
+
+      const bodyBtn = document.createElement('button');
+      bodyBtn.type = 'button';
+      bodyBtn.className = 'we-news-body-btn news-card-expand';
+      bodyBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+      bodyBtn.setAttribute('aria-label', isExpanded ? L('Haber detayını daralt', 'Collapse summary') : `${L('Haber detayını göster', 'Show summary')}: ${cleanTitle}`);
+
+      const headline = document.createElement('h4');
+      headline.className = 'we-news-headline news-card-title';
+      headline.textContent = cleanTitle;
+
+      const footerBar = document.createElement('div');
+      footerBar.className = 'we-news-footer-bar';
+
+      const expandPill = document.createElement('span');
+      expandPill.className = 'we-news-expand-pill';
+      const chevron = document.createElement('span');
+      chevron.className = 'we-news-chevron';
+      chevron.innerHTML = NEWS_CHEVRON_SVG;
+      const expandLabel = document.createElement('span');
+      expandLabel.className = 'we-news-expand-label';
+      expandLabel.textContent = isExpanded ? L('Özeti gizle', 'Hide summary') : L('Özeti gör', 'Read summary');
+      expandPill.append(chevron, expandLabel);
+
+      footerBar.appendChild(expandPill);
+      bodyBtn.append(headline, footerBar);
+
+      const drawer = document.createElement('div');
+      drawer.className = 'we-news-drawer';
+      drawer.inert = !isExpanded;
+      drawer.setAttribute('aria-hidden', isExpanded ? 'false' : 'true');
+
+      const drawerInner = document.createElement('div');
+      drawerInner.className = 'we-news-drawer-inner';
+
+      const readingWell = document.createElement('div');
+      readingWell.className = 'we-news-reading-well';
+
+      const summaryText = document.createElement('p');
+      summaryText.className = 'we-news-summary-text';
+      const rawDesc = String(item.description || '').trim();
+      summaryText.textContent = rawDesc && rawDesc !== cleanTitle
+        ? rawDesc
+        : L(
+          `${publisherName} kaynağından gelen bu haberin tüm detaylarını okumak için aşağıdaki bağlantıyı kullanabilirsin.`,
+          `Open the full article on ${publisherName} using the link below.`,
+        );
+
+      const drawerActions = document.createElement('div');
+      drawerActions.className = 'we-news-drawer-actions';
+
+      const openLink = document.createElement('a');
+      openLink.className = 'we-news-read-full-btn news-open-source';
+      openLink.href = sourceUrl;
+      openLink.target = '_blank';
+      openLink.rel = 'noopener noreferrer';
+      openLink.referrerPolicy = 'no-referrer';
+      openLink.textContent = L('Haberi kaynağında aç ↗', 'Open full article ↗');
+      openLink.addEventListener('click', () => {
+        bridge.markRead(itemId);
+        syncEditorialCardState(card, true, true);
+      });
+
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'we-news-copy-btn';
+      copyBtn.innerHTML = `${NEWS_COPY_SVG}<span>${L('Linki kopyala', 'Copy link')}</span>`;
+      copyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(sourceUrl).catch(() => {});
+        }
+        copyBtn.innerHTML = `${NEWS_CHECK_SVG}<span>${L('Kopyalandı', 'Copied')}</span>`;
+        showWebToast(L('Haber bağlantısı panoya kopyalandı.', 'Article link copied to clipboard.'), 2000);
+        setTimeout(() => {
+          copyBtn.innerHTML = `${NEWS_COPY_SVG}<span>${L('Linki kopyala', 'Copy link')}</span>`;
+        }, 1800);
+      });
+
+      drawerActions.append(openLink, copyBtn);
+      readingWell.append(summaryText, drawerActions);
+      drawerInner.appendChild(readingWell);
+      drawer.appendChild(drawerInner);
+
+      bodyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleNewsCardWithFlip(card, itemId);
+      });
+
+      card.append(topBar, bodyBtn, drawer);
+      fragment.appendChild(card);
+    });
+
+    container.appendChild(fragment);
+    bridge.updateHeadlineTicker();
+    if (typeof window.__weSyncPopoverGlassPlate === 'function') {
+      requestAnimationFrame(() => window.__weSyncPopoverGlassPlate());
+    }
+  };
+
+  window.__weNewsBridge.renderCards();
 }
 
 // ============================================================================
@@ -849,7 +1262,943 @@ function initFocusSoundscapeStudio() {
 }
 
 // ============================================================================
-// 6. WEB SETTINGS & PERFORMANCE PROFILE POPOVER
+// 6. COMPLETE 3-TAB OFFLINE SMART CALENDAR (HOLIDAYS, ROUTINES & FREE TIME)
+// ============================================================================
+let smartCalConfig = (() => {
+  const saved = lsGet(SMART_CAL_CFG_KEY, null);
+  if (saved && typeof saved === 'object') return normalizeWebCalendarConfig(saved);
+  const legacyCountry = lsGet(LEGACY_CAL_COUNTRY_KEY, 'TR');
+  return normalizeWebCalendarConfig({ holidayCountry: legacyCountry });
+})();
+let smartCalRoutines = normalizeWebCalendarRoutines(lsGet(SMART_CAL_ROUTINES_KEY, []));
+let smartCalActiveTab = 'month'; // 'month' | 'schedule' | 'holidays'
+
+let calTabsBar = null;
+let calMonthPane = null;
+let calSchedulePane = null;
+let calHolidaysPane = null;
+let calHolidayBannerSlot = null;
+let calFreeSummarySlot = null;
+
+function persistSmartCalConfig() {
+  smartCalConfig = normalizeWebCalendarConfig(smartCalConfig);
+  lsSet(SMART_CAL_CFG_KEY, smartCalConfig);
+}
+
+function persistSmartCalRoutines() {
+  smartCalRoutines = normalizeWebCalendarRoutines(smartCalRoutines);
+  lsSet(SMART_CAL_ROUTINES_KEY, smartCalRoutines);
+}
+
+function getIsoDayShort(isoDay) {
+  const tr = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+  const en = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const idx = Math.max(0, Math.min(6, (Number(isoDay) || 1) - 1));
+  return isEn() ? en[idx] : tr[idx];
+}
+
+function formatDurationLocalized(totalMins) {
+  const m = Math.max(0, Math.round(Number(totalMins) || 0));
+  const hrs = Math.floor(m / 60);
+  const rem = m % 60;
+  if (isEn()) {
+    if (hrs && rem) return `${hrs}h ${rem}m`;
+    if (hrs) return `${hrs}h`;
+    return `${rem}m`;
+  }
+  if (hrs && rem) return `${hrs} sa ${rem} dk`;
+  if (hrs) return `${hrs} sa`;
+  return `${rem} dk`;
+}
+
+function updateSmartCalendarSubtitle() {
+  const calSubtitleEl = document.querySelector('#calendarPopover .calendar-subtitle');
+  if (!calSubtitleEl) return;
+  const parts = [];
+  if (smartCalConfig.showHolidays && smartCalConfig.holidayCountry !== 'none') {
+    parts.push(`${smartCalConfig.holidayCountry} ${L('tatiller', 'holidays')}`);
+  }
+  if (smartCalRoutines.length) {
+    parts.push(isEn() ? `${smartCalRoutines.length} rules` : `${smartCalRoutines.length} program`);
+  }
+  const todayObs = getWebPublicObservances(formatYmd(new Date()), smartCalConfig.holidayCountry, webSettings.language);
+  if (smartCalConfig.showHolidays && todayObs.holidays.length) {
+    parts.push(todayObs.holidays[0]);
+  }
+  calSubtitleEl.textContent = parts.length ? parts.join(' · ') : L('Küçük planlar, güzel günler.', 'Small plans, brighter days.');
+}
+
+function renderSmartCalendarScheduleTab() {
+  const weekList = document.getElementById('weCalWeekList');
+  const weekRangeLabel = document.getElementById('weCalWeekRangeLabel');
+  const weekTotalFreeEl = document.getElementById('weCalWeekTotalFree');
+  const rulesList = document.getElementById('weCalRulesList');
+  const rulesCountEl = document.getElementById('weCalRulesCount');
+  const bridge = window.__weCalendarBridge;
+  if (!weekList || !bridge) return;
+
+  const sel = bridge.getSelectedDate();
+  const mondayOffset = (sel.getDay() + 6) % 7;
+  const monday = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate() - mondayOffset);
+  const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+  const todayKey = bridge.dateKey(new Date());
+  const manualEvents = bridge.getEvents();
+
+  if (weekRangeLabel) {
+    weekRangeLabel.textContent = `${bridge.formatDate(monday, { day: 'numeric', month: 'short' })} – ${bridge.formatDate(sunday, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  }
+
+  const dayStartMins = smartCalConfig.dayStartHour * 60;
+  const dayEndMins = smartCalConfig.dayEndHour * 60;
+  const daySpanMins = Math.max(60, dayEndMins - dayStartMins);
+  const mapTitleEl = document.getElementById('weCalWeekMapTitle');
+  if (mapTitleEl) {
+    const spanStr = `${formatMinsToTime(dayStartMins)} – ${formatMinsToTime(dayEndMins)}`;
+    mapTitleEl.textContent = L(`Haftalık Boş Zaman Haritası (${spanStr})`, `Weekly Free-Time Map (${spanStr})`);
+  }
+
+  weekList.replaceChildren();
+  let weekFreeSum = 0;
+
+  for (let i = 0; i < 7; i += 1) {
+    const dt = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+    const key = bridge.dateKey(dt);
+    const info = getWebSmartDayData(key, manualEvents, smartCalRoutines, smartCalConfig, webSettings.language);
+    weekFreeSum += info.totalFreeMins;
+
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = `we-cal-week-row${key === todayKey ? ' is-today' : ''}${info.hasHoliday ? ' is-holiday' : ''}`;
+
+    const dayName = `${getIsoDayShort(getIsoWeekdayFromKey(key))} ${bridge.formatDate(dt, { day: 'numeric', month: 'short' })}`;
+    const segmentsHtml = info.busy.map((b) => {
+      const s = Math.max(dayStartMins, Math.min(dayEndMins, b.start));
+      const e = Math.max(dayStartMins, Math.min(dayEndMins, b.end));
+      if (e <= s) return '';
+      const leftPct = ((s - dayStartMins) / daySpanMins) * 100;
+      const widthPct = Math.max(1.5, ((e - s) / daySpanMins) * 100);
+      return `<span class="we-cal-timeline-seg is-${b.kind}" style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%"></span>`;
+    }).join('');
+
+    const freeSummaryText = info.hasHoliday && !info.busy.length
+      ? `${L('Resmî Tatil', 'Holiday')} (${info.holidays[0]}) · ${L('Tüm gün serbest', 'All day free')}`
+      : info.free.length
+        ? `${L('Boş', 'Free')}: ${info.free.map((f) => f.label).join(' · ')}`
+        : L(`${formatMinsToTime(dayStartMins)}–${formatMinsToTime(dayEndMins)} arası tamamen dolu`, `Fully booked (${formatMinsToTime(dayStartMins)}–${formatMinsToTime(dayEndMins)})`);
+
+    row.innerHTML = `
+      <div class="we-cal-week-top">
+        <span class="we-cal-week-day">${esc(dayName)}${info.hasHoliday ? ` · ${L('Tatil', 'Holiday')}` : ''}</span>
+        <span class="we-cal-week-free-sum">${formatDurationLocalized(info.totalFreeMins)} ${L('boş', 'free')}</span>
+      </div>
+      <div class="we-cal-timeline-track" aria-hidden="true">${segmentsHtml}</div>
+      <div class="we-cal-week-slots">${esc(freeSummaryText)}</div>
+    `;
+    row.addEventListener('click', () => {
+      bridge.setSelectedDate(dt);
+      bridge.setVisibleMonth(dt);
+      smartCalActiveTab = 'month';
+      bridge.renderAll();
+      syncSmartCalendarActiveTab();
+    });
+    weekList.appendChild(row);
+  }
+
+  if (weekTotalFreeEl) {
+    weekTotalFreeEl.textContent = isEn()
+      ? `${formatDurationLocalized(weekFreeSum)} free / wk`
+      : `Haftalık ${formatDurationLocalized(weekFreeSum)} boş`;
+  }
+
+  if (rulesCountEl) {
+    rulesCountEl.textContent = isEn() ? `${smartCalRoutines.length} rules` : `${smartCalRoutines.length} kural`;
+  }
+  if (rulesList) {
+    rulesList.replaceChildren();
+    if (!smartCalRoutines.length) {
+      const empty = document.createElement('p');
+      empty.className = 'calendar-empty';
+      empty.textContent = L(
+        'Henüz haftalık ders veya iş programı eklemedin. Yukarıdaki formdan kolayca ekleyebilirsin.',
+        'No recurring classes or work schedules yet. Use the form above to add one.',
+      );
+      rulesList.appendChild(empty);
+    } else {
+      smartCalRoutines.forEach((rule) => {
+        const card = document.createElement('div');
+        card.className = 'we-cal-rule-item';
+        const daysLabel = rule.days.map((d) => getIsoDayShort(d)).join(', ');
+        const periodLabel = rule.mode === 'permanent'
+          ? L('Kalıcı', 'Permanent')
+          : `${formatIsoToDisplayDate(rule.startDate, webSettings.language)} – ${formatIsoToDisplayDate(rule.endDate, webSettings.language)}`;
+        const catLabel = rule.category === 'school'
+          ? L('Ders', 'Class')
+          : rule.category === 'work'
+            ? L('İş', 'Work')
+            : L('Rutin', 'Routine');
+        card.innerHTML = `
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="we-cal-badge is-${rule.category}">${catLabel}</span>
+              <strong class="we-cal-agenda-title truncate">${esc(rule.title)}</strong>
+            </div>
+            <div class="we-cal-rule-meta">${esc(daysLabel)} · ${esc(rule.startTime)}–${esc(rule.endTime)} · ${esc(periodLabel)}${rule.skipHolidays ? L(' · Tatilde atla', ' · Skip holidays') : ''}</div>
+          </div>
+          <button type="button" class="calendar-event-remove" title="${L('Program kuralını sil', 'Delete rule')}" aria-label="${L('Kuralı sil', 'Delete rule')}: ${esc(rule.title)}">×</button>
+        `;
+        card.querySelector('.calendar-event-remove')?.addEventListener('click', () => {
+          smartCalRoutines = smartCalRoutines.filter((r) => r.id !== rule.id);
+          persistSmartCalRoutines();
+          bridge.renderAll();
+          renderSmartCalendarTabsUI();
+        });
+        rulesList.appendChild(card);
+      });
+    }
+  }
+}
+
+function renderSmartCalendarHolidaysTab() {
+  const holChk = document.getElementById('weCalToggleHolidays');
+  const spcChk = document.getElementById('weCalToggleSpecials');
+  const listEl = document.getElementById('weCalUpcomingHolidaysList');
+  const countEl = document.getElementById('weCalUpcomingHolCount');
+
+  if (holChk) holChk.checked = Boolean(smartCalConfig.showHolidays);
+  if (spcChk) spcChk.checked = Boolean(smartCalConfig.showSpecialDays);
+
+  document.getElementById('weCalHolidayCountryGroup')?.querySelectorAll('.we-seg-btn').forEach((btn) => {
+    btn.classList.toggle('is-active', btn.dataset.country === smartCalConfig.holidayCountry);
+  });
+
+  const windowKey = `${smartCalConfig.dayStartHour}-${smartCalConfig.dayEndHour}`;
+  document.getElementById('weCalHoursGroup')?.querySelectorAll('.we-seg-btn').forEach((btn) => {
+    btn.classList.toggle('is-active', btn.dataset.hours === windowKey);
+  });
+
+  const bridge = window.__weCalendarBridge;
+  const upcoming = getUpcomingWebObservances(new Date(), smartCalConfig, webSettings.language, 10);
+  if (countEl) {
+    countEl.textContent = isEn() ? `${upcoming.length} upcoming` : `${upcoming.length} yaklaşan`;
+  }
+  if (listEl) {
+    listEl.replaceChildren();
+    if (!upcoming.length) {
+      const empty = document.createElement('p');
+      empty.className = 'calendar-empty';
+      empty.textContent = smartCalConfig.holidayCountry === 'none'
+        ? L('Resmî tatil gösterimi kapalı. Yukarıdan bir ülke seçebilirsin.', 'Public holidays are turned off. Pick a country above.')
+        : L('Yakın dönem için listelenecek tatil günü bulunmuyor.', 'No upcoming observances in range.');
+      listEl.appendChild(empty);
+    } else {
+      upcoming.forEach((entry) => {
+        const dt = new Date(`${entry.dateKey}T12:00:00`);
+        const shortDate = bridge
+          ? bridge.formatDate(dt, { day: 'numeric', month: 'short' })
+          : formatIsoToDisplayDate(entry.dateKey, webSettings.language);
+        const weekday = getIsoDayShort(getIsoWeekdayFromKey(entry.dateKey));
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `we-cal-upcoming-card${entry.kind === 'special' ? ' is-special' : ''}`;
+        btn.innerHTML = `
+          <span class="we-cal-agenda-time">${esc(shortDate)}<br>${esc(weekday)}</span>
+          <span class="we-cal-agenda-body">
+            <strong class="we-cal-agenda-title">${esc(entry.names.join(' · '))}</strong>
+          </span>
+          <span class="we-cal-badge is-${entry.kind}">${entry.kind === 'holiday' ? L('Tatil', 'Holiday') : L('Özel', 'Special')}</span>
+        `;
+        btn.addEventListener('click', () => {
+          if (!bridge) return;
+          bridge.setSelectedDate(dt);
+          bridge.setVisibleMonth(dt);
+          smartCalActiveTab = 'month';
+          bridge.renderAll();
+          syncSmartCalendarActiveTab();
+        });
+        listEl.appendChild(btn);
+      });
+    }
+  }
+}
+
+function renderSmartCalendarTabsUI() {
+  updateSmartCalendarSubtitle();
+  renderSmartCalendarScheduleTab();
+  renderSmartCalendarHolidaysTab();
+}
+
+function applySmartCalendarLanguage() {
+  if (calTabsBar) {
+    const tabMap = {
+      month: L('Takvim', 'Calendar'),
+      schedule: L('Program & Boş', 'Schedule & Free'),
+      holidays: L('Tatiller & Ayar', 'Holidays'),
+    };
+    calTabsBar.querySelectorAll('.we-cal-tab-btn').forEach((b) => {
+      if (tabMap[b.dataset.calTab]) b.textContent = tabMap[b.dataset.calTab];
+    });
+  }
+  const legendSpans = document.querySelectorAll('#weCalLegend b');
+  const legendTexts = [L('Resmî Tatil', 'Holiday'), L('Ders / İş', 'Schedule'), L('Etkinlik', 'Event'), L('Özel Gün', 'Special')];
+  legendSpans.forEach((el, idx) => {
+    if (legendTexts[idx]) el.textContent = legendTexts[idx];
+  });
+
+  const setTxt = (id, tr, en) => { const el = document.getElementById(id); if (el) el.textContent = L(tr, en); };
+  setTxt('weCalAddRuleTitle', 'Ders Programı / Kalıcı İş Rutini Ekle', 'Add Class Schedule or Work Routine');
+  setTxt('weCalAddRuleSub', 'Tarih aralığı vererek tüm döneme veya kalıcı olarak işle', 'Apply across a term date range or permanently every week');
+  setTxt('weCalRoutineTitleLbl', 'Ders veya İş Adı', 'Class, Work, or Routine Title');
+  setTxt('weCalRoutineDaysLbl', 'Hangi Günler?', 'Which Days?');
+  setTxt('weCalPresetWeekdaysBtn', 'Hafta İçi (Pzt–Cum)', 'Weekdays (Mon–Fri)');
+  setTxt('weCalRoutineStartLbl', 'Başlangıç Saati', 'Start Time');
+  setTxt('weCalRoutineEndLbl', 'Bitiş Saati', 'End Time');
+  setTxt('weCalRoutineModeLbl', 'Geçerlilik Süresi', 'Duration Mode');
+  setTxt('weCalRangeStartLbl', 'Başlangıç Tarihi', 'Start Date');
+  setTxt('weCalRangeEndLbl', 'Bitiş Tarihi', 'End Date');
+  setTxt('weCalPresetTermBtn', '+14 Hafta (Dönem)', '+14 Weeks (Term)');
+  setTxt('weCalPresetMonthBtn', '+1 Ay', '+1 Month');
+  setTxt('weCalPresetYearBtn', 'Yıl Sonuna Kadar', 'Until Year End');
+  setTxt('weCalSkipHolidaysLbl', 'Resmî tatil günlerinde bu programı otomatik atla', 'Automatically skip on public holidays');
+  setTxt('weCalSubmitRuleBtn', 'Programa Ekle ve Takvime İşle', 'Add to Weekly Schedule');
+  setTxt('weCalSavedRulesTitle', 'Kayıtlı Haftalık Kurallar', 'Saved Weekly Rules');
+
+  const rtTitle = document.getElementById('weCalRoutineTitle');
+  if (rtTitle) rtTitle.placeholder = L('Örn: Veri Yapıları / Ofis Mesaisi', 'e.g. Data Structures / Office Shift');
+  const rsInp = document.getElementById('weCalRangeStart');
+  const reInp = document.getElementById('weCalRangeEnd');
+  if (rsInp) rsInp.placeholder = L('GG.AA.YYYY', 'YYYY-MM-DD');
+  if (reInp) reInp.placeholder = L('GG.AA.YYYY', 'YYYY-MM-DD');
+
+  const catLabels = { school: L('Ders / Okul', 'Class / School'), work: L('İş / Mesai', 'Work / Shift'), routine: L('Kişisel Rutin', 'Routine') };
+  document.getElementById('weCalRoutineCatGroup')?.querySelectorAll('.we-seg-btn').forEach((b) => {
+    if (catLabels[b.dataset.val]) b.textContent = catLabels[b.dataset.val];
+  });
+  const modeLabels = { range: L('Tarih Aralığı (Dönem)', 'Date Range (Term)'), permanent: L('Kalıcı (Sürekli)', 'Permanent') };
+  document.getElementById('weCalRoutineModeGroup')?.querySelectorAll('.we-seg-btn').forEach((b) => {
+    if (modeLabels[b.dataset.val]) b.textContent = modeLabels[b.dataset.val];
+  });
+  document.getElementById('weCalRoutineDays')?.querySelectorAll('.we-cal-day-pill').forEach((b) => {
+    b.textContent = getIsoDayShort(Number(b.dataset.day));
+  });
+
+  setTxt('weCalHolCardTitle', 'Resmî Tatiller & Önemli Günler', 'Public Holidays & Special Days');
+  setTxt('weCalHolCardSub', 'Çevrimdışı tatil takvimi · Ders ve iş kuralları tatillerde atlanır', 'Offline holiday engine · Classes & work skip on holidays');
+  setTxt('weCalCountryOffBtn', 'Kapalı', 'Off');
+  setTxt('weCalToggleHolidaysLbl', 'Resmî tatilleri göster (okul/iş programını otomatik atlar)', 'Show public holidays (auto-skips recurring schedules)');
+  setTxt('weCalToggleSpecialsLbl', 'Önemli günleri ve anma günlerini göster', 'Show observances & special days');
+  setTxt('weCalHoursCardTitle', 'Günlük Aktif Saat Aralığı (Boş Zaman)', 'Daily Active Window (Free Time)');
+  setTxt('weCalUpcomingHolTitle', 'Yaklaşan Tatiller & Önemli Günler (Tıkla → Güne Git)', 'Upcoming Holidays & Observances (Click → Jump to Day)');
+
+  const calFootnoteEl = document.querySelector('#calendarPopover .calendar-footnote');
+  if (calFootnoteEl) {
+    calFootnoteEl.textContent = L(
+      'Etkinlikler, haftalık programların ve tatil seçimlerin bu tarayıcıda çevrimdışı saklanır.',
+      'Your calendar, recurring schedules, and holiday picks are stored offline in this browser.',
+    );
+  }
+}
+
+function syncSmartCalendarActiveTab() {
+  if (!calTabsBar) return;
+  calTabsBar.querySelectorAll('.we-cal-tab-btn').forEach((btn) => {
+    const active = btn.dataset.calTab === smartCalActiveTab;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  if (calMonthPane) calMonthPane.hidden = smartCalActiveTab !== 'month';
+  if (calSchedulePane) calSchedulePane.hidden = smartCalActiveTab !== 'schedule';
+  if (calHolidaysPane) calHolidaysPane.hidden = smartCalActiveTab !== 'holidays';
+  renderSmartCalendarTabsUI();
+  if (typeof window.__weSyncPopoverGlassPlate === 'function') {
+    requestAnimationFrame(() => window.__weSyncPopoverGlassPlate());
+  }
+}
+
+function initSmartCalendar() {
+  const calPopoverEl = document.getElementById('calendarPopover');
+  const calHeaderEl = calPopoverEl?.querySelector('.calendar-header');
+  const calWeekdaysEl = calPopoverEl?.querySelector('.calendar-weekdays');
+  const calGridEl = document.getElementById('calendarGrid');
+  const calDayPanelEl = calPopoverEl?.querySelector('.calendar-day-panel');
+  const bridge = window.__weCalendarBridge;
+  if (!calPopoverEl || !calHeaderEl || !calWeekdaysEl || !calGridEl || !calDayPanelEl || !bridge) return;
+  if (document.getElementById('weCalTabsBar')) return;
+
+  calTabsBar = document.createElement('div');
+  calTabsBar.id = 'weCalTabsBar';
+  calTabsBar.className = 'we-cal-tabs';
+  calTabsBar.setAttribute('role', 'tablist');
+  calTabsBar.innerHTML = `
+    <button type="button" data-cal-tab="month" class="we-cal-tab-btn is-active" role="tab" aria-selected="true">Takvim</button>
+    <button type="button" data-cal-tab="schedule" class="we-cal-tab-btn" role="tab" aria-selected="false">Program &amp; Boş</button>
+    <button type="button" data-cal-tab="holidays" class="we-cal-tab-btn" role="tab" aria-selected="false">Tatiller &amp; Ayar</button>
+  `;
+  calHeaderEl.insertAdjacentElement('afterend', calTabsBar);
+
+  calMonthPane = document.createElement('div');
+  calMonthPane.id = 'weCalPaneMonth';
+  calTabsBar.insertAdjacentElement('afterend', calMonthPane);
+  calMonthPane.append(calWeekdaysEl, calGridEl);
+
+  const legend = document.createElement('div');
+  legend.id = 'weCalLegend';
+  legend.className = 'we-cal-legend';
+  legend.innerHTML = `
+    <span><i style="background:#fb7185"></i><b class="font-normal">Resmî Tatil</b></span>
+    <span><i style="background:#34d399"></i><b class="font-normal">Ders / İş</b></span>
+    <span><i style="background:#7dd3fc"></i><b class="font-normal">Etkinlik</b></span>
+    <span><i style="background:#c084fc"></i><b class="font-normal">Özel Gün</b></span>
+  `;
+  calMonthPane.appendChild(legend);
+  calMonthPane.appendChild(calDayPanelEl);
+
+  const evListEl = document.getElementById('calendarEventList');
+  if (evListEl) {
+    calHolidayBannerSlot = document.createElement('div');
+    calHolidayBannerSlot.id = 'weCalHolidayBanner';
+    evListEl.insertAdjacentElement('beforebegin', calHolidayBannerSlot);
+
+    calFreeSummarySlot = document.createElement('div');
+    calFreeSummarySlot.id = 'weCalDayFreeSlot';
+    evListEl.insertAdjacentElement('afterend', calFreeSummarySlot);
+  }
+
+  calSchedulePane = document.createElement('div');
+  calSchedulePane.id = 'weCalPaneSchedule';
+  calSchedulePane.hidden = true;
+  calSchedulePane.innerHTML = `
+    <section class="we-cal-section-card">
+      <div class="we-cal-section-head">
+        <div>
+          <h4 id="weCalWeekMapTitle" class="we-cal-section-title font-pixel">Haftalık Boş Zaman Haritası (08:00 – 23:00)</h4>
+          <p id="weCalWeekRangeLabel" class="we-cal-section-sub">Seçili hafta</p>
+        </div>
+        <span id="weCalWeekTotalFree" class="we-cal-week-free-sum">--</span>
+      </div>
+      <div id="weCalWeekList" class="we-cal-week-list"></div>
+    </section>
+
+    <section class="we-cal-section-card">
+      <div class="we-cal-section-head">
+        <div>
+          <h4 id="weCalAddRuleTitle" class="we-cal-section-title font-pixel">Ders Programı / Kalıcı İş Rutini Ekle</h4>
+          <p id="weCalAddRuleSub" class="we-cal-section-sub">Tarih aralığı vererek tüm döneme veya kalıcı olarak işle</p>
+        </div>
+      </div>
+      <form id="weCalRoutineForm" class="we-cal-form-grid">
+        <div id="weCalRoutineCatGroup" class="we-segmented-grid we-segmented-3">
+          <button type="button" data-val="school" class="we-seg-btn is-active">Ders / Okul</button>
+          <button type="button" data-val="work" class="we-seg-btn">İş / Mesai</button>
+          <button type="button" data-val="routine" class="we-seg-btn">Kişisel Rutin</button>
+        </div>
+
+        <div>
+          <label id="weCalRoutineTitleLbl" class="we-cal-field-label font-pixel" for="weCalRoutineTitle">Ders veya İş Adı</label>
+          <input id="weCalRoutineTitle" type="text" maxlength="80" required placeholder="Örn: Veri Yapıları / Ofis Mesaisi" class="we-cal-input">
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span id="weCalRoutineDaysLbl" class="we-cal-field-label font-pixel mb-0">Hangi Günler?</span>
+            <button type="button" id="weCalPresetWeekdaysBtn" class="we-cal-mini-chip">Hafta İçi (Pzt–Cum)</button>
+          </div>
+          <div id="weCalRoutineDays" class="we-cal-day-pills" role="group" aria-label="Haftanın günleri">
+            <button type="button" data-day="1" class="we-cal-day-pill is-active">Pzt</button>
+            <button type="button" data-day="2" class="we-cal-day-pill">Sal</button>
+            <button type="button" data-day="3" class="we-cal-day-pill">Çar</button>
+            <button type="button" data-day="4" class="we-cal-day-pill">Per</button>
+            <button type="button" data-day="5" class="we-cal-day-pill">Cum</button>
+            <button type="button" data-day="6" class="we-cal-day-pill">Cmt</button>
+            <button type="button" data-day="7" class="we-cal-day-pill">Paz</button>
+          </div>
+        </div>
+
+        <div class="we-cal-row-2">
+          <div>
+            <label id="weCalRoutineStartLbl" class="we-cal-field-label font-pixel" for="weCalRoutineStart">Başlangıç Saati</label>
+            <input id="weCalRoutineStart" type="text" maxlength="5" value="09:00" placeholder="09:00" class="we-cal-input font-mono">
+          </div>
+          <div>
+            <label id="weCalRoutineEndLbl" class="we-cal-field-label font-pixel" for="weCalRoutineEnd">Bitiş Saati</label>
+            <input id="weCalRoutineEnd" type="text" maxlength="5" value="11:00" placeholder="11:00" class="we-cal-input font-mono">
+          </div>
+        </div>
+
+        <div>
+          <span id="weCalRoutineModeLbl" class="we-cal-field-label font-pixel">Geçerlilik Süresi</span>
+          <div id="weCalRoutineModeGroup" class="we-segmented-grid we-segmented-2">
+            <button type="button" data-val="range" class="we-seg-btn is-active">Tarih Aralığı (Dönem)</button>
+            <button type="button" data-val="permanent" class="we-seg-btn">Kalıcı (Sürekli)</button>
+          </div>
+        </div>
+
+        <div id="weCalDateRangeBox">
+          <div class="we-cal-row-2">
+            <div>
+              <label id="weCalRangeStartLbl" class="we-cal-field-label font-pixel" for="weCalRangeStart">Başlangıç Tarihi</label>
+              <input id="weCalRangeStart" type="text" maxlength="10" placeholder="GG.AA.YYYY" class="we-cal-input font-mono">
+            </div>
+            <div>
+              <label id="weCalRangeEndLbl" class="we-cal-field-label font-pixel" for="weCalRangeEnd">Bitiş Tarihi</label>
+              <input id="weCalRangeEnd" type="text" maxlength="10" placeholder="GG.AA.YYYY" class="we-cal-input font-mono">
+            </div>
+          </div>
+          <div class="we-cal-quick-presets">
+            <button type="button" data-range-weeks="14" id="weCalPresetTermBtn" class="we-cal-mini-chip">+14 Hafta (Dönem)</button>
+            <button type="button" data-range-weeks="4" id="weCalPresetMonthBtn" class="we-cal-mini-chip">+1 Ay</button>
+            <button type="button" data-range-year-end="1" id="weCalPresetYearBtn" class="we-cal-mini-chip">Yıl Sonuna Kadar</button>
+          </div>
+        </div>
+
+        <label class="we-cal-check-row">
+          <input id="weCalSkipHolidays" type="checkbox" checked>
+          <span id="weCalSkipHolidaysLbl">Resmî tatil günlerinde bu programı otomatik atla</span>
+        </label>
+
+        <div id="weCalFormFeedback" class="we-cal-form-feedback" role="status" aria-live="polite"></div>
+        <button id="weCalSubmitRuleBtn" type="submit" class="we-cal-primary-btn font-pixel">Programa Ekle ve Takvime İşle</button>
+      </form>
+    </section>
+
+    <section class="we-cal-section-card">
+      <div class="we-cal-section-head">
+        <h4 id="weCalSavedRulesTitle" class="we-cal-section-title font-pixel">Kayıtlı Haftalık Kurallar</h4>
+        <span id="weCalRulesCount" class="we-cal-section-sub">0 kural</span>
+      </div>
+      <div id="weCalRulesList" class="we-cal-rules-list"></div>
+    </section>
+  `;
+  calMonthPane.insertAdjacentElement('afterend', calSchedulePane);
+
+  calHolidaysPane = document.createElement('div');
+  calHolidaysPane.id = 'weCalPaneHolidays';
+  calHolidaysPane.hidden = true;
+  calHolidaysPane.innerHTML = `
+    <section class="we-cal-section-card">
+      <div class="we-cal-section-head">
+        <div>
+          <h4 id="weCalHolCardTitle" class="we-cal-section-title font-pixel">Resmî Tatiller &amp; Önemli Günler</h4>
+          <p id="weCalHolCardSub" class="we-cal-section-sub">Çevrimdışı tatil takvimi · Ders ve iş kuralları tatillerde atlanır</p>
+        </div>
+      </div>
+      <div id="weCalHolidayCountryGroup" class="we-cal-holiday-country-grid" role="group" aria-label="Tatil ülkesi">
+        <button type="button" data-country="TR" class="we-seg-btn">TR</button>
+        <button type="button" data-country="US" class="we-seg-btn">US</button>
+        <button type="button" data-country="UK" class="we-seg-btn">UK</button>
+        <button type="button" data-country="DE" class="we-seg-btn">DE</button>
+        <button type="button" data-country="none" class="we-seg-btn" id="weCalCountryOffBtn">Kapalı</button>
+      </div>
+      <div class="space-y-2">
+        <label class="we-cal-check-row">
+          <input id="weCalToggleHolidays" type="checkbox" checked>
+          <span id="weCalToggleHolidaysLbl">Resmî tatilleri göster (okul/iş programını otomatik atlar)</span>
+        </label>
+        <label class="we-cal-check-row">
+          <input id="weCalToggleSpecials" type="checkbox" checked>
+          <span id="weCalToggleSpecialsLbl">Önemli günleri ve anma günlerini göster</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="we-cal-section-card">
+      <div class="we-cal-section-head">
+        <h4 id="weCalHoursCardTitle" class="we-cal-section-title font-pixel">Günlük Aktif Saat Aralığı (Boş Zaman)</h4>
+      </div>
+      <div id="weCalHoursGroup" class="we-segmented-grid">
+        <button type="button" data-hours="7-23" class="we-seg-btn">07–23</button>
+        <button type="button" data-hours="8-23" class="we-seg-btn">08–23</button>
+        <button type="button" data-hours="9-22" class="we-seg-btn">09–22</button>
+        <button type="button" data-hours="6-24" class="we-seg-btn">06–24</button>
+      </div>
+    </section>
+
+    <section class="we-cal-section-card">
+      <div class="we-cal-section-head">
+        <span id="weCalUpcomingHolTitle" class="we-cal-field-label font-pixel mb-0">Yaklaşan Tatiller &amp; Önemli Günler (Tıkla → Güne Git)</span>
+        <span id="weCalUpcomingHolCount" class="we-cal-section-sub">0</span>
+      </div>
+      <div id="weCalUpcomingHolidaysList" class="we-cal-upcoming-list"></div>
+    </section>
+  `;
+  calSchedulePane.insertAdjacentElement('afterend', calHolidaysPane);
+
+  calTabsBar.querySelectorAll('.we-cal-tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      smartCalActiveTab = btn.dataset.calTab || 'month';
+      syncSmartCalendarActiveTab();
+    });
+  });
+
+  ['weCalRoutineStart', 'weCalRoutineEnd'].forEach((id) => {
+    const inp = document.getElementById(id);
+    if (!inp) return;
+    inp.addEventListener('input', () => {
+      let v = inp.value.replace(/[^\d:]/g, '');
+      if (/^\d{3,4}$/.test(v)) v = `${v.slice(0, 2)}:${v.slice(2, 4)}`;
+      inp.value = v.slice(0, 5);
+    });
+  });
+
+  const setDefaultDateRange = (weeks = 14) => {
+    const base = bridge.getSelectedDate();
+    const end = new Date(base.getFullYear(), base.getMonth(), base.getDate() + weeks * 7);
+    const rs = document.getElementById('weCalRangeStart');
+    const re = document.getElementById('weCalRangeEnd');
+    if (rs) rs.value = formatIsoToDisplayDate(bridge.dateKey(base), webSettings.language);
+    if (re) re.value = formatIsoToDisplayDate(bridge.dateKey(end), webSettings.language);
+  };
+  setDefaultDateRange(14);
+
+  let formCat = 'school';
+  let formMode = 'range';
+
+  const syncRoutineModeUI = () => {
+    document.getElementById('weCalRoutineModeGroup')?.querySelectorAll('.we-seg-btn')
+      .forEach((b) => b.classList.toggle('is-active', b.dataset.val === formMode));
+    const rangeBox = document.getElementById('weCalDateRangeBox');
+    if (rangeBox) rangeBox.hidden = formMode === 'permanent';
+  };
+
+  document.getElementById('weCalRoutineCatGroup')?.querySelectorAll('.we-seg-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      formCat = btn.dataset.val || 'school';
+      document.getElementById('weCalRoutineCatGroup')?.querySelectorAll('.we-seg-btn')
+        .forEach((b) => b.classList.toggle('is-active', b.dataset.val === formCat));
+      if (formCat === 'work') {
+        formMode = 'permanent';
+        syncRoutineModeUI();
+      } else if (formCat === 'school') {
+        formMode = 'range';
+        syncRoutineModeUI();
+      }
+    });
+  });
+
+  document.getElementById('weCalRoutineModeGroup')?.querySelectorAll('.we-seg-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      formMode = btn.dataset.val === 'permanent' ? 'permanent' : 'range';
+      syncRoutineModeUI();
+    });
+  });
+
+  document.getElementById('weCalRoutineDays')?.querySelectorAll('.we-cal-day-pill').forEach((btn) => {
+    btn.addEventListener('click', () => btn.classList.toggle('is-active'));
+  });
+
+  document.getElementById('weCalPresetWeekdaysBtn')?.addEventListener('click', () => {
+    document.getElementById('weCalRoutineDays')?.querySelectorAll('.we-cal-day-pill').forEach((btn) => {
+      const d = Number(btn.dataset.day);
+      btn.classList.toggle('is-active', d >= 1 && d <= 5);
+    });
+  });
+
+  calSchedulePane.querySelectorAll('[data-range-weeks]').forEach((btn) => {
+    btn.addEventListener('click', () => setDefaultDateRange(Number(btn.dataset.rangeWeeks) || 14));
+  });
+  calSchedulePane.querySelector('[data-range-year-end]')?.addEventListener('click', () => {
+    const base = bridge.getSelectedDate();
+    const rs = document.getElementById('weCalRangeStart');
+    const re = document.getElementById('weCalRangeEnd');
+    if (rs) rs.value = formatIsoToDisplayDate(bridge.dateKey(base), webSettings.language);
+    if (re) re.value = formatIsoToDisplayDate(`${base.getFullYear()}-12-31`, webSettings.language);
+  });
+
+  document.getElementById('weCalRoutineForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const titleEl = document.getElementById('weCalRoutineTitle');
+    const startEl = document.getElementById('weCalRoutineStart');
+    const endEl = document.getElementById('weCalRoutineEnd');
+    const rangeStartEl = document.getElementById('weCalRangeStart');
+    const rangeEndEl = document.getElementById('weCalRangeEnd');
+    const skipEl = document.getElementById('weCalSkipHolidays');
+    const feedbackEl = document.getElementById('weCalFormFeedback');
+
+    const title = String(titleEl?.value || '').trim().slice(0, 80);
+    const days = Array.from(document.querySelectorAll('#weCalRoutineDays .we-cal-day-pill.is-active'))
+      .map((b) => Number(b.dataset.day))
+      .filter((d) => d >= 1 && d <= 7);
+    const startMin = parseTimeToMins(startEl?.value);
+    const endMin = parseTimeToMins(endEl?.value);
+
+    const setFeedback = (msg) => {
+      if (feedbackEl) feedbackEl.textContent = msg;
+      showWebToast(msg, 2600);
+    };
+
+    if (!title) {
+      setFeedback(L('Lütfen ders veya iş adını gir.', 'Please enter a class or work title.'));
+      return;
+    }
+    if (!days.length) {
+      setFeedback(L('En az bir gün seçmelisin (Pzt–Paz).', 'Select at least one weekday (Mon–Sun).'));
+      return;
+    }
+    if (startMin === null || endMin === null || endMin <= startMin) {
+      setFeedback(L('Saat aralığını SS:DD biçiminde gir (bitiş başlangıçtan sonra olmalı).', 'Enter time as HH:MM (end must be after start).'));
+      return;
+    }
+
+    let startDate = '';
+    let endDate = '';
+    if (formMode === 'range') {
+      startDate = parseFlexibleDateInput(rangeStartEl?.value) || '';
+      endDate = parseFlexibleDateInput(rangeEndEl?.value) || '';
+      if (!startDate || !endDate || endDate < startDate) {
+        setFeedback(L('Geçerli bir tarih aralığı gir (GG.AA.YYYY).', 'Enter a valid date range (YYYY-MM-DD).'));
+        return;
+      }
+    }
+
+    smartCalRoutines.push({
+      id: `rt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      title,
+      category: formCat,
+      days,
+      startTime: formatMinsToTime(startMin),
+      endTime: formatMinsToTime(endMin),
+      mode: formMode,
+      startDate,
+      endDate,
+      skipHolidays: Boolean(skipEl?.checked),
+    });
+    persistSmartCalRoutines();
+    if (titleEl) titleEl.value = '';
+    bridge.renderAll();
+    renderSmartCalendarTabsUI();
+    setFeedback(
+      formMode === 'permanent'
+        ? L(`"${title}" kalıcı olarak takvime işlendi.`, `"${title}" added permanently to your calendar.`)
+        : L(`"${title}" seçilen tarih aralığındaki tüm haftalara eklendi.`, `"${title}" added across the selected date range.`),
+    );
+  });
+
+  document.getElementById('weCalHolidayCountryGroup')?.querySelectorAll('.we-seg-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      smartCalConfig.holidayCountry = btn.dataset.country || 'TR';
+      persistSmartCalConfig();
+      bridge.renderAll();
+      renderSmartCalendarTabsUI();
+    });
+  });
+
+  document.getElementById('weCalToggleHolidays')?.addEventListener('change', (e) => {
+    smartCalConfig.showHolidays = Boolean(e.target.checked);
+    persistSmartCalConfig();
+    bridge.renderAll();
+    renderSmartCalendarTabsUI();
+  });
+
+  document.getElementById('weCalToggleSpecials')?.addEventListener('change', (e) => {
+    smartCalConfig.showSpecialDays = Boolean(e.target.checked);
+    persistSmartCalConfig();
+    bridge.renderAll();
+    renderSmartCalendarTabsUI();
+  });
+
+  document.getElementById('weCalHoursGroup')?.querySelectorAll('.we-seg-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const [sH, eH] = String(btn.dataset.hours || '8-23').split('-').map(Number);
+      smartCalConfig.dayStartHour = sH;
+      smartCalConfig.dayEndHour = eH;
+      persistSmartCalConfig();
+      bridge.renderAll();
+      renderSmartCalendarTabsUI();
+    });
+  });
+
+  window.__weCustomRenderCalendar = function renderSmartWebMonthGrid() {
+    const monthLabelEl = document.getElementById('calendarMonthLabel');
+    const visibleMonth = bridge.getVisibleMonth();
+    const selectedDate = bridge.getSelectedDate();
+    const manualEvents = bridge.getEvents();
+
+    if (monthLabelEl) {
+      monthLabelEl.textContent = bridge.formatDate(visibleMonth, { month: 'long', year: 'numeric' });
+    }
+    calGridEl.replaceChildren();
+
+    const firstOfMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+    const mondayOffset = (firstOfMonth.getDay() + 6) % 7;
+    const gridStart = new Date(firstOfMonth.getFullYear(), firstOfMonth.getMonth(), 1 - mondayOffset);
+    const todayKey = bridge.dateKey(new Date());
+    const selectedKey = bridge.dateKey(selectedDate);
+
+    for (let index = 0; index < 42; index += 1) {
+      const dt = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index);
+      const key = bridge.dateKey(dt);
+      const inMonth = dt.getMonth() === visibleMonth.getMonth();
+      const info = getWebSmartDayData(key, manualEvents, smartCalRoutines, smartCalConfig, webSettings.language);
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'calendar-day';
+      button.classList.toggle('is-outside', !inMonth);
+      button.classList.toggle('is-today', key === todayKey);
+      button.classList.toggle('is-selected', key === selectedKey);
+      button.classList.toggle('is-holiday', info.hasHoliday);
+      button.setAttribute('role', 'gridcell');
+      button.setAttribute('aria-pressed', key === selectedKey ? 'true' : 'false');
+      button.setAttribute('aria-label', `${bridge.formatDate(dt, { weekday: 'long', day: 'numeric', month: 'long' })}, ${info.items.length} ${L('kayıt', 'items')}`);
+
+      const number = document.createElement('span');
+      number.className = 'calendar-day-number';
+      number.textContent = String(dt.getDate());
+      button.appendChild(number);
+
+      const dotClasses = [];
+      if (info.hasHoliday) dotClasses.push('dot-holiday');
+      if (info.hasRoutine) dotClasses.push('dot-routine');
+      if (info.hasManual) dotClasses.push('dot-event');
+      else if (info.hasSpecial && dotClasses.length < 3) dotClasses.push('dot-special');
+
+      if (dotClasses.length) {
+        const dots = document.createElement('span');
+        dots.className = 'calendar-day-dots';
+        dots.setAttribute('aria-hidden', 'true');
+        dotClasses.slice(0, 4).forEach((cls) => {
+          const marker = document.createElement('i');
+          marker.className = cls;
+          dots.appendChild(marker);
+        });
+        button.appendChild(dots);
+      }
+
+      button.addEventListener('click', () => {
+        bridge.setSelectedDate(dt);
+        bridge.renderAll();
+        renderSmartCalendarTabsUI();
+      });
+      calGridEl.appendChild(button);
+    }
+    updateSmartCalendarSubtitle();
+  };
+
+  window.__weCustomRenderSelectedDay = function renderSmartWebSelectedDayPanel() {
+    const sel = bridge.getSelectedDate();
+    const key = bridge.dateKey(sel);
+    const manualEvents = bridge.getEvents();
+    const info = getWebSmartDayData(key, manualEvents, smartCalRoutines, smartCalConfig, webSettings.language);
+    const dayStartMins = smartCalConfig.dayStartHour * 60;
+    const dayEndMins = smartCalConfig.dayEndHour * 60;
+    const windowFree = computeFreeTimeWindows(info.busy, dayStartMins, dayEndMins);
+
+    const selectedDateLabelEl = document.getElementById('calendarSelectedDate');
+    const eventCountLabelEl = document.getElementById('calendarEventCount');
+    const eventListEl = document.getElementById('calendarEventList');
+
+    if (selectedDateLabelEl) {
+      selectedDateLabelEl.textContent = bridge.formatDate(sel, { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    if (eventCountLabelEl) {
+      eventCountLabelEl.textContent = isEn() ? `${info.items.length} items` : `${info.items.length} kayıt`;
+    }
+
+    if (calHolidayBannerSlot) {
+      if (info.hasHoliday) {
+        const skipMsg = info.skippedByHolidayCount > 0
+          ? (isEn()
+            ? `${info.skippedByHolidayCount} recurring schedule(s) automatically skipped for this holiday.`
+            : `Resmî tatil nedeniyle bu güne ait ${info.skippedByHolidayCount} ders/iş programı otomatik atlandı.`)
+          : L('Resmî tatil günü — okul ve iş programları bu güne yazılmaz.', 'Public holiday — recurring school & work schedules are skipped.');
+        calHolidayBannerSlot.innerHTML = `
+          <div class="we-cal-holiday-banner">
+            <strong>${esc(info.holidays.join(' · '))}</strong>
+            <small>${esc(skipMsg)}</small>
+          </div>
+        `;
+      } else {
+        calHolidayBannerSlot.innerHTML = '';
+      }
+    }
+
+    if (eventListEl) {
+      eventListEl.replaceChildren();
+      if (!info.items.length) {
+        const empty = document.createElement('p');
+        empty.className = 'calendar-empty';
+        empty.textContent = L(
+          'Bu gün için kayıtlı etkinlik veya ders programı yok.',
+          'No events or classes scheduled for this day.',
+        );
+        eventListEl.appendChild(empty);
+      } else {
+        info.items.forEach((item) => {
+          const row = document.createElement('article');
+          row.className = `we-cal-agenda-row is-${item.kind}`;
+
+          const timeEl = document.createElement('span');
+          timeEl.className = 'we-cal-agenda-time';
+          timeEl.textContent = item.timeText;
+
+          const bodyEl = document.createElement('div');
+          bodyEl.className = 'we-cal-agenda-body';
+          const titleEl = document.createElement('span');
+          titleEl.className = 'we-cal-agenda-title';
+          titleEl.textContent = item.title;
+          bodyEl.appendChild(titleEl);
+          if (item.subtitle) {
+            const subEl = document.createElement('span');
+            subEl.className = 'we-cal-agenda-sub';
+            subEl.textContent = item.subtitle;
+            bodyEl.appendChild(subEl);
+          }
+
+          const rightSlot = document.createElement('div');
+          rightSlot.className = 'flex items-center gap-1.5';
+          const badgeEl = document.createElement('span');
+          badgeEl.className = `we-cal-badge is-${item.kind}`;
+          badgeEl.textContent = item.badge;
+          rightSlot.appendChild(badgeEl);
+
+          if (item.manualId) {
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'calendar-event-remove';
+            delBtn.textContent = '×';
+            delBtn.title = L('Etkinliği sil', 'Delete event');
+            delBtn.setAttribute('aria-label', `${L('Etkinliği sil', 'Delete event')}: ${item.title}`);
+            delBtn.addEventListener('click', () => {
+              bridge.removeEvent(item.manualId);
+              bridge.renderAll();
+              renderSmartCalendarTabsUI();
+            });
+            rightSlot.appendChild(delBtn);
+          }
+
+          row.append(timeEl, bodyEl, rightSlot);
+          eventListEl.appendChild(row);
+        });
+      }
+    }
+
+    if (calFreeSummarySlot) {
+      const chipsHtml = windowFree.free.length
+        ? windowFree.free.map((slot) => `<span class="we-cal-free-chip">${esc(slot.label)}</span>`).join('')
+        : `<span class="we-cal-free-chip">${L('Serbest aralık yok', 'No free slots')}</span>`;
+      const spanTitle = `${formatMinsToTime(dayStartMins)}–${formatMinsToTime(dayEndMins)}`;
+      calFreeSummarySlot.innerHTML = `
+        <div class="we-cal-free-box">
+          <div class="we-cal-free-head">
+            <span class="we-cal-free-label font-pixel">${L(`BOŞ ZAMANLAR (${spanTitle})`, `FREE TIME (${spanTitle})`)}</span>
+            <span class="we-cal-free-total">${formatDurationLocalized(windowFree.totalFreeMins)} ${L('boş', 'free')}</span>
+          </div>
+          <div class="we-cal-free-chips">${chipsHtml}</div>
+        </div>
+      `;
+    }
+    if (smartCalActiveTab === 'schedule') renderSmartCalendarScheduleTab();
+    if (typeof window.__weSyncPopoverGlassPlate === 'function') {
+      requestAnimationFrame(() => window.__weSyncPopoverGlassPlate());
+    }
+  };
+
+  applySmartCalendarLanguage();
+  bridge.renderAll();
+  renderSmartCalendarTabsUI();
+}
+
+// ============================================================================
+// 7. WEB SETTINGS, PERFORMANCE PROFILES & FULL BIDIRECTIONAL TR <-> EN UI
 // ============================================================================
 function applyWebLanguageToUI() {
   if (typeof document === 'undefined' || !document.documentElement) return;
@@ -862,41 +2211,153 @@ function applyWebLanguageToUI() {
   renderHabitatMenu();
   if (typeof window.__weSyncWebBiomeAudioUI === 'function') window.__weSyncWebBiomeAudioUI();
 
-  const labelUpdates = [
-    ['#newsBtn span', 'Gündem', 'News'],
-    ['#calendarBtn span', 'Takvim', 'Calendar'],
-    ['#notesBtn span', 'Defter', 'Notes'],
-    ['#dataManagerBtn span', 'Veri', 'Data'],
-    ['#headlineBar > span', 'Gündem', 'Headlines'],
-    ['#weSetTitleText', 'Ayarlar & Performans', 'Settings & Performance'],
-    ['#weSetSubText', 'Laptop serinliği, cam kalitesi ve dil', 'Laptop thermals, liquid glass & language'],
-    ['#weSetSecLang', 'Arayüz Dili / Language', 'Interface Language'],
-    ['#weSetSecPerf', '1. Performans & Fan Profili', '1. Performance & Thermal Profile'],
-    ['#weSetPerfProfileLabel', 'Tek Tıkla Profil', '1-Click Profile'],
-    ['#weSetFpsLabel', 'Sahne Kare Hızı (FPS)', 'Scene Frame Rate (FPS)'],
-    ['#weSetSpeedLabel', 'Canlı Hareket Hızı', 'Creature Speed'],
-    ['#weSetSecGlass', '2. Liquid Glass Kalitesi', '2. Liquid Glass Quality'],
-    ['#weSetGlassFpsLabel', 'Cam Yenileme Hızı (Glass FPS)', 'Glass Refresh Rate (FPS)'],
-    ['#weSetGlassQLabel', 'Mercek Çözünürlüğü', 'Lens Resolution'],
-    ['#weSetBlurLabel', 'Cam Bulanıklığı', 'Glass Blur'],
-    ['#weSetOpLabel', 'Mercek Yoğunluğu', 'Lens Opacity'],
-    ['#weSetSecView', '3. Görünüm, Saat & Yazı Tipi', '3. Layout, Clock & Typography'],
-    ['#weSetAutoCycleLabel', 'Otomatik Habitat Değiştirme', 'Auto-Cycle Habitats'],
-    ['#weSetFontLabel', 'Pixel Yazı Tipi', 'Pixel Typeface'],
-    ['#weSetSecWidgets', '4. Görünür Bileşenler', '4. Visible Widgets'],
-    ['#weResetDefaultsBtn', 'Varsayılanlara Sıfırla', 'Reset Defaults'],
-  ];
-  for (const [sel, tr, en] of labelUpdates) {
-    const el = document.querySelector(sel);
-    if (el && (el.id || document.body.dataset.weTranslatedOnce === '1' || webSettings.language === 'en')) {
-      el.textContent = L(tr, en);
-    }
-  }
+  const shouldTranslateStatic = Boolean(document.body.dataset.weTranslatedOnce === '1' || webSettings.language === 'en');
   if (webSettings.language === 'en') document.body.dataset.weTranslatedOnce = '1';
 
-  const searchInput = document.getElementById('searchInput');
-  if (searchInput && webSettings.language === 'en') {
-    searchInput.placeholder = 'Search the web or enter an address...';
+  const setText = (sel, tr, en) => {
+    const el = document.querySelector(sel);
+    if (el) el.textContent = L(tr, en);
+  };
+  const setAttr = (sel, attr, tr, en) => {
+    const el = document.querySelector(sel);
+    if (el) el.setAttribute(attr, L(tr, en));
+  };
+
+  if (shouldTranslateStatic) {
+    // Top bar & main hero
+    setText('#newsBtn span', 'Gündem', 'News');
+    setText('#calendarBtn span', 'Takvim', 'Calendar');
+    setText('#notesBtn span', 'Defter', 'Notes');
+    setText('#dataManagerBtn span', 'Veri', 'Data');
+    setText('#headlineBar > span', 'Gündem', 'Headlines');
+    setText('#searchForm .font-mono', '↑ ↓ motor', '↑ ↓ engine');
+    setAttr('#searchInput', 'placeholder', "Google'da ara veya bir adres yaz...", 'Search the web or enter an address...');
+
+    // Habitat popover
+    setText('#habitatPopover h3', 'Yaşayan Habitatlar', 'Living Habitats');
+    setText('#habitatPopover h3 + p', 'Sahne seç veya açılış için sabitle', 'Select a biome or pin for startup');
+
+    // News popover static UI
+    setText('#newsPopover .news-eyebrow', 'Diorama · Güncel', 'Diorama · Live Desk');
+    setText('#newsPopover .news-title', 'Haber Merkezi', 'News Desk');
+    setText('#newsPopover .news-section-heading span:first-child', 'Akışa göz at', 'Browse feeds');
+    const catMap = { gundem: ['Türkiye & Dünya', 'Top & World'], teknoloji: ['Teknoloji', 'Tech'], bilim: ['Bilim & Kültür', 'Science & Culture'] };
+    document.querySelectorAll('#newsCategories .news-cat-btn').forEach((btn) => {
+      const pair = catMap[btn.dataset.cat];
+      if (pair) btn.textContent = L(pair[0], pair[1]);
+    });
+    const filterMap = { all: ['Tümü', 'All'], unread: ['Okunmadı', 'Unread'], saved: ['Kaydedilen', 'Saved'] };
+    document.querySelectorAll('#newsPopover .news-filter-btn').forEach((btn) => {
+      const pair = filterMap[btn.dataset.filter];
+      if (pair) btn.textContent = L(pair[0], pair[1]);
+    });
+    setAttr('#newsSearchInput', 'placeholder', 'Haber veya yayıncı ara…', 'Search headlines or publishers…');
+    setText('#newsSettingsPanel .news-settings-heading h4', 'Kaynak tercihleri', 'Source Preferences');
+    setText('#newsSettingsPanel .news-settings-heading p', 'Bu kategoride hangi yayıncıları takip edeceğini seç.', 'Choose which publishers to follow in this category.');
+    setText('#addNewsSourceForm .news-add-heading h4', 'Kendi RSS kaynağını ekle', 'Add Custom RSS Feed');
+    setText('#addNewsSourceForm .news-add-heading p', 'Herkese açık HTTPS RSS veya Atom akışı.', 'Public HTTPS RSS or Atom feed.');
+    setText('.news-add-source-btn', 'Kaynağı ekle', 'Add Source');
+    setText('.news-provider-note', 'Haber akışı: Diorama RSS API · Haberlerin telif ve yayın hakları kaynak yayıncılara aittir.', 'News feed: Diorama RSS API · Copyright remains with original publishers.');
+
+    // Weather popover static UI
+    const wxLabels = document.querySelectorAll('#weatherPopover .wx-section-label');
+    if (wxLabels[0]) wxLabels[0].textContent = L('ÖNÜMÜZDEKİ SAATLER', 'NEXT HOURS');
+    if (wxLabels[1]) wxLabels[1].textContent = L('5 GÜNLÜK TAHMİN', '5-DAY FORECAST');
+    if (wxLabels[2]) wxLabels[2].textContent = L('SAHNEDE DENE', 'PREVIEW ON SCENE');
+    const wxFxSpan = document.getElementById('wxFxToggle')?.previousElementSibling;
+    if (wxFxSpan) wxFxSpan.textContent = L('Sahnede hava efektleri', 'Weather effects in scene');
+    const wxAutoSpan = document.getElementById('wxAutoTheme')?.previousElementSibling;
+    if (wxAutoSpan) wxAutoSpan.textContent = L('Gündüz/gece temasını güneşe göre ayarla', 'Auto day/night theme from sun cycle');
+    setAttr('#cityInput', 'placeholder', 'Şehir (Örn: İstanbul)', 'City (e.g. London)');
+    setText('#weatherForm button[type="submit"]', 'Kaydet', 'Save');
+
+    // Focus popover & HUD static UI
+    setText('#focusPopover h3', 'Odak & Ambiyans', 'Focus & Ambience');
+    setText('#focusPopover .focus-clock-machine-head span:nth-child(2)', 'HABİTAT SAYACI', 'HABITAT TIMER');
+    setText('#focusPopover .focus-clock-machine-head .focus-machine-current', 'CANLI', 'LIVE');
+    setText('#focusPopover .focus-duration-label', 'SÜRE SEÇ', 'DURATION');
+    setText('#focusPopover .focus-custom-duration label', 'ÖZEL SÜRE', 'CUSTOM');
+    setAttr('#focusCustomMinutes', 'placeholder', '1–180 dk', '1–180 min');
+    setText('#focusApplyCustomBtn', 'UYGULA', 'APPLY');
+    setText('#focusPopover .focus-task-field label', 'BU OTURUMUN HEDEFİ', 'SESSION INTENTION');
+    setAttr('#focusTaskInput', 'placeholder', 'Ne üzerinde çalışacaksın?', 'What are you focusing on?');
+    setText('#focusPopover .focus-volume-row label', 'SES SEVİYESİ', 'VOLUME');
+    setText('#focusPopover .mt-4 > .flex > span:first-child', 'Üretken Doğa Ambiyansı', 'Organic Nature Soundscapes');
+    document.querySelectorAll('#focusPopover .focus-preset-btn').forEach((btn) => {
+      const m = btn.dataset.mins;
+      if (m) btn.textContent = isEn() ? `${m} MIN` : `${m} DK`;
+    });
+    setText('#focusStageStatus', 'HABİTATINDA ODAKLANIYORSUN', 'FOCUSING IN YOUR HABITAT');
+    setText('#focusStageReset', 'BITIR', 'END');
+
+    // Calendar popover base UI
+    setText('#calendarPopover .calendar-header .calendar-eyebrow', 'Diorama · Planlama', 'Diorama · Planner');
+    setText('#calendarTodayBtn', 'Bugün', 'Today');
+    const calWeekdays = document.querySelectorAll('#calendarPopover .calendar-weekdays span');
+    const wkTr = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+    const wkEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    calWeekdays.forEach((el, idx) => {
+      if (wkTr[idx]) el.textContent = L(wkTr[idx], wkEn[idx]);
+    });
+    setText('#calendarPopover .calendar-day-heading .calendar-eyebrow', 'SEÇİLİ GÜN', 'SELECTED DAY');
+    setText('#calendarEventForm > label', 'Yeni etkinlik', 'New event');
+    setAttr('#calendarEventTitle', 'placeholder', 'Örn. Proje üzerinde çalış', 'e.g. Deep work session');
+    setText('#calendarEventForm > button[type="submit"]', 'Etkinliği ekle', 'Add event');
+
+    // Notes popover
+    setText('#notesPopover h3', 'Kişisel Defter', 'Personal Journal');
+    setText('#taskProgressText', 'Günlük akış ve hızlı notlar', 'Daily tasks and quick notes');
+    setText('#tasksTab', 'Görevler', 'Tasks');
+    setText('#notesTab', 'Notlar', 'Notes');
+    setAttr('#newTaskInput', 'placeholder', 'Yeni bir satır ekle...', 'Add a new task...');
+    setText('#addTaskForm button[type="submit"]', 'Ekle', 'Add');
+    setText('#clearDoneTasksBtn', 'Tamamlananları Sil', 'Clear Done');
+    setAttr('#noteTitleInput', 'placeholder', 'Başlık (isteğe bağlı)...', 'Title (optional)...');
+    setAttr('#noteBodyInput', 'placeholder', 'Düşünce, alıntı veya bağlantı kaydet...', 'Write a thought, quote, or link...');
+    setText('#addNoteCardForm button[type="submit"]', 'Deftere Kaydet', 'Save Note');
+
+    // Data Manager popover
+    setText('#dataManagerPopover h3', 'Veri Yönetimi', 'Data Manager');
+    setText('#dataManagerPopover h3 + p', 'Notlarını, görevlerini ve kısayollarını güvenceye al', 'Back up notes, tasks & shortcuts locally');
+  }
+
+  // Web Settings Popover always translates cleanly
+  setText('#weSetTitleText', 'Ayarlar & Performans', 'Settings & Performance');
+  setText('#weSetSubText', 'Laptop serinliği, cam kalitesi ve dil', 'Laptop thermals, liquid glass & language');
+  setText('#weSetSecLang', 'Arayüz Dili / Language', 'Interface Language');
+  setText('#weSetSecPerf', '1. Performans & Fan Profili', '1. Performance & Thermal Profile');
+  setText('#weSetPerfProfileLabel', 'Tek Tıkla Profil', '1-Click Profile');
+  setText('#weSetFpsLabel', 'Sahne Kare Hızı (FPS)', 'Scene Frame Rate (FPS)');
+  setText('#weSetSpeedLabel', 'Canlı Hareket Hızı', 'Creature Speed');
+  setText('#weSetSecGlass', '2. Liquid Glass Kalitesi', '2. Liquid Glass Quality');
+  setText('#weSetGlassFpsLabel', 'Cam Yenileme Hızı (Glass FPS)', 'Glass Refresh Rate (FPS)');
+  setText('#weSetGlassQLabel', 'Mercek Çözünürlüğü', 'Lens Resolution');
+  setText('#weSetBlurLabel', 'Cam Bulanıklığı', 'Glass Blur');
+  setText('#weSetOpLabel', 'Mercek Yoğunluğu', 'Lens Opacity');
+  setText('#weSetSecView', '3. Görünüm, Saat & Yazı Tipi', '3. Layout, Clock & Typography');
+  setText('#weSetAutoCycleLabel', 'Otomatik Habitat Değiştirme', 'Auto-Cycle Habitats');
+  setText('#weSetFontLabel', 'Pixel Yazı Tipi', 'Pixel Typeface');
+  setText('#weSetSecWidgets', '4. Görünür Bileşenler', '4. Visible Widgets');
+  setText('#weResetDefaultsBtn', 'Sıfırla', 'Reset');
+
+  const perfBtnMap = { eco: ['Sessiz 24', 'Silent 24'], balanced: ['Dengeli', 'Balanced'], high: ['Yüksek 60', 'High 60'] };
+  document.getElementById('wePerfProfileGroup')?.querySelectorAll('.we-seg-btn').forEach((b) => {
+    const pair = perfBtnMap[b.dataset.val];
+    if (pair) b.textContent = L(pair[0], pair[1]);
+  });
+  const cycBtnMap = { '0': ['Kapalı', 'Off'], '1': ['1 DK', '1 MIN'], '5': ['5 DK', '5 MIN'], '15': ['15 DK', '15 MIN'] };
+  document.getElementById('weAutoCycleGroup')?.querySelectorAll('.we-seg-btn').forEach((b) => {
+    const pair = cycBtnMap[b.dataset.val];
+    if (pair) b.textContent = L(pair[0], pair[1]);
+  });
+  const classicFontBtn = document.querySelector('#wePixelFontGroup button[data-val="classic"]');
+  if (classicFontBtn) classicFontBtn.textContent = L('Klasik', 'Classic');
+
+  if (shouldTranslateStatic) {
+    window.__weNewsBridge?.renderCards?.();
+    applySmartCalendarLanguage();
+    window.__weCalendarBridge?.renderAll?.();
+    renderSmartCalendarTabsUI();
   }
 }
 
@@ -915,6 +2376,7 @@ function applyAllWebSettings(persist = false) {
     document.body.classList.toggle('we-hide-headline', !webSettings.showHeadline);
     if (webSettings.pixelFont && webSettings.pixelFont !== 'classic') {
       document.body.dataset.pixelFont = webSettings.pixelFont;
+      preloadSelectedPixelFont(webSettings.pixelFont);
     } else {
       delete document.body.dataset.pixelFont;
     }
@@ -1152,73 +2614,6 @@ function initWebSettingsPopover() {
 }
 
 // ============================================================================
-// 7. OFFLINE SMART CALENDAR HOLIDAY & OBSERVANCE RIBBON
-// ============================================================================
-function initCalendarHolidayBanner() {
-  const dayPanel = document.querySelector('#calendarPopover .calendar-day-panel');
-  if (!dayPanel || document.getElementById('weCalHolidayBanner')) return;
-
-  let activeCountry = lsGet(WEB_CAL_COUNTRY_KEY, 'TR');
-  if (!['TR', 'US', 'UK', 'DE'].includes(activeCountry)) activeCountry = 'TR';
-
-  const row = document.createElement('div');
-  row.className = 'we-cal-country-row';
-  row.innerHTML = `
-    <span id="weCalHolidayLabel" class="font-pixel text-xs text-white/70">Resmî Tatiller</span>
-    <div id="weCalCountryGroup" class="we-cal-country-group" role="group" aria-label="Tatil ülkesi">
-      <button type="button" data-country="TR" class="we-cal-country-btn">TR</button>
-      <button type="button" data-country="US" class="we-cal-country-btn">US</button>
-      <button type="button" data-country="UK" class="we-cal-country-btn">UK</button>
-      <button type="button" data-country="DE" class="we-cal-country-btn">DE</button>
-    </div>
-  `;
-
-  const banner = document.createElement('div');
-  banner.id = 'weCalHolidayBanner';
-  banner.className = 'we-cal-holiday-banner';
-  banner.hidden = true;
-
-  const eventList = document.getElementById('calendarEventList');
-  if (eventList && eventList.parentElement === dayPanel) {
-    dayPanel.insertBefore(row, eventList);
-    dayPanel.insertBefore(banner, eventList);
-  } else {
-    dayPanel.appendChild(row);
-    dayPanel.appendChild(banner);
-  }
-
-  const renderHolidayForDate = (dateKeyStr) => {
-    document.querySelectorAll('#weCalCountryGroup .we-cal-country-btn').forEach((b) => {
-      b.classList.toggle('is-active', b.dataset.country === activeCountry);
-    });
-    const { holidays, specials } = getWebPublicObservances(dateKeyStr, activeCountry, webSettings.language);
-    if (!holidays.length && !specials.length) {
-      banner.hidden = true;
-      banner.replaceChildren();
-      return;
-    }
-    banner.hidden = false;
-    banner.innerHTML = [
-      ...holidays.map((h) => `<span class="we-cal-holiday-badge">${esc(h)}</span>`),
-      ...specials.map((s) => `<span class="we-cal-special-badge">${esc(s)}</span>`),
-    ].join('');
-  };
-
-  document.getElementById('weCalCountryGroup')?.querySelectorAll('.we-cal-country-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      activeCountry = btn.dataset.country;
-      lsSet(WEB_CAL_COUNTRY_KEY, activeCountry);
-      const key = document.getElementById('calendarSelectedDate')?.dataset?.dateKey || formatYmd(new Date());
-      renderHolidayForDate(key);
-    });
-  });
-
-  window.__weOnCalendarDayRendered = renderHolidayForDate;
-  const initialKey = document.getElementById('calendarSelectedDate')?.dataset?.dateKey || formatYmd(new Date());
-  renderHolidayForDate(initialKey);
-}
-
-// ============================================================================
 // 8. BOOTSTRAP WEBSITE ENHANCEMENTS
 // ============================================================================
 function initWebStudio() {
@@ -1293,8 +2688,9 @@ function initWebStudio() {
 
   initWebSettingsPopover();
   initHybridGlassLayer();
+  initEditorialNewsReader();
   initFocusSoundscapeStudio();
-  initCalendarHolidayBanner();
+  initSmartCalendar();
   applyAllWebSettings(false);
   renderHabitatMenu();
   refreshGlassCardCache();

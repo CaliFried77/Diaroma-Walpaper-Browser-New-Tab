@@ -59,7 +59,7 @@ function persistEvents() {
 }
 
 function formatDate(date, options = {}) {
-  return new Intl.DateTimeFormat('tr-TR', options).format(date);
+  return new Intl.DateTimeFormat(window.__weLang === 'en' ? 'en-US' : 'tr-TR', options).format(date);
 }
 
 function eventsFor(date) {
@@ -73,6 +73,10 @@ function eventsFor(date) {
 // ============================================================================
 
 function renderCalendar() {
+  if (typeof window.__weCustomRenderCalendar === 'function') {
+    window.__weCustomRenderCalendar();
+    return;
+  }
   monthLabel.textContent = formatDate(visibleMonth, { month: 'long', year: 'numeric' });
   grid.replaceChildren();
 
@@ -123,13 +127,14 @@ function renderCalendar() {
 }
 
 function renderSelectedDay() {
-  const key = dateKey(selectedDate);
+  if (typeof window.__weCustomRenderSelectedDay === 'function') {
+    window.__weCustomRenderSelectedDay();
+    return;
+  }
   const dayEvents = eventsFor(selectedDate);
   selectedDateLabel.textContent = formatDate(selectedDate, {
     weekday: 'long', day: 'numeric', month: 'long',
   });
-  if (selectedDateLabel.dataset) selectedDateLabel.dataset.dateKey = key;
-  if (typeof window.__weOnCalendarDayRendered === 'function') window.__weOnCalendarDayRendered(key);
   eventCountLabel.textContent = `${dayEvents.length} etkinlik`;
   eventList.replaceChildren();
 
@@ -214,6 +219,18 @@ eventForm.addEventListener('submit', (event) => {
   renderSelectedDay();
 });
 
+window.__weCalendarBridge = {
+  getSelectedDate: () => selectedDate,
+  setSelectedDate: (d) => { selectedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()); },
+  getVisibleMonth: () => visibleMonth,
+  setVisibleMonth: (m) => { visibleMonth = new Date(m.getFullYear(), m.getMonth(), 1); },
+  getEvents: () => events,
+  removeEvent: (id) => { events = events.filter((item) => item.id !== id); persistEvents(); },
+  reloadEvents: () => { events = normalizeEvents(lsGet(STORAGE_KEY, [])); },
+  dateKey,
+  formatDate,
+  renderAll: () => { renderCalendar(); renderSelectedDay(); },
+};
 renderCalendar();
 renderSelectedDay();
 

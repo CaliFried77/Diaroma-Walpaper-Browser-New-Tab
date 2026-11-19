@@ -652,17 +652,153 @@ if (hab.sceneProfile === 'wetland') {
             }
         }
 
+        // Zeminle bütünleşik 2 kademeli kireçtaşı şelalesi & turkuaz lagün havuzu animasyonu
         const wfX = Math.round(pw * 0.50);
-        const wfGroundY = getGroundY(wfX, 'rainforest', pw, ph);
-        const wfTopY = wfGroundY - 38;
-        for (let d = 0; d < 8; d++) {
-            const dropY = wfTopY + ((Math.floor(time * 0.025) + d * 5) % 37);
-            const dropX = wfX - 1 + (d % 3);
-            pRect(dropX, dropY, 1, 3, isLightMode ? 'rgba(224, 242, 254, 0.72)' : 'rgba(125, 211, 252, 0.45)');
+        const poolSurfY = ph - 8;
+        const cliffH = Math.min(72, Math.max(48, Math.round(ph * 0.25)));
+        const cliffTopY = poolSurfY - cliffH;
+        const midShelfY = poolSurfY - Math.round(cliffH * 0.46);
+        const cliffBaseHalfW = Math.min(38, Math.max(24, Math.round(pw * 0.068)));
+        const poolHalfW = Math.round(cliffBaseHalfW * 0.94);
+
+        const waterBaseCol = isLightMode ? 'rgba(125, 211, 252, 0.52)' : 'rgba(56, 189, 248, 0.34)';
+        const waterCoreCol = isLightMode ? 'rgba(224, 242, 254, 0.82)' : 'rgba(165, 243, 252, 0.58)';
+        const waterFoamCol = isLightMode ? 'rgba(240, 249, 255, 0.90)' : 'rgba(207, 250, 254, 0.65)';
+
+        // Üst kayadan fışkıran akış (kaynak oyuğundan orta kaya rafına)
+        const upperSpan = Math.max(4, midShelfY - (cliffTopY + 3));
+        pRect(wfX - 3, cliffTopY + 3, 6, upperSpan, waterBaseCol);
+        pRect(wfX - 2, cliffTopY + 3, 4, upperSpan, waterCoreCol);
+        for (let s = 0; s < 5; s++) {
+            const sy = cliffTopY + 3 + ((Math.floor(time * 0.032) + s * 6) % upperSpan);
+            pRect(wfX - 2 + (s % 4), sy, 1, 3, waterFoamCol);
         }
-        const foamSpread = 4 + Math.round(Math.sin(time * 0.006) * 1.5);
-        pRect(wfX - foamSpread, wfGroundY - 1, foamSpread * 2, 2, isLightMode ? 'rgba(224, 242, 254, 0.65)' : 'rgba(125, 211, 252, 0.35)');
-        pRect(wfX - foamSpread - 3, wfGroundY, (foamSpread + 3) * 2, 1, isLightMode ? 'rgba(186, 230, 253, 0.38)' : 'rgba(45, 212, 191, 0.22)');
+
+        // Orta kaya rafında köpük patlaması
+        const shelfFoam = 5 + Math.round(Math.sin(time * 0.008) * 1);
+        pRect(wfX - shelfFoam, midShelfY - 2, shelfFoam * 2, 2, waterFoamCol);
+
+        // Rafın üzerinden turkuaz lagüne dökülen ikiz alt akış
+        const lowerSpan = Math.max(6, poolSurfY - (midShelfY + 1));
+        pRect(wfX - 4, midShelfY + 1, 5, lowerSpan, waterBaseCol);
+        pRect(wfX - 3, midShelfY + 1, 3, lowerSpan, waterCoreCol);
+        pRect(wfX + 2, midShelfY + 1, 2, lowerSpan, waterBaseCol);
+        for (let s = 0; s < 6; s++) {
+            const sy = midShelfY + 1 + ((Math.floor(time * 0.036) + s * 5) % lowerSpan);
+            pRect(wfX - 3 + (s % 3), sy, 1, 3, waterFoamCol);
+            if (s % 2 === 0) pRect(wfX + 2, sy, 1, 2, waterCoreCol);
+        }
+
+        // Lagün suyunda köpük halkası ve genişleyen dalgalar
+        const foamSpread = 6 + Math.round(Math.sin(time * 0.006) * 2);
+        pRect(wfX - foamSpread, poolSurfY - 1, foamSpread * 2, 2, waterFoamCol);
+        pRect(wfX - foamSpread - 4, poolSurfY + 1, (foamSpread + 4) * 2, 1, isLightMode ? 'rgba(186, 230, 253, 0.45)' : 'rgba(45, 212, 191, 0.25)');
+        for (let rIdx = 0; rIdx < 3; rIdx++) {
+            const rp = ((time * 0.0007 + rIdx * 0.33) % 1);
+            const rHalf = Math.round(8 + rp * (poolHalfW - 10));
+            const ry = Math.min(ph - 1, poolSurfY + 2 + Math.round(rp * 4));
+            const rAlpha = ((1 - rp) * 0.32).toFixed(2);
+            pRect(wfX - rHalf, ry, rHalf * 2, 1, `rgba(186, 230, 253, ${rAlpha})`);
+        }
+        // Havuzdan süzülen serin şelale buğusu
+        for (let m = 0; m < 4; m++) {
+            const mp = ((time * 0.0005 + m * 0.25) % 1);
+            const mx = wfX - 7 + m * 4 + Math.round(Math.sin(time * 0.002 + m) * 2);
+            const my = poolSurfY - 2 - Math.round(mp * 9);
+            const mAlpha = ((1 - mp) * 0.28).toFixed(2);
+            pRect(mx, my, 3, 2, `rgba(224, 242, 254, ${mAlpha})`);
+        }
+
+        // YERİNDE YAŞAYAN DURGUN CANLILAR (Uçuş/Gezme sadece papağanlara özeldir; diğerleri yuvalarında mikro-animasyon yapar)
+        // 1. Toco Tukan (Sol orta ağaç dalında tünemiş: pw*0.27 + 15)
+        const tx = Math.floor(pw * 0.27) + 15;
+        const ty = Math.floor(ph * 0.36) + 22;
+        const toucanBob = Math.sin(time * 0.0024) > 0.35 ? -1 : 0;
+        const toucanBlink = (time % 4600) > 4420;
+        const toucanCall = (time % 7200) > 6850 ? 1 : 0;
+        const toucanTailTwitch = (time % 5300) > 5050 ? 1 : 0;
+        pRect(tx - 1, ty, 2, 1, '#64748b');
+        pRect(tx + 1, ty, 2, 1, '#64748b');
+        pRect(tx - 4, ty - 1 + toucanTailTwitch, 2, 4, '#090d16');
+        pRect(tx - 3, ty, 2, 1, '#dc2626');
+        pRect(tx - 3, ty - 5 + toucanBob, 5, 5, '#090d16');
+        pRect(tx - 2, ty - 4 + toucanBob, 3, 3, '#1e293b');
+        pRect(tx + 1, ty - 7 + toucanBob, 3, 4, '#fef08a');
+        pRect(tx, ty - 8 + toucanBob, 3, 2, '#090d16');
+        pRect(tx + 2, ty - 8 + toucanBob, 1, 1, '#38bdf8');
+        if (!toucanBlink) pRect(tx + 2, ty - 8 + toucanBob, 1, 1, '#020617');
+        else pRect(tx + 2, ty - 8 + toucanBob, 1, 1, '#1e293b');
+        pRect(tx + 3, ty - 8 + toucanBob, 4, 2, '#ea580c');
+        pRect(tx + 4, ty - 8 + toucanBob, 3, 1, '#f97316');
+        pRect(tx + 7, ty - 8 + toucanBob, 1, 2, '#0f172a');
+        pRect(tx + 3, ty - 6 + toucanBob + toucanCall, 4, 1, '#c2410c');
+
+        // 2. Üç Parmaklı Tembel Hayvan (Sağ orta dalın altında asılı: pw*0.75 - 15)
+        const sx = Math.floor(pw * 0.75) - 15;
+        const sy = Math.floor(ph * 0.34) + 23;
+        const slothSway = Math.round(Math.sin(time * 0.0009) * 0.55);
+        const slothBlink = (time % 5400) > 5050;
+        const slothReach = (time % 9200) > 7900 ? 2 : 0;
+        pRect(sx - 3 + slothSway, sy - 2, 2, 1, '#334155');
+        pRect(sx + 2 + slothSway, sy - 2, 2, 1, '#334155');
+        pRect(sx - 3 + slothSway, sy - 1 + slothReach, 2, 4, '#6b5344');
+        pRect(sx + 2 + slothSway, sy - 1, 2, 4, '#6b5344');
+        pRect(sx - 4 + slothSway, sy + 2, 8, 4, '#785c48');
+        pRect(sx - 3 + slothSway, sy + 3, 6, 3, '#574032');
+        pRect(sx - 1 + slothSway, sy + 4, 3, 1, '#65a30d');
+        pRect(sx - 6 + slothSway, sy + 2, 3, 3, '#fef3c7');
+        pRect(sx - 6 + slothSway, sy + 3, 1, 1, slothBlink ? '#a8a29e' : '#292524');
+        pRect(sx - 4 + slothSway, sy + 3, 1, 1, '#1c1917');
+
+        // 3. Kırmızı Gözlü Ağaç Kurbağası (Sol lagün taşı üstünde: wfX - poolHalfW - 3)
+        const fx = wfX - poolHalfW - 3;
+        const fy = getGroundY(fx, 'rainforest', pw, ph) - 4;
+        const throatPulse = Math.sin(time * 0.0045) > 0.35 ? 1 : 0;
+        const frogBlink = (time % 4100) > 3920;
+        const tongueFlick = (time % 8400) > 8220;
+        pRect(fx - 2, fy - 1, 4, 1, '#f97316');
+        pRect(fx - 2, fy - 3, 5, 2, '#16a34a');
+        pRect(fx - 1, fy - 3, 3, 1, '#84cc16');
+        pRect(fx, fy - 2, 2, 1, '#2563eb');
+        pRect(fx + 2, fy - 2, 2, 1 + throatPulse, '#fef3c7');
+        pRect(fx + 1, fy - 4, 2, 1, frogBlink ? '#15803d' : '#ef4444');
+        if (!frogBlink) pRect(fx + 2, fy - 4, 1, 1, '#fee2e2');
+        if (!tongueFlick) {
+            const gnatX = fx + 7 + Math.round(Math.sin(time * 0.008) * 1);
+            const gnatY = fy - 5 + Math.round(Math.cos(time * 0.011) * 1);
+            pRect(gnatX, gnatY, 1, 1, '#fde047');
+        } else {
+            pRect(fx + 4, fy - 3, 3, 1, '#fb7185');
+        }
+
+        // 4. Dinlenen Mavi Morpho Kelebeği (Sağ kıyıda kırmızı helikonya çiçeğinin üstünde sabit)
+        const mx = wfX + poolHalfW + 6;
+        const my = getGroundY(mx, 'rainforest', pw, ph) - 10;
+        // Çiçek sapı ve kırmızı-altın helikonya tacı
+        pRect(mx, my + 2, 1, 9, '#15803d');
+        pRect(mx - 1, my + 5, 2, 2, '#16a34a');
+        pRect(mx - 2, my, 5, 2, '#e11d48');
+        pRect(mx - 1, my - 1, 3, 2, '#fb7185');
+        pRect(mx, my - 1, 1, 1, '#facc15');
+        // Kelebeğin yerinde kanat açıp kapaması
+        const morphoOpen = 0.5 + 0.5 * Math.sin(time * 0.0016 + 0.7);
+        pRect(mx, my - 2, 1, 2, '#0f172a');
+        if (morphoOpen < 0.28) {
+            pRect(mx - 1, my - 5, 2, 3, '#451a03');
+            pRect(mx, my - 4, 1, 1, '#d97706');
+        } else if (morphoOpen < 0.68) {
+            pRect(mx - 2, my - 5, 2, 3, '#0284c7');
+            pRect(mx + 1, my - 5, 2, 3, '#0284c7');
+            pRect(mx - 2, my - 4, 1, 2, '#38bdf8');
+            pRect(mx + 2, my - 4, 1, 2, '#38bdf8');
+        } else {
+            pRect(mx - 4, my - 4, 4, 3, '#0f172a');
+            pRect(mx + 1, my - 4, 4, 3, '#0f172a');
+            pRect(mx - 3, my - 4, 3, 2, '#2563eb');
+            pRect(mx + 1, my - 4, 3, 2, '#2563eb');
+            pRect(mx - 2, my - 4, 2, 2, '#38bdf8');
+            pRect(mx + 1, my - 4, 2, 2, '#38bdf8');
+        }
 
         setSceneFill(isLightMode ? 'rgba(209, 250, 229, 0.045)' : 'rgba(45, 212, 191, 0.032)');
         for (let wisp = 0; wisp < 10; wisp++) {
@@ -673,10 +809,10 @@ if (hab.sceneProfile === 'wetland') {
         }
 
         for (let sp = 0; sp < 6; sp++) {
-            const sx = Math.round(((sp * 83 + Math.sin(time * 0.0011 + sp) * 14) % (pw - 32)) + 16);
-            const sy = Math.round(ph * 0.48 + (sp * 17) % Math.floor(ph * 0.38) + Math.cos(time * 0.0016 + sp) * 6);
+            const sxSp = Math.round(((sp * 83 + Math.sin(time * 0.0011 + sp) * 14) % (pw - 32)) + 16);
+            const sySp = Math.round(ph * 0.48 + (sp * 17) % Math.floor(ph * 0.38) + Math.cos(time * 0.0016 + sp) * 6);
             const alpha = (0.28 + 0.35 * (0.5 + 0.5 * Math.sin(time * 0.004 + sp * 1.7))).toFixed(2);
-            pRect(sx, sy, 1, 1, sp % 2 === 0 ? `rgba(110, 231, 183, ${alpha})` : `rgba(253, 224, 71, ${alpha})`);
+            pRect(sxSp, sySp, 1, 1, sp % 2 === 0 ? `rgba(110, 231, 183, ${alpha})` : `rgba(253, 224, 71, ${alpha})`);
         }
     }
     

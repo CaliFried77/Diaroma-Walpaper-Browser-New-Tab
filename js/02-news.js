@@ -170,6 +170,10 @@ function updateFilterButtons() {
 }
 
 function renderNewsCards(emptyMessage = '') {
+  if (typeof window.__weCustomRenderNewsCards === 'function') {
+    window.__weCustomRenderNewsCards(emptyMessage);
+    return;
+  }
   newsListContainer.replaceChildren();
   const filtered = filterNewsArticles(currentNewsItems, { query: searchQuery, filter: activeFilter, readIds, savedIds });
   newsListMeta.textContent = `${filtered.length} haber gösteriliyor · ${currentNewsItems.length} haber bulundu`;
@@ -701,6 +705,38 @@ setInterval(() => {
     updateHeadlineTicker();
   }
 }, 9000);
+window.__weNewsBridge = {
+  getItems: () => currentNewsItems,
+  getCategory: () => activeNewsCat,
+  getFilter: () => activeFilter,
+  getSearchQuery: () => searchQuery,
+  getReadIds: () => readIds,
+  getSavedIds: () => savedIds,
+  getExpandedIds: () => expandedNewsIds,
+  getAllSources,
+  getEnabledSources,
+  safeExternalUrl,
+  markRead: (itemId) => {
+    readIds.delete(itemId);
+    readIds.add(itemId);
+    persistIdSet(READ_IDS_KEY, readIds);
+  },
+  toggleSaved: (itemId) => {
+    const nowSaved = !savedIds.has(itemId);
+    if (nowSaved) {
+      savedIds.delete(itemId);
+      savedIds.add(itemId);
+    } else {
+      savedIds.delete(itemId);
+    }
+    persistIdSet(SAVED_IDS_KEY, savedIds);
+    return nowSaved;
+  },
+  updateFilterButtons,
+  updateHeadlineTicker,
+  renderCards: (emptyMessage = '') => renderNewsCards(emptyMessage),
+  renderSourceManager,
+};
 loadNewsCategory(activeNewsCat);
 setInterval(() => {
   if (!document.hidden && typeof navigator !== 'undefined' && navigator.onLine) loadNewsCategory(activeNewsCat);

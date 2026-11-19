@@ -112,9 +112,10 @@ test('dist-wallpaper/project.json defines Wallpaper Engine web project and all u
   }
   assert.equal(props.we_city.value, 'İstanbul');
   assert.equal(props.we_language.value, 'tr');
+  assert.equal(props.we_taskbar_height.value, 48);
 });
 
-test('wallpaper.bundle.js executes cleanly and registers window.wallpaperPropertyListener', () => {
+function bootWallpaperBundleInVm(initialStorage = {}) {
   class ClassList {
     values = new Set();
     add(...names) { names.forEach((n) => this.values.add(n)); }
@@ -222,7 +223,7 @@ test('wallpaper.bundle.js executes cleanly and registers window.wallpaperPropert
     addEventListener() {},
     removeEventListener() {},
   };
-  const storage = new Map();
+  const storage = new Map(Object.entries(initialStorage));
   const localStorageMock = {
     getItem: (k) => (storage.has(k) ? storage.get(k) : null),
     setItem: (k, v) => storage.set(k, String(v)),
@@ -261,11 +262,16 @@ test('wallpaper.bundle.js executes cleanly and registers window.wallpaperPropert
     Blob: globalThis.Blob,
     AbortController: globalThis.AbortController,
     Intl: globalThis.Intl,
-     console,
+    console,
   };
 
   vm.createContext(sandbox);
   vm.runInContext(wallpaperBundle, sandbox);
+  return { windowMock, body, documentElement, getElement, storage };
+}
+
+test('wallpaper.bundle.js executes cleanly and registers window.wallpaperPropertyListener', () => {
+  const { windowMock, body, documentElement, getElement } = bootWallpaperBundleInVm();
 
   assert.ok(windowMock.wallpaperPropertyListener, 'wallpaperPropertyListener must be registered on window');
   assert.equal(typeof windowMock.wallpaperPropertyListener.applyUserProperties, 'function');
@@ -416,6 +422,94 @@ test('wallpaper.bundle.js executes cleanly and registers window.wallpaperPropert
   assert.equal(windowMock.__weDetailTier, 1);
   assert.equal(windowMock.__weGlassFps, 20);
   assert.equal(windowMock.__weGlassQualityScale, 0.75);
+
+  // Switch cleanly across all 8 biomes (including upgraded wetland, koi & rainforest)
+  for (const habId of ['meadow', 'rainforest', 'wetland', 'koi', 'botanical', 'reef', 'betta', 'arctic']) {
+    windowMock.wallpaperPropertyListener.applyUserProperties({ we_habitat: { value: habId } });
+  }
+});
+
+test('in-app settings survive reload when Wallpaper Engine emits unchanged project.json defaults', () => {
+  const savedSettings = {
+    taskbarHeight: 40,
+    pixelFont: 'jersey15',
+    sceneFps: 24,
+    detailTier: 1,
+    glassFps: 15,
+    glassQuality: 0.75,
+    showClock: false,
+    userModified: true,
+    taskbarMigratedV3: true,
+    updatedAt: 1795100000000,
+  };
+  const savedPropSnapshot = {
+    we_habitat: '"random"',
+    we_theme_mode: '"dark"',
+    we_taskbar_height: '48',
+    we_pixel_font: '"departure"',
+    we_perf_profile: '"balanced"',
+    we_show_clock: 'true',
+    we_language: '"tr"',
+  };
+
+  const { windowMock, body, documentElement } = bootWallpaperBundleInVm({
+    diorama_we_settings_v1: JSON.stringify(savedSettings),
+    diorama_we_prop_snapshot_v1: JSON.stringify(savedPropSnapshot),
+  });
+
+  // Boot should apply user-saved in-app settings immediately (including default 48px override 40px)
+  assert.equal(documentElement.style['--we-taskbar-height'], '40px');
+  assert.equal(body.dataset.pixelFont, 'jersey15');
+  assert.equal(windowMock.__weSceneFps, 24);
+  assert.equal(body.classList.contains('we-hide-clock'), true);
+
+  // Simulate Wallpaper Engine reload firing initial bulk properties from project.json defaults
+  windowMock.wallpaperPropertyListener.applyUserProperties({
+    we_habitat: { value: 'random' },
+    we_theme_mode: { value: 'dark' },
+    we_taskbar_height: { value: 48 },
+    we_pixel_font: { value: 'departure' },
+    we_perf_profile: { value: 'balanced' },
+    we_show_clock: { value: true },
+    we_language: { value: 'tr' },
+  });
+
+  // Unchanged project.json defaults MUST NOT overwrite user's in-app customizations!
+  assert.equal(documentElement.style['--we-taskbar-height'], '40px');
+  assert.equal(body.dataset.pixelFont, 'jersey15');
+  assert.equal(windowMock.__weSceneFps, 24);
+  assert.equal(body.classList.contains('we-hide-clock'), true);
+
+  // Live single-property edit from Wallpaper Engine sidebar MUST still apply
+  windowMock.wallpaperPropertyListener.applyUserProperties({
+    we_taskbar_height: { value: 64 },
+  });
+  assert.equal(documentElement.style['--we-taskbar-height'], '64px');
+});
+
+test('upgrading from pre-snapshot userModified settings preserves in-app edits across initial bulk dump', () => {
+  const { windowMock, body, documentElement, storage } = bootWallpaperBundleInVm({
+    diorama_we_settings_v1: JSON.stringify({
+      taskbarHeight: 44,
+      pixelFont: 'pixelify',
+      userModified: true,
+      taskbarMigratedV3: true,
+      updatedAt: 1795100000000,
+    }),
+  });
+
+  windowMock.wallpaperPropertyListener.applyUserProperties({
+    we_habitat: { value: 'random' },
+    we_theme_mode: { value: 'dark' },
+    we_taskbar_height: { value: 48 },
+    we_pixel_font: { value: 'departure' },
+    we_perf_profile: { value: 'balanced' },
+    we_language: { value: 'tr' },
+  });
+
+  assert.equal(documentElement.style['--we-taskbar-height'], '44px');
+  assert.equal(body.dataset.pixelFont, 'pixelify');
+  assert.ok(storage.has('diorama_we_prop_snapshot_v1'), 'Baseline property snapshot should be captured on initial boot');
 });
 
 test('desktop bridge indexes local applications and filters by query and category', async () => {
