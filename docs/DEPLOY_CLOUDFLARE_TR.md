@@ -26,7 +26,7 @@ Wrangler `4.162.0` proje komutlarında sabitlenmiştir; ilk çalıştırmada `np
 1. Cloudflare Dashboard'da **Workers & Pages → Create application → GitHub** yoluyla `CaliFried77/Diaroma-Walpaper-Browser-New-Tab` deposunu bağlayın.
 2. Production branch olarak `main` seçin.
 3. Build command: `npm run build`. Deploy command: `npx --yes wrangler@4.162.0 deploy`.
-4. Worker adı `living-pixel-diorama` olarak `wrangler.toml` içinde tanımlıdır (`workers_dev = true`).
+4. Worker adı `diorama-site` olarak `wrangler.toml` içinde tanımlıdır (`workers_dev = true`).
 5. Önizleme ortamında RSS uç noktalarını, güvenlik başlıklarını, rate-limit binding'lerini ve Service Worker davranışını doğrulamadan özel alan adına geçiş yapmayın.
 
 ## Rate-Limit Binding'leri
