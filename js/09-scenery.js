@@ -3,9 +3,12 @@ import { drawHabitatStimuli } from './habitat-interactions.js';
 import { getGroundY } from './habitat-geometry.js';
 import { buildStaticEnvironmentLayer } from './habitat-backgrounds.js';
 import { drawHabitatFlora } from './habitat-flora-renderer.js';
+import { drawHabitatAmbientWildlife, drawArcticChristmasSky, drawArcticChristmasGround } from './habitat-ambient-wildlife.js';
 import { isLightMode } from './01-core-ui.js';
 import { wxFxOn, drawWxSky } from './03-weather.js';
 import { sceneCache } from './scene-state.js';
+
+const isArcticChristmasEnabled = () => (typeof window === 'undefined' ? false : window.__weArcticChristmas !== false);
 
 // BÖLÜM BAŞI: ANİMASYONLU SAHNE VE HABİTAT EFEKTLERİ
 // ============================================================================
@@ -640,6 +643,10 @@ if (hab.sceneProfile === 'wetland') {
             const size = 2 + Math.floor(rise / 10);
             pRect(sx, sy, size, 2, `rgba(226, 232, 240, ${alpha})`);
         }
+
+        if (isArcticChristmasEnabled()) {
+            drawArcticChristmasSky(time);
+        }
     }
     
     if (hab.sceneProfile === 'rainforest') {
@@ -818,6 +825,10 @@ if (hab.sceneProfile === 'wetland') {
     
 
     drawHabitatFlora(time, hab);
+    drawHabitatAmbientWildlife(hab.sceneProfile, time);
+    if (hab.sceneProfile === 'arctic-tundra' && isArcticChristmasEnabled()) {
+        drawArcticChristmasGround(time);
+    }
 
     if (hab.sceneProfile === 'koi-pond') {
         for (let idx = 0; idx < ambientParticles.length; idx++) {

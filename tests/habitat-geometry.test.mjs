@@ -39,6 +39,7 @@ test('ground geometry uses the supplied scene dimensions instead of hidden globa
 
 const GEOMETRY_CALLER_FILES = [
   '../js/09-scenery.js',
+  '../js/habitat-ambient-wildlife.js',
   '../js/habitat-backgrounds.js',
   '../js/habitat-flora-generator.js',
   '../js/habitat-flora-renderer.js',

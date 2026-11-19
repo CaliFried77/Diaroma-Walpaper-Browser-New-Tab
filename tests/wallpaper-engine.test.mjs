@@ -84,6 +84,7 @@ test('dist-wallpaper/project.json defines Wallpaper Engine web project and all u
     'we_taskbar_height',
     'we_pixel_font',
     'we_language',
+    'we_arctic_christmas',
     'we_topbar_mode',
     'we_show_clock',
     'we_clock_seconds',
@@ -113,6 +114,7 @@ test('dist-wallpaper/project.json defines Wallpaper Engine web project and all u
   assert.equal(props.we_city.value, 'İstanbul');
   assert.equal(props.we_language.value, 'tr');
   assert.equal(props.we_taskbar_height.value, 48);
+  assert.equal(props.we_arctic_christmas.value, true);
 });
 
 function bootWallpaperBundleInVm(initialStorage = {}) {
@@ -423,16 +425,24 @@ test('wallpaper.bundle.js executes cleanly and registers window.wallpaperPropert
   assert.equal(windowMock.__weGlassFps, 20);
   assert.equal(windowMock.__weGlassQualityScale, 0.75);
 
-  // Switch cleanly across all 8 biomes (including upgraded wetland, koi & rainforest)
-  for (const habId of ['meadow', 'rainforest', 'wetland', 'koi', 'botanical', 'reef', 'betta', 'arctic']) {
+  // Switch cleanly across all 8 biomes (including bees bear, upgraded wetland/koi/rainforest & arctic-aurora Christmas)
+  for (const habId of ['bees', 'betta', 'dragonfly', 'butterfly', 'jellyfish', 'koi', 'rainforest', 'arctic-aurora']) {
     windowMock.wallpaperPropertyListener.applyUserProperties({ we_habitat: { value: habId } });
   }
+
+  // Verify Arctic Christmas Theme toggles live without disabling Arctic permanent wildlife
+  assert.equal(windowMock.__weArcticChristmas, true);
+  windowMock.wallpaperPropertyListener.applyUserProperties({ we_arctic_christmas: { value: false } });
+  assert.equal(windowMock.__weArcticChristmas, false);
+  windowMock.wallpaperPropertyListener.applyUserProperties({ we_arctic_christmas: { value: true } });
+  assert.equal(windowMock.__weArcticChristmas, true);
 });
 
 test('in-app settings survive reload when Wallpaper Engine emits unchanged project.json defaults', () => {
   const savedSettings = {
     taskbarHeight: 40,
     pixelFont: 'jersey15',
+    arcticChristmas: false,
     sceneFps: 24,
     detailTier: 1,
     glassFps: 15,
@@ -447,6 +457,7 @@ test('in-app settings survive reload when Wallpaper Engine emits unchanged proje
     we_theme_mode: '"dark"',
     we_taskbar_height: '48',
     we_pixel_font: '"departure"',
+    we_arctic_christmas: 'true',
     we_perf_profile: '"balanced"',
     we_show_clock: 'true',
     we_language: '"tr"',
@@ -460,6 +471,7 @@ test('in-app settings survive reload when Wallpaper Engine emits unchanged proje
   // Boot should apply user-saved in-app settings immediately (including default 48px override 40px)
   assert.equal(documentElement.style['--we-taskbar-height'], '40px');
   assert.equal(body.dataset.pixelFont, 'jersey15');
+  assert.equal(windowMock.__weArcticChristmas, false);
   assert.equal(windowMock.__weSceneFps, 24);
   assert.equal(body.classList.contains('we-hide-clock'), true);
 
@@ -469,6 +481,7 @@ test('in-app settings survive reload when Wallpaper Engine emits unchanged proje
     we_theme_mode: { value: 'dark' },
     we_taskbar_height: { value: 48 },
     we_pixel_font: { value: 'departure' },
+    we_arctic_christmas: { value: true },
     we_perf_profile: { value: 'balanced' },
     we_show_clock: { value: true },
     we_language: { value: 'tr' },
@@ -477,6 +490,7 @@ test('in-app settings survive reload when Wallpaper Engine emits unchanged proje
   // Unchanged project.json defaults MUST NOT overwrite user's in-app customizations!
   assert.equal(documentElement.style['--we-taskbar-height'], '40px');
   assert.equal(body.dataset.pixelFont, 'jersey15');
+  assert.equal(windowMock.__weArcticChristmas, false);
   assert.equal(windowMock.__weSceneFps, 24);
   assert.equal(body.classList.contains('we-hide-clock'), true);
 

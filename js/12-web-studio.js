@@ -52,6 +52,7 @@ const DEFAULT_WEB_SETTINGS = Object.freeze({
   glassBlur: 2.2,
   glassOpacity: 90,
   pixelFont: 'classic',
+  arcticChristmas: true,
   clockSeconds: false,
   autoCycleMins: 0,
   showClock: true,
@@ -2337,6 +2338,7 @@ function applyWebLanguageToUI() {
   setText('#weSetSecView', '3. Görünüm, Saat & Yazı Tipi', '3. Layout, Clock & Typography');
   setText('#weSetAutoCycleLabel', 'Otomatik Habitat Değiştirme', 'Auto-Cycle Habitats');
   setText('#weSetFontLabel', 'Pixel Yazı Tipi', 'Pixel Typeface');
+  setText('#weSetChristmasLabel', 'Kutup Noel Teması', 'Arctic Christmas Theme');
   setText('#weSetSecWidgets', '4. Görünür Bileşenler', '4. Visible Widgets');
   setText('#weResetDefaultsBtn', 'Sıfırla', 'Reset');
 
@@ -2348,6 +2350,11 @@ function applyWebLanguageToUI() {
   const cycBtnMap = { '0': ['Kapalı', 'Off'], '1': ['1 DK', '1 MIN'], '5': ['5 DK', '5 MIN'], '15': ['15 DK', '15 MIN'] };
   document.getElementById('weAutoCycleGroup')?.querySelectorAll('.we-seg-btn').forEach((b) => {
     const pair = cycBtnMap[b.dataset.val];
+    if (pair) b.textContent = L(pair[0], pair[1]);
+  });
+  const xmasBtnMap = { false: ['Kapalı', 'Off'], true: ['Açık', 'On'] };
+  document.getElementById('weArcticChristmasGroup')?.querySelectorAll('.we-seg-btn').forEach((b) => {
+    const pair = xmasBtnMap[b.dataset.val];
     if (pair) b.textContent = L(pair[0], pair[1]);
   });
   const classicFontBtn = document.querySelector('#wePixelFontGroup button[data-val="classic"]');
@@ -2367,6 +2374,7 @@ function applyAllWebSettings(persist = false) {
   window.__weGlassQualityScale = Math.max(0.5, Math.min(2.0, Number(webSettings.glassQuality) || 0.75));
   window.__weCreatureSpeed = Math.max(0.5, Math.min(2.0, Number(webSettings.creatureSpeed) || 1.0));
   window.__weClockSeconds = Boolean(webSettings.clockSeconds);
+  window.__weArcticChristmas = webSettings.arcticChristmas !== false;
 
   if (isDomEl(document.body)) {
     document.body.classList.toggle('we-hide-clock', !webSettings.showClock);
@@ -2421,6 +2429,7 @@ function syncSettingsPanelUI() {
   markGroup('weGlassQualityGroup', webSettings.glassQuality);
   markGroup('weAutoCycleGroup', webSettings.autoCycleMins);
   markGroup('wePixelFontGroup', webSettings.pixelFont);
+  markGroup('weArcticChristmasGroup', String(webSettings.arcticChristmas !== false));
 
   const setVal = (sliderId, valId, value, suffix) => {
     const s = document.getElementById(sliderId);
@@ -2546,6 +2555,11 @@ function initWebSettingsPopover() {
           <button type="button" data-val="jersey20" class="we-seg-btn">Jersey 20</button>
           <button type="button" data-val="jersey15" class="we-seg-btn">Jersey 15</button>
         </div>
+        <div id="weSetChristmasLabel" class="text-xs text-white/75 mb-1.5 mt-2.5 font-pixel">Kutup Noel Teması</div>
+        <div id="weArcticChristmasGroup" class="we-segmented-grid we-segmented-2">
+          <button type="button" data-val="false" class="we-seg-btn">Kapalı</button>
+          <button type="button" data-val="true" class="we-seg-btn">Açık</button>
+        </div>
       </div>
 
       <div class="we-settings-section">
@@ -2593,6 +2607,12 @@ function initWebSettingsPopover() {
   bindGroup('weGlassQualityGroup', 'glassQuality', true);
   bindGroup('weAutoCycleGroup', 'autoCycleMins', true);
   bindGroup('wePixelFontGroup', 'pixelFont', false);
+  document.getElementById('weArcticChristmasGroup')?.querySelectorAll('.we-seg-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      webSettings.arcticChristmas = b.dataset.val === 'true';
+      applyAllWebSettings(true);
+    });
+  });
 
   document.getElementById('weCreatureSpeedSlider')?.addEventListener('input', (e) => {
     webSettings.creatureSpeed = Number(e.target.value);

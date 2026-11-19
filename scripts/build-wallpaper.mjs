@@ -176,7 +176,7 @@ function transformForWallpaper(code, relPath) {
     .replace(/^(\s*)export\s+(const|let|var|function|class|async\s+function)\b/gm, '$1$2');
 }
 
-let bundleCode = `/* Living Pixel Diorama — Wallpaper Engine Classic Bundle (file:// CORS-safe) */\n(function () {\n"use strict";\nwindow.__weTaskbarHeightPx = 48;\nwindow.__weDetailTier = 1;\nwindow.__weSceneFps = 30;\nwindow.__weGlassFps = 20;\nwindow.__weGlassQualityScale = 0.75;\nwindow.__weCreatureSpeed = 1.0;\nwindow.__wePaused = false;\n\n`;
+let bundleCode = `/* Living Pixel Diorama — Wallpaper Engine Classic Bundle (file:// CORS-safe) */\n(function () {\n"use strict";\nwindow.__weTaskbarHeightPx = 48;\nwindow.__weDetailTier = 1;\nwindow.__weSceneFps = 30;\nwindow.__weGlassFps = 20;\nwindow.__weGlassQualityScale = 0.75;\nwindow.__weCreatureSpeed = 1.0;\nwindow.__weArcticChristmas = true;\nwindow.__wePaused = false;\n\n`;
 for (const mod of orderedModules) {
   if (
     mod.relPath === 'js/main.js' ||
@@ -336,6 +336,12 @@ const projectJson = {
           { label: 'Türkçe', value: 'tr' },
           { label: 'English', value: 'en' },
         ],
+      },
+      we_arctic_christmas: {
+        order: 9,
+        text: 'Kutup Noel Teması (Baston Şeker, Elfler, Hediyeler & Noel Baba)',
+        type: 'bool',
+        value: true,
       },
       we_header_widgets: {
         order: 10,

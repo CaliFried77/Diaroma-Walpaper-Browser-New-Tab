@@ -132,3 +132,11 @@ test('offline Smart Calendar engine handles routines, automatic holiday skipping
   assert.ok(upcomingTr.some((x) => x.dateKey === '2026-10-29' && x.kind === 'holiday'));
   assert.deepEqual(getUpcomingWebObservances(new Date('2026-10-20T12:00:00'), { holidayCountry: 'none' }, 'tr', 5), []);
 });
+
+test('website studio exposes Arctic Christmas Theme setting synced to runtime and offline cache', async () => {
+  const webStudioJs = await readFile(new URL('../dist/js/12-web-studio.js', import.meta.url), 'utf8');
+  assert.ok(webStudioJs.includes('arcticChristmas'));
+  assert.ok(webStudioJs.includes('weArcticChristmasGroup'));
+  assert.ok(webStudioJs.includes('window.__weArcticChristmas'));
+  assert.ok(builtSw.includes('./js/habitat-ambient-wildlife.js'));
+});

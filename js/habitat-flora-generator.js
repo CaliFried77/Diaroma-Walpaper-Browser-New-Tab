@@ -57,6 +57,7 @@ if (hab.sceneProfile === 'meadow') {
         for (let x = 12; x < pw - 12; x += 6 + Math.floor(Math.random() * 4)) {
             const nx = x / Math.max(1, pw);
             if (nx > 0.78 && nx < 0.90) continue;
+            if (Math.abs(x - Math.round(pw * 0.72)) < 12) continue;
 
             const baseY = getGroundY(x, 'meadow', pw, ph) + Math.round((Math.random() - 0.5) * 2);
             const r = Math.random();
@@ -347,6 +348,7 @@ if (hab.sceneProfile === 'meadow') {
         for (let x = 10; x < pw - 10; x += 7 + Math.floor(Math.random() * 5)) {
             const nx = x / Math.max(1, pw);
             if (Math.abs(nx - 0.5) < 0.06 && Math.random() < 0.72) continue;
+            if (Math.abs(x - Math.round(pw * 0.63)) < 10) continue;
             if (Math.abs(x - fountainX) < 16) continue;
             if (Math.abs(x - archLeftPillarX) < 5 || Math.abs(x - archRightPillarX) < 5) continue;
 

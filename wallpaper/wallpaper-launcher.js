@@ -1171,6 +1171,7 @@ const DEFAULT_WE_SETTINGS = {
   autoCycleMins: 0,
   topbarMode: 'always',
   pixelFont: 'departure',
+  arcticChristmas: true,
   clockSeconds: false,
   showClock: true,
   showGreeting: true,
@@ -1364,7 +1365,8 @@ function applyAllWeSettings(persist = true) {
     document.body.classList.remove('we-topbar-hover');
   }
 
-  // 5. Clock seconds & Widget Visibility Toggles
+  // 5. Clock seconds, Arctic Christmas Theme & Widget Visibility Toggles
+  window.__weArcticChristmas = weSettings.arcticChristmas !== false;
   showClockSeconds = Boolean(weSettings.clockSeconds);
   window.__weClockSeconds = showClockSeconds;
   syncClockSecondsInterval();
@@ -1533,6 +1535,11 @@ weSettingsPopover.innerHTML = `
       <button type="button" data-val="jersey15" class="we-seg-btn" title="Jersey 15 — 15px sıcak retro oyun pikseli">Jersey 15</button>
       <button type="button" data-val="pixelify" class="we-seg-btn" title="Pixelify Sans — Klasik varsayılan">Pixelify</button>
     </div>
+    <div id="weSetChristmasLabel" class="text-xs text-white/75 mb-1.5 mt-3 font-pixel">Kutup Noel Teması (Noel Baba, Elfler &amp; Hediyeler)</div>
+    <div id="weArcticChristmasGroup" class="we-segmented-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
+      <button type="button" data-val="false" class="we-seg-btn">Kapalı</button>
+      <button type="button" data-val="true" class="we-seg-btn">Açık</button>
+    </div>
   </div>
 
   <!-- SECTION 4: WIDGET TOGGLES -->
@@ -1651,6 +1658,14 @@ bindSegmentedGroup('weGlassQualityGroup', 'glassQuality', true);
 bindSegmentedGroup('weAutoCycleGroup', 'autoCycleMins', true);
 bindSegmentedGroup('weTopbarModeGroup', 'topbarMode', false);
 bindSegmentedGroup('wePixelFontGroup', 'pixelFont', false);
+document.getElementById('weArcticChristmasGroup')?.querySelectorAll('.we-seg-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    weSettings.arcticChristmas = btn.dataset.val === 'true';
+    markInAppSettingsModified();
+    applyAllWeSettings(true);
+    if (typeof window.__weFlushUserStateSync === 'function') window.__weFlushUserStateSync();
+  });
+});
 
 for (const [sliderId, settingKey] of [
   ['weCreatureSpeedSlider', 'creatureSpeed'],
@@ -1696,6 +1711,7 @@ function syncSettingsWidgetUI() {
   markGroup('weAutoCycleGroup', weSettings.autoCycleMins);
   markGroup('weTopbarModeGroup', weSettings.topbarMode);
   markGroup('wePixelFontGroup', weSettings.pixelFont);
+  markGroup('weArcticChristmasGroup', String(weSettings.arcticChristmas !== false));
 
   const spdSlider = document.getElementById('weCreatureSpeedSlider');
   const spdVal = document.getElementById('weCreatureSpeedVal');
@@ -1848,6 +1864,7 @@ export function applyWallpaperEngineProperties(properties) {
     ['we_show_calendar_btn', 'showCalendarBtn'],
     ['we_show_notes_btn', 'showNotesBtn'],
     ['we_show_data_btn', 'showDataBtn'],
+    ['we_arctic_christmas', 'arcticChristmas'],
   ];
   for (const [propKey, settingKey] of propToSetting) {
     if (properties[propKey] !== undefined && shouldApplyWeProp(propKey, properties[propKey].value)) {
@@ -8150,6 +8167,7 @@ function applySettingsPopoverLanguage() {
   setTxt('weSetAutoCycleLabel', 'Otomatik Habitat Değiştirme', 'Auto-Cycle Habitats');
   setTxt('weSetTopbarLabel', 'Üst Araç Çubuğu Görünümü', 'Top Toolbar Visibility');
   setTxt('weSetFontLabel', 'Pixel Art Yazı Tipi (Saat & Arayüz)', 'Pixel-Art Typography (Clock & UI)');
+  setTxt('weSetChristmasLabel', 'Kutup Noel Teması (Noel Baba, Elfler & Hediyeler)', 'Arctic Christmas Theme (Santa, Elves & Gifts)');
 
   setTxt('weSetSec4Title', "4. Aktif Widget'lar (Tıkla Aç / Kapat)", '4. Active Widgets (Click to Toggle)');
 
@@ -8159,6 +8177,10 @@ function applySettingsPopoverLanguage() {
       if (p) btn.textContent = L(p[0], p[1]);
     });
   };
+  mapGroup('weArcticChristmasGroup', {
+    false: ['Kapalı', 'Off'],
+    true: ['Açık', 'On'],
+  });
   mapGroup('wePerfProfileGroup', {
     eco: ['Sessiz (Laptop)', 'Silent (Laptop)'],
     balanced: ['Dengeli', 'Balanced'],

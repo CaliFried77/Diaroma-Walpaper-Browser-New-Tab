@@ -14,6 +14,7 @@ const calendarModule = await readFile(new URL('../js/11-calendar.js', import.met
 const coreUiModule = await readFile(new URL('../js/01-core-ui.js', import.meta.url), 'utf8');
 const dataManagerModule = await readFile(new URL('../js/06-data-manager.js', import.meta.url), 'utf8');
 const sceneryModule = await readFile(new URL('../js/09-scenery.js', import.meta.url), 'utf8');
+const ambientWildlifeModule = await readFile(new URL('../js/habitat-ambient-wildlife.js', import.meta.url), 'utf8');
 const initializerModule = await readFile(new URL('../js/habitat-initializer.js', import.meta.url), 'utf8');
 const floraGeneratorModule = await readFile(new URL('../js/habitat-flora-generator.js', import.meta.url), 'utf8');
 const backgroundsModule = await readFile(new URL('../js/habitat-backgrounds.js', import.meta.url), 'utf8');
@@ -209,6 +210,30 @@ test('existing habitat improvements preserve bespoke scene layers', () => {
   assert.ok(floraGeneratorModule.includes("type: 'sea_fan'"));
   assert.ok(sceneryModule.includes("hab.sceneProfile === 'reef'"));
   assert.ok(sceneryModule.includes("hab.sceneProfile === 'wetland'"));
+});
+
+test('all remaining biomes have stationary ambient wildlife and arctic tundra supports toggleable Christmas theme', () => {
+  assert.ok(sceneryModule.includes("from './habitat-ambient-wildlife.js'"));
+  assert.ok(sceneryModule.includes('drawHabitatAmbientWildlife(hab.sceneProfile, time)'));
+  assert.ok(sceneryModule.includes('drawArcticChristmasSky(time)'));
+  assert.ok(sceneryModule.includes('drawArcticChristmasGround(time)'));
+
+  for (const fnName of [
+    'drawMeadowHoneyBear',
+    'drawBettaTankCritters',
+    'drawWetlandCritters',
+    'drawBotanicalCritters',
+    'drawReefCritters',
+    'drawKoiPondCritters',
+    'drawArcticAlwaysPresentWildlife',
+    'drawArcticChristmasSky',
+    'drawArcticChristmasGround',
+  ]) {
+    assert.ok(ambientWildlifeModule.includes(fnName), `Missing stationary wildlife/holiday renderer: ${fnName}`);
+  }
+  assert.ok(ambientWildlifeModule.includes('drawArcticCandyCane'));
+  assert.ok(ambientWildlifeModule.includes('drawArcticGiftBox'));
+  assert.ok(ambientWildlifeModule.includes('drawArcticChristmasElf'));
 });
 test('service worker precaches local shell assets and leaves external live services to the network', () => {
   assert.match(main, /serviceWorker\.register/);
