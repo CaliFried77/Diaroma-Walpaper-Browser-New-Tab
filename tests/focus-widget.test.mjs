@@ -1,0 +1,60 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const [html, js, css, sw, weatherJs] = await Promise.all([
+  readFile(new URL('../index.html', import.meta.url), 'utf8'),
+  readFile(new URL('../js/04-focus-audio.js', import.meta.url), 'utf8'),
+  readFile(new URL('../css/widgets.css', import.meta.url), 'utf8'),
+  readFile(new URL('../dist/sw.js', import.meta.url), 'utf8'),
+  readFile(new URL('../js/03-weather.js', import.meta.url), 'utf8'),
+]);
+
+test('focus widget has pixel timer, preset durations and a bounded custom duration input', () => {
+  assert.match(html, /id="focusBigTime" class="focus-clock-digits"/);
+  assert.match(html, /data-mins="10"/);
+  assert.match(html, /data-mins="25"/);
+  assert.match(html, /data-mins="45"/);
+  assert.match(html, /data-mins="60"/);
+  assert.match(html, /id="focusCustomMinutes"[^>]*min="1" max="180"/);
+  assert.match(js, /FOCUS_STORAGE_KEY = 'diorama_focus_session_v1'/);
+});
+
+test('focus timer has a habitat-aware top-center HUD that is responsive', () => {
+  assert.match(html, /id="focusStageOverlay"/);
+  assert.match(html, /id="focusStageHabitat"/);
+  assert.match(js, /captureCurrentHabitat/);
+  assert.match(js, /closeFocusPopover\(\)/);
+  assert.match(css, /\.focus-stage-overlay\s*\{[^}]*left:\s*50%/s);
+  assert.match(css, /@media \(max-width: 639px\)/);
+  assert.match(css, /\.focus-stage-overlay\s*\{[^}]*z-index:\s*25/s);
+  assert.match(html, /id="ambientVolumeSlider"/);
+});
+
+test('focus session restores from local storage and persists across page lifecycle events', () => {
+  assert.match(js, /localStorage\.getItem\(FOCUS_STORAGE_KEY\)/);
+  assert.match(js, /localStorage\.setItem\(FOCUS_STORAGE_KEY/);
+  assert.match(js, /window\.addEventListener\('pagehide'/);
+  assert.match(js, /document\.addEventListener\('visibilitychange'/);
+  assert.match(sw, /CACHE_PREFIX = 'living-pixel-diorama-shell-'[\s\S]*?living-pixel-diorama-shell-2\.0\.0-[a-f0-9]{16}/);
+  assert.match(sw, /\"\.\/js\/focus-timer-state\.js\"/);
+  assert.match(sw, /\.\/css\/widgets\.css/);
+});
+
+test('fixed widget labels use pixel type while dynamic news content stays regular', () => {
+  assert.ok(html.includes('ÖNÜMÜZDEKİ SAATLER'));
+  assert.match(html, /id="wxAstral"/);
+  assert.match(html, /class="text-xs font-semibold text-white\/90 font-pixel">Kişisel Defter/);
+  assert.match(css, /\.widget-static-label[\s\S]*?font-family:\s*'Pixelify Sans'/);
+});
+
+test('fixed weather and workspace labels use pixel type while search and user-entered focus text stay readable', () => {
+  assert.match(html, /id="focusStatusSub"[^>]*font-pixel/);
+  assert.match(html, /wx-preview-grid/);
+  assert.match(weatherJs, /wxAirQuality/);
+  assert.match(weatherJs, /wx-solar-card/);
+  assert.match(weatherJs, /wx-hour-card/);
+  assert.match(css, /\.wx-stat-label/);
+  assert.match(html, /id="searchInput"[\s\S]*?class="[^"]*focus:outline-none tracking-wide"/);
+  assert.doesNotMatch(html.match(/<span id="pinnedFocusText"[^>]*>/)?.[0] ?? '', /font-pixel/);
+});

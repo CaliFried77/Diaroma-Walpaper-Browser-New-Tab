@@ -1,0 +1,14 @@
+dist/
+dist-wallpaper/
+node_modules/
+browser-artifacts/
+coverage/
+.wrangler/
+*.log
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+shaders/
+.wrangler-cloudflare-dry-run/

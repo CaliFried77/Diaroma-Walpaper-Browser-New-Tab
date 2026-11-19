@@ -1,0 +1,28 @@
+{
+  "name": "living-pixel-diorama",
+  "version": "2.0.0",
+  "description": "Living pixel-art ecosystems desktop wallpaper for Wallpaper Engine and local-first browser new tab with Unified Hybrid Liquid Glass UI.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CaliFried77/Diaroma-Walpaper-Browser-New-Tab.git"
+  },
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/build-css.mjs && node scripts/check.mjs",
+    "test": "node scripts/build-css.mjs && node build.mjs && node scripts/build-wallpaper.mjs && node --test tests/*.test.mjs",
+    "security": "node scripts/security-audit.mjs",
+    "build": "node scripts/build-css.mjs && node build.mjs",
+    "dev": "npx --yes wrangler@4.162.0 dev",
+    "deploy": "npm run build && npx --yes wrangler@4.162.0 deploy",
+    "deploy:dry-run": "npm run build && npx --yes wrangler@4.162.0 deploy --dry-run",
+    "test:news": "node --test tests/rss-api.test.mjs tests/news-system.test.mjs tests/news-backup.test.mjs",
+    "test:cloudflare": "node --test tests/cloudflare-adapter.test.mjs",
+    "test:browser": "npm run build && python scripts/browser-smoke.py",
+    "build:wallpaper": "node scripts/build-css.mjs && node scripts/build-wallpaper.mjs",
+    "bridge": "node scripts/desktop-bridge.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

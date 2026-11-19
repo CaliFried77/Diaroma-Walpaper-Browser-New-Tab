@@ -1,0 +1,3198 @@
+/* ==========================================================================
+   LIVING PIXEL DIORAMA — WALLPAPER ENGINE & LINUX GLASS LAUNCHER STYLES
+   Preserves 1:1 Optical Liquid Glass refraction while adding the hybrid
+   PC Application/File/Web launcher, App Dock icons, Universal Desktop Scroll,
+   2-Column Wide News Reader, Custom CEF-Safe App Picker, and Settings Widget.
+   ========================================================================== */
+
+/* Self-Hosted High-Legibility Open-Source Pixel-Art Typefaces (SIL OFL 1.1, Full Turkish)
+   size-adjust equalizes optical x-height & cap-height across every typeface so headings,
+   weather temperatures (text-4xl), greetings (text-xl), and pills NEVER shrink when switching! */
+@font-face {
+  font-family: 'Departure Mono';
+  src: url('../fonts/departure-mono-regular.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 94%;
+}
+
+@font-face {
+  font-family: 'Jersey 20';
+  src: url('../fonts/jersey-20-latin-ext.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 124%;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Jersey 20';
+  src: url('../fonts/jersey-20-latin.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 124%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Jersey 15';
+  src: url('../fonts/jersey-15-latin-ext.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 124%;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Jersey 15';
+  src: url('../fonts/jersey-15-latin.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 124%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Switchable Pixel-Art Typography System (Default: Departure Mono — ultra-readable geometric pixel UI) */
+:root {
+  --we-pixel-font: 'Departure Mono', 'JetBrains Mono', monospace;
+  --we-clock-font: 'Departure Mono', 'JetBrains Mono', monospace;
+  --we-clock-size: clamp(5.0rem, 8.0vw, 6.8rem);
+  --we-clock-weight: 400;
+  --we-clock-char-w: 0.62em;
+  --we-clock-sep-w: 0.40em;
+  --we-pixel-track: -0.015em;
+  --font-pixel: var(--we-pixel-font) !important;
+  --font-pixelnum: var(--we-clock-font) !important;
+
+  /* Unified Hybrid Smoked-Crystal Liquid Glass System */
+  --we-glass-border: rgba(255, 255, 255, 0.24);
+  --we-glass-border-hover: rgba(255, 255, 255, 0.40);
+  --we-glass-bevel:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.44),
+    inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.14),
+    inset 1px 0 1px 0 rgba(255, 255, 255, 0.16);
+  --we-glass-shadow: 0 22px 54px -12px rgba(0, 0, 0, 0.62);
+  --we-glass-float-bg: rgba(8, 15, 28, 0.24);
+  --we-glass-float-scrim: linear-gradient(158deg, rgba(8, 14, 28, 0.16) 0%, rgba(5, 10, 20, 0.28) 100%);
+  --we-glass-pill-bg: rgba(8, 15, 28, 0.22);
+  --we-glass-pill-scrim: linear-gradient(180deg, rgba(8, 14, 28, 0.20) 0%, rgba(5, 10, 20, 0.32) 100%);
+  --we-glass-pill-scrim-hover: linear-gradient(180deg, rgba(12, 22, 42, 0.14) 0%, rgba(7, 14, 28, 0.26) 100%);
+  --we-glass-plate-bg: rgba(8, 14, 28, 0.42);
+  --we-glass-plate-scrim: linear-gradient(158deg, rgba(7, 13, 26, 0.30) 0%, rgba(4, 9, 19, 0.44) 100%);
+  --we-glass-pocket-bg: linear-gradient(180deg, rgba(6, 12, 24, 0.34) 0%, rgba(4, 9, 18, 0.46) 100%);
+  --we-glass-pocket-border: rgba(255, 255, 255, 0.14);
+}
+
+body.theme-light {
+  --we-glass-border: rgba(255, 255, 255, 0.48);
+  --we-glass-border-hover: rgba(255, 255, 255, 0.68);
+  --we-glass-bevel:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.70),
+    inset 0 -1px 1.5px 0 rgba(255, 255, 255, 0.24),
+    inset 1px 0 1px 0 rgba(255, 255, 255, 0.28);
+  --we-glass-shadow: 0 20px 46px -12px rgba(15, 23, 42, 0.40);
+  --we-glass-float-bg: rgba(10, 20, 38, 0.34);
+  --we-glass-float-scrim: linear-gradient(158deg, rgba(9, 18, 36, 0.26) 0%, rgba(6, 13, 28, 0.38) 100%);
+  --we-glass-pill-bg: rgba(10, 20, 38, 0.34);
+  --we-glass-pill-scrim: linear-gradient(180deg, rgba(10, 20, 38, 0.34) 0%, rgba(7, 15, 30, 0.46) 100%);
+  --we-glass-pill-scrim-hover: linear-gradient(180deg, rgba(12, 24, 44, 0.28) 0%, rgba(8, 17, 34, 0.40) 100%);
+  --we-glass-plate-bg: rgba(10, 19, 36, 0.50);
+  --we-glass-plate-scrim: linear-gradient(158deg, rgba(9, 18, 34, 0.40) 0%, rgba(6, 13, 26, 0.54) 100%);
+  --we-glass-pocket-bg: linear-gradient(180deg, rgba(8, 16, 30, 0.42) 0%, rgba(5, 11, 22, 0.54) 100%);
+  --we-glass-pocket-border: rgba(255, 255, 255, 0.24);
+}
+
+body[data-pixel-font="jersey20"] {
+  --we-pixel-font: 'Jersey 20', 'Departure Mono', monospace;
+  --we-clock-font: 'Jersey 20', 'Departure Mono', monospace;
+  --we-clock-size: clamp(5.0rem, 8.0vw, 6.8rem);
+  --we-clock-weight: 400;
+  --we-clock-char-w: 0.56em;
+  --we-clock-sep-w: 0.28em;
+  --we-pixel-track: 0.015em;
+}
+
+body[data-pixel-font="jersey15"] {
+  --we-pixel-font: 'Jersey 15', 'Departure Mono', monospace;
+  --we-clock-font: 'Jersey 15', 'Departure Mono', monospace;
+  --we-clock-size: clamp(5.0rem, 8.0vw, 6.8rem);
+  --we-clock-weight: 400;
+  --we-clock-char-w: 0.56em;
+  --we-clock-sep-w: 0.28em;
+  --we-pixel-track: 0.015em;
+}
+
+body[data-pixel-font="pixelify"] {
+  --we-pixel-font: 'Pixelify Sans', 'JetBrains Mono', monospace;
+  --we-clock-font: 'Pixelify Sans', 'JetBrains Mono', monospace;
+  --we-clock-size: clamp(4.9rem, 7.9vw, 6.7rem);
+  --we-clock-weight: 500;
+  --we-clock-char-w: 0.62em;
+  --we-clock-sep-w: 0.30em;
+  --we-pixel-track: 0.015em;
+}
+
+/* Unified Pixel-Art UI Typography Mapping (font-family ONLY — never overrides text-4xl / text-xl / text-xs sizes!) */
+.font-pixel,
+.pixel-text,
+.widget-static-label,
+.weather-static-label,
+.focus-static-label,
+.wx-stat-label,
+.news-eyebrow,
+.news-title,
+.news-section-heading,
+.news-cat-btn,
+.news-filter-btn,
+.calendar-title,
+#calendarPopover .calendar-day-btn,
+.focus-stage-kicker,
+.focus-stage-habitat,
+.focus-stage-status,
+.focus-stage-button,
+.focus-stage-reset,
+#newsPopover .news-eyebrow,
+#newsPopover .news-title,
+#newsPopover .news-cat-btn,
+.we-news-breaking-badge,
+.we-news-lead-badge,
+.we-news-expand-pill,
+.we-news-read-full-btn,
+.we-news-copy-btn,
+.we-settings-section-title,
+.we-seg-btn,
+.we-creature-preview-btn,
+.desktop-cat-pill,
+.desktop-add-app-btn,
+.we-scroll-hint-chip,
+.we-music-kicker,
+.we-music-toggle-btn,
+.we-cal-tab-btn,
+.we-cal-badge,
+.we-sys-kicker,
+.we-sys-label,
+.we-sys-diorama-title {
+  font-family: var(--we-pixel-font) !important;
+  letter-spacing: var(--we-pixel-track, -0.015em);
+}
+
+/* Top Bar Alignment & Auto-Hide / Settings-Only Modes (Never shifts left!) */
+.main-header .header-controls-right {
+  margin-left: auto !important;
+}
+
+.main-header .header-controls-left,
+.main-header .header-controls-right > * {
+  transition: opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1), transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.we-topbar-autohide .main-header .header-controls-left,
+body.we-topbar-autohide .main-header .header-controls-right > *:not(#weSettingsBtnWrapper) {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none !important;
+}
+
+body.we-topbar-autohide .main-header #weSettingsBtnWrapper {
+  opacity: 0.42;
+}
+
+body.we-topbar-autohide.we-topbar-hover .main-header .header-controls-left,
+body.we-topbar-autohide.we-topbar-hover .main-header .header-controls-right > *,
+body.we-topbar-autohide .main-header:hover .header-controls-left,
+body.we-topbar-autohide .main-header:hover .header-controls-right > *,
+body.we-topbar-autohide .main-header:focus-within .header-controls-left,
+body.we-topbar-autohide .main-header:focus-within .header-controls-right > *,
+body.we-topbar-autohide:has(.popover-panel.open) .main-header .header-controls-left,
+body.we-topbar-autohide:has(.popover-panel.open) .main-header .header-controls-right > * {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+}
+
+body.we-topbar-hidden .main-header .header-controls-left,
+body.we-topbar-hidden .main-header .header-controls-right > *:not(#weSettingsBtnWrapper) {
+  display: none !important;
+}
+
+/* ==========================================================================
+   UNIFIED HYBRID SMOKED-CRYSTAL LIQUID GLASS (PILLS & POPOVER PLATES)
+   Combines live 1:1 refracted pixel glass (<canvas class="glass-lens">) with
+   calibrated smoked-crystal scrims and inner info pockets so floating widgets,
+   top pills, and popovers share one luminous optical language with crisp contrast.
+   ========================================================================== */
+.main-header .optical-pill.we-liquid-pill {
+  position: relative;
+  overflow: hidden;
+  background: var(--we-glass-pill-bg) !important;
+  border: 1px solid var(--we-glass-border) !important;
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.main-header .optical-pill.we-liquid-pill > canvas.glass-lens {
+  border-radius: inherit;
+  opacity: var(--we-glass-opacity, 0.90) !important;
+  filter: blur(var(--we-glass-blur, 2.2px)) saturate(152%) brightness(1.03) contrast(1.05) !important;
+}
+
+body.theme-light .main-header .optical-pill.we-liquid-pill > canvas.glass-lens {
+  opacity: calc(var(--we-glass-opacity, 0.90) * 0.86) !important;
+  filter: blur(var(--we-glass-blur, 2.2px)) saturate(138%) brightness(0.82) contrast(1.09) !important;
+}
+
+/* Smoked-crystal readability scrim sandwiched above glass-lens and below text */
+.main-header .optical-pill.we-liquid-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: var(--we-glass-pill-scrim);
+  transition: background 0.22s ease;
+}
+
+body.theme-light .main-header .optical-pill.we-liquid-pill {
+  background: var(--we-glass-pill-bg) !important;
+  border-color: var(--we-glass-border) !important;
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel) !important;
+}
+
+.main-header .optical-pill.we-liquid-pill:hover {
+  border-color: var(--we-glass-border-hover) !important;
+  transform: translateY(-1px);
+}
+
+.main-header .optical-pill.we-liquid-pill:hover::before {
+  background: var(--we-glass-pill-scrim-hover);
+}
+
+.main-header .optical-pill.we-liquid-pill::after {
+  z-index: 2 !important;
+}
+
+.main-header .optical-pill.we-liquid-pill > :where(*:not(canvas.glass-lens)) {
+  position: relative;
+  z-index: 3 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.72);
+}
+
+/* True 1:1 Optical Liquid Glass Backing Plate for Opened Widget Popovers
+   Fixed outside scrolling popovers so the refracted habitat & swimming creatures
+   stay spatially locked 1:1 while the popover content scrolls smoothly on top. */
+#wePopoverGlassPlate.we-popover-glass-plate {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 29;
+  border-radius: 24px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  background: var(--we-glass-plate-bg) !important;
+  border: 1px solid var(--we-glass-border) !important;
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel) !important;
+  transition: opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s ease;
+}
+
+#wePopoverGlassPlate.we-popover-glass-plate.is-visible {
+  opacity: 1;
+}
+
+#wePopoverGlassPlate.we-popover-glass-plate > canvas.glass-lens {
+  border-radius: inherit;
+  opacity: var(--we-glass-opacity, 0.90) !important;
+  filter: blur(calc(var(--we-glass-blur, 2.2px) + 0.8px)) saturate(148%) brightness(0.98) contrast(1.05) !important;
+}
+
+body.theme-light #wePopoverGlassPlate.we-popover-glass-plate > canvas.glass-lens {
+  opacity: calc(var(--we-glass-opacity, 0.90) * 0.84) !important;
+  filter: blur(calc(var(--we-glass-blur, 2.2px) + 1.0px)) saturate(136%) brightness(0.82) contrast(1.08) !important;
+}
+
+/* Calibrated smoked-crystal readability scrim sandwiched above glass-lens and below specular rim */
+#wePopoverGlassPlate.we-popover-glass-plate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: var(--we-glass-plate-scrim);
+}
+
+/* Crystalline rim, creature bioluminescent halo & subtle specular highlight */
+#wePopoverGlassPlate.we-popover-glass-plate::after {
+  z-index: 2 !important;
+  background:
+    radial-gradient(
+      125px circle at var(--creature-x, -200px) var(--creature-y, -200px),
+      rgba(var(--glow-r, 255), var(--glow-g, 255), var(--glow-b, 255), var(--glow-alpha, 0)),
+      transparent 74%
+    ),
+    radial-gradient(
+      210px circle at var(--mouse-x, 50%) var(--mouse-y, -20%),
+      rgba(255, 255, 255, 0.12),
+      transparent 70%
+    ),
+    linear-gradient(
+      140deg,
+      rgba(255, 255, 255, 0.13) 0%,
+      rgba(255, 255, 255, 0.025) 44%,
+      rgba(0, 0, 0, 0.12) 100%
+    ) !important;
+  box-shadow: inset 0 0 18px rgba(var(--glow-r, 255), var(--glow-g, 255), var(--glow-b, 255), calc(var(--glow-alpha, 0) * 0.50)) !important;
+}
+
+body.theme-light #wePopoverGlassPlate.we-popover-glass-plate {
+  background: var(--we-glass-plate-bg) !important;
+  border-color: var(--we-glass-border) !important;
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel) !important;
+}
+
+/* Popover panels float transparently directly above #wePopoverGlassPlate */
+.popover-panel.editorial-modal {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  text-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.58);
+}
+
+body.theme-light .popover-panel.editorial-modal {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Dense interior cards act as subtle readability pockets over the luminous glass plate */
+.popover-panel.editorial-modal .wx-stat-card,
+.popover-panel.editorial-modal .wx-air-card,
+.popover-panel.editorial-modal .wx-uv-card,
+.popover-panel.editorial-modal .wx-moon-card,
+.popover-panel.editorial-modal .wx-solar-card,
+.popover-panel.editorial-modal .calendar-day-panel,
+.popover-panel.editorial-modal .we-cal-section-card,
+.popover-panel.editorial-modal .we-air-config-box,
+.popover-panel.editorial-modal .we-biome-audio-toggles {
+  background: var(--we-glass-pocket-bg) !important;
+  border-color: var(--we-glass-pocket-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Frameless 16-Bit Pixel-Art Habitat Icons in Menu & Top-Left Pill */
+#habitatDot.we-hab-pill-icon {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.we-hab-icon-slot {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.we-hab-pixel-svg {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+}
+
+/* Reserve bottom space for Windows Taskbar so bottom UI & creatures stay above it without any stretched fill artifacts */
+body {
+  padding-bottom: var(--we-taskbar-height, 54px);
+}
+
+#habitatCanvas {
+  height: calc(100vh - var(--we-taskbar-height, 54px)) !important;
+}
+
+/* Centerpiece vertical positioning offset */
+main.main-content {
+  position: relative;
+  top: var(--we-center-offset-y, 0vh);
+}
+
+/* High-resolution 16-bit Pixel-Art Hero Clock (optically balanced & slightly larger) */
+#heroClock.pixel-clock {
+  font-family: var(--we-clock-font) !important;
+  font-weight: var(--we-clock-weight, 400) !important;
+  font-size: var(--we-clock-size, clamp(4.85rem, 7.8vw, 6.65rem)) !important;
+  letter-spacing: 0.01em !important;
+  line-height: 0.96 !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: "tnum" 1 !important;
+  text-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.56),
+    0 10px 28px rgba(0, 0, 0, 0.44);
+}
+
+body.theme-light #heroClock.pixel-clock {
+  text-shadow:
+    0 4px 0 rgba(15, 23, 42, 0.56),
+    0 10px 28px rgba(15, 23, 42, 0.38);
+}
+
+#heroClock .we-clock-char {
+  display: inline-block;
+  width: var(--we-clock-char-w, 0.64em);
+  text-align: center;
+}
+
+#heroClock .we-clock-sep {
+  display: inline-block;
+  width: var(--we-clock-sep-w, 0.42em);
+  text-align: center;
+  transform: translateY(-0.04em);
+}
+
+/* Match Focus timer & numeric badges to the active high-res pixel typeface */
+.focus-clock-digits,
+.focus-stage-time,
+.wx-air-score strong,
+.wx-mini-value strong {
+  font-family: var(--we-clock-font) !important;
+  font-weight: var(--we-clock-weight, 400) !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Customizable Liquid Glass Refraction Lens Parameters & Unified Crystal Shell */
+.optical-glass {
+  background: var(--we-glass-float-bg);
+  border-color: var(--we-glass-border);
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel);
+}
+
+body.theme-light .optical-glass {
+  background: var(--we-glass-float-bg);
+  border-color: var(--we-glass-border);
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel);
+}
+
+.optical-glass > canvas.glass-lens {
+  opacity: var(--we-glass-opacity, 0.90) !important;
+  filter: blur(var(--we-glass-blur, 2.2px)) saturate(var(--we-glass-saturate, 158%)) brightness(1.06) contrast(1.05) !important;
+}
+
+body.theme-light .optical-glass > canvas.glass-lens {
+  opacity: calc(var(--we-glass-opacity, 0.90) * 0.86) !important;
+  filter: blur(var(--we-glass-blur, 2.2px)) saturate(var(--we-glass-saturate, 145%)) brightness(0.84) contrast(1.09) !important;
+}
+
+/* Ensure all popovers stay above the Windows Taskbar and remain scrollable */
+.popover-panel {
+  max-height: calc(100vh - var(--we-taskbar-height, 54px) - 92px) !important;
+  overflow-y: auto !important;
+}
+
+/* ==========================================================================
+   DIORAMA NEWS READER — HARMONIZED 2-COLUMN LIQUID GLASS & FLIP ACCORDION
+   Shares the exact calm frosted glass grammar of Weather, Xiaomi, Focus, and
+   Calendar while keeping generous 2-column cards and 60 FPS FLIP animations.
+   ========================================================================== */
+@media (min-width: 720px) {
+  #newsPopover.news-popover {
+    width: min(880px, calc(100vw - 36px)) !important;
+    padding: 20px 22px !important;
+  }
+
+  #newsListContainer.news-list-container {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+    padding: 4px 2px 44px !important;
+  }
+
+  #newsSourceManagerList.news-source-manager-list {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+}
+
+#newsPopover .news-masthead {
+  padding-bottom: 12px;
+  margin-bottom: 11px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+#newsPopover .news-eyebrow {
+  font-family: 'Pixelify Sans', 'JetBrains Mono', monospace !important;
+  font-size: 0.78rem !important;
+  letter-spacing: 0.08em !important;
+  color: rgba(255, 255, 255, 0.68) !important;
+}
+
+#newsPopover .news-title {
+  font-family: 'Pixelify Sans', 'JetBrains Mono', monospace !important;
+  font-size: 1.36rem !important;
+  letter-spacing: -0.02em;
+  color: #f8fafc !important;
+  text-shadow: 0 2px 12px rgba(56, 189, 248, 0.14);
+}
+
+#newsPopover .news-cat-btn {
+  font-family: 'Pixelify Sans', 'JetBrains Mono', monospace !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.015em;
+  padding: 9px 12px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  border: 1px solid rgba(255, 255, 255, 0.11) !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+  transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease !important;
+}
+
+#newsPopover .news-cat-btn:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.11) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+#newsPopover .news-cat-btn.is-active {
+  background: rgba(56, 189, 248, 0.16) !important;
+  border-color: rgba(125, 211, 252, 0.36) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  color: #e0f2fe !important;
+}
+
+#newsPopover #newsListMeta {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.62) !important;
+}
+
+#newsListContainer.news-list-container > .news-empty-state {
+  grid-column: 1 / -1;
+}
+
+/* Harmonized Diorama News Card — matches .wx-stat-card / .calendar-day-panel */
+#newsListContainer .news-card.we-editorial-card {
+  position: relative;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  gap: 0 !important;
+  height: 100% !important;
+  min-height: 136px;
+  padding: 14px 16px !important;
+  border-radius: 15px !important;
+  background: var(--we-glass-pocket-bg) !important;
+  border: 1px solid var(--we-glass-pocket-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  overflow: hidden;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+#newsListContainer .news-card.we-editorial-card:hover {
+  border-color: rgba(125, 211, 252, 0.30) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.038)) !important;
+  box-shadow:
+    0 10px 24px -10px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
+}
+
+#newsListContainer .news-card.we-editorial-card.is-read:not(.is-expanded) {
+  opacity: 0.80;
+}
+
+/* Expanded Card State — Spans Both Columns smoothly via FLIP */
+#newsListContainer .news-card.we-editorial-card.is-expanded {
+  grid-column: 1 / -1 !important;
+  height: auto !important;
+  border-color: rgba(125, 211, 252, 0.42) !important;
+  background: linear-gradient(148deg, rgba(56, 189, 248, 0.12) 0%, rgba(8, 16, 30, 0.56) 100%) !important;
+  box-shadow:
+    0 18px 38px -12px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+}
+
+/* Card Top Header Bar: Publisher + Quiet Badges + Timestamp + Read Status + Bookmark */
+.we-news-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.we-news-pub-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 1;
+}
+
+.we-news-pub-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #7dd3fc;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 175px;
+}
+
+.we-news-breaking-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(244, 63, 94, 0.16);
+  border: 1px solid rgba(251, 113, 133, 0.34);
+  color: #fecdd3;
+  font-family: 'Pixelify Sans', 'JetBrains Mono', monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.we-news-lead-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(251, 191, 36, 0.14);
+  border: 1px solid rgba(252, 211, 77, 0.32);
+  color: #fde68a;
+  font-family: 'Pixelify Sans', 'JetBrains Mono', monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.we-news-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.we-news-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.71rem;
+  color: rgba(255, 255, 255, 0.56);
+  white-space: nowrap;
+}
+
+.we-news-status-pill {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.67rem;
+  font-weight: 600;
+  background: rgba(52, 211, 153, 0.15);
+  border: 1px solid rgba(110, 231, 183, 0.28);
+  color: #a7f3d0;
+  white-space: nowrap;
+}
+
+.we-editorial-card.is-read .we-news-status-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.11);
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.we-news-bookmark-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: rgba(255, 255, 255, 0.50);
+  transition: color 0.16s ease, background-color 0.16s ease, border-color 0.16s ease;
+}
+
+.we-news-bookmark-btn:hover,
+.we-news-bookmark-btn.is-saved {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(125, 211, 252, 0.34);
+  color: #e0f2fe;
+}
+
+.we-news-bookmark-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.we-news-bookmark-btn.is-saved svg {
+  fill: currentColor;
+}
+
+/* Main Clickable Headline Body */
+.we-news-body-btn {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  width: 100%;
+  text-align: left;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.we-news-headline {
+  margin: 0 0 11px 0;
+  color: rgba(248, 250, 252, 0.95);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.44;
+  letter-spacing: -0.01em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(2 * 1.44em);
+  transition: color 0.16s ease;
+}
+
+.we-editorial-card:hover .we-news-headline {
+  color: #ffffff;
+}
+
+.we-editorial-card.is-expanded .we-news-headline {
+  -webkit-line-clamp: unset;
+  min-height: 0;
+  font-size: 1.06rem;
+  color: #ffffff;
+}
+
+/* Quiet Card Footer Row */
+.we-news-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-top: 6px;
+}
+
+.we-news-expand-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Pixelify Sans', 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.56);
+  letter-spacing: 0.015em;
+  transition: color 0.16s ease;
+}
+
+.we-editorial-card:hover .we-news-expand-pill,
+.we-editorial-card.is-expanded .we-news-expand-pill {
+  color: #bae6fd;
+}
+
+.we-news-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.we-news-chevron svg {
+  width: 12px;
+  height: 12px;
+}
+
+.we-editorial-card.is-expanded .we-news-chevron {
+  transform: rotate(90deg);
+  color: #7dd3fc;
+}
+
+/* Smooth CSS Grid Accordion Drawer (0fr -> 1fr) */
+.we-news-drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-top: 0;
+  transition:
+    grid-template-rows 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    margin-top 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.we-editorial-card.is-expanded .we-news-drawer {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 11px;
+}
+
+.we-news-drawer-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.we-news-reading-well {
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: rgba(2, 8, 18, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.we-news-summary-text {
+  margin: 0 0 13px 0;
+  color: rgba(241, 245, 249, 0.90);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.62;
+  overflow-wrap: anywhere;
+}
+
+.we-news-drawer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.we-news-read-full-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(56, 189, 248, 0.12));
+  border: 1px solid rgba(125, 211, 252, 0.40);
+  color: #f0f9ff;
+  font-family: 'Pixelify Sans', 'Inter', monospace;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.we-news-read-full-btn:hover {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.34), rgba(56, 189, 248, 0.20));
+  border-color: rgba(125, 211, 252, 0.62);
+  color: #ffffff;
+}
+
+.we-news-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.78);
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.75rem;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.we-news-copy-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.we-news-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   UNIVERSAL DESKTOP SCROLLBAR & DRAG-TO-SCROLL ENHANCEMENTS
+   ========================================================================== */
+.popover-panel,
+.focus-popover,
+.weather-popover,
+.calendar-popover,
+.news-popover,
+#newsPopover,
+#notesPopover,
+#dataManagerPopover,
+#habitatPopover,
+#weSettingsPopover,
+.calendar-event-list,
+#stickyNotesGrid,
+#tasksListContainer,
+.news-source-manager-list,
+.desktop-results-list,
+.desktop-custom-app-list,
+.wx-hourly {
+  scrollbar-width: auto !important;
+  scrollbar-color: unset !important;
+}
+
+::-webkit-scrollbar {
+  width: 10px !important;
+  height: 10px !important;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.24) !important;
+  border-radius: 999px !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(186, 230, 253, 0.38) !important;
+  border: 2px solid rgba(10, 16, 28, 0.45) !important;
+  border-radius: 999px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 211, 252, 0.68) !important;
+}
+
+body.we-drag-scrolling,
+body.we-drag-scrolling * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+/* Active Keyboard IME Focus Highlight for Desktop Inputs */
+.is-we-input-active {
+  border-color: rgba(251, 191, 36, 0.85) !important;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.25) !important;
+}
+
+#searchForm:has(#searchInput.is-we-input-active) {
+  border-color: rgba(251, 191, 36, 0.65) !important;
+}
+
+/* Floating Up/Down Scroll Controls inside scrollable panels */
+.we-scroll-assist {
+  position: sticky;
+  bottom: 4px;
+  margin-left: auto;
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: rgba(7, 12, 22, 0.88);
+  border: 1px solid rgba(125, 211, 252, 0.34);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.55);
+  z-index: 75;
+  pointer-events: auto;
+}
+
+.we-scroll-assist[hidden] {
+  display: none !important;
+}
+
+.we-scroll-assist-hint {
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.68rem;
+  color: rgba(186, 230, 253, 0.82);
+  padding: 0 5px;
+  white-space: nowrap;
+}
+
+.we-scroll-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  color: #f0f9ff;
+  font-size: 0.72rem;
+  font-family: 'Pixelify Sans', monospace;
+  transition: background-color 0.14s ease, transform 0.1s ease;
+}
+
+.we-scroll-btn:hover {
+  background: rgba(56, 189, 248, 0.36);
+  color: #fff;
+}
+
+.we-scroll-btn:active {
+  transform: scale(0.93);
+}
+
+/* Anchor wrapper around #searchForm so the results drawer opens as an overlay without shifting layout */
+.search-widget-anchor {
+  position: relative;
+  width: 100%;
+  margin-bottom: 0.75rem;
+  z-index: 40;
+  pointer-events: auto;
+}
+
+.search-widget-anchor > #searchForm {
+  margin-bottom: 0 !important;
+}
+
+/* Prevent optical-glass cards from translating on hover (keeps 1:1 glass-lens pixel sampling locked) */
+.shortcut-card.optical-glass,
+.optical-glass {
+  transform: none !important;
+}
+
+.shortcut-card.optical-glass:hover {
+  border-color: rgba(253, 224, 71, 0.45);
+  background: rgba(20, 30, 48, 0.38);
+}
+
+/* Individual widget visibility toggles */
+body.we-hide-clock #heroClockContainer { display: none !important; }
+body.we-hide-greeting #heroGreetingHeading { display: none !important; }
+body.we-hide-search #searchWidgetAnchor,
+body.we-hide-search #searchForm,
+body.we-hide-search #desktopLauncherDrawer { display: none !important; }
+body.we-hide-dock #shortcutsGrid { display: none !important; }
+body.we-hide-headline #headlineBar { display: none !important; }
+body.we-hide-habitat-pill .header-controls-left { display: none !important; }
+body.we-hide-news-btn #newsBtnWrapper { display: none !important; }
+body.we-hide-weather-btn #weatherBtnWrapper { display: none !important; }
+body.we-hide-focus-btn #focusBtnWrapper { display: none !important; }
+body.we-hide-calendar-btn #calendarBtnWrapper { display: none !important; }
+body.we-hide-notes-btn #notesBtnWrapper { display: none !important; }
+body.we-hide-data-btn #dataManagerBtnWrapper { display: none !important; }
+
+/* Linux-Style Optical Liquid Glass Launcher Drawer (Absolute Overlay — Never Jumps Layout!) */
+.desktop-launcher-drawer {
+  position: absolute !important;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-height: min(44vh, 370px);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 65;
+  pointer-events: auto;
+  background: var(--we-glass-plate-bg) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--we-glass-border) !important;
+  box-shadow: var(--we-glass-shadow), var(--we-glass-bevel) !important;
+}
+
+body.theme-light .desktop-launcher-drawer {
+  background: var(--we-glass-plate-bg) !important;
+  border-color: var(--we-glass-border) !important;
+}
+
+.desktop-launcher-drawer > canvas.glass-lens {
+  border-radius: inherit;
+  opacity: var(--we-glass-opacity, 0.90) !important;
+  filter: blur(calc(var(--we-glass-blur, 2.2px) + 0.8px)) saturate(148%) brightness(0.98) contrast(1.05) !important;
+}
+
+body.theme-light .desktop-launcher-drawer > canvas.glass-lens {
+  opacity: calc(var(--we-glass-opacity, 0.90) * 0.84) !important;
+  filter: blur(calc(var(--we-glass-blur, 2.2px) + 1.0px)) saturate(136%) brightness(0.82) contrast(1.08) !important;
+}
+
+.desktop-launcher-drawer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: var(--we-glass-plate-scrim);
+}
+
+.desktop-launcher-drawer::after {
+  z-index: 2 !important;
+}
+
+.desktop-launcher-drawer > :where(*:not(canvas.glass-lens)) {
+  position: relative;
+  z-index: 3 !important;
+}
+
+.desktop-launcher-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 6px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.desktop-category-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.desktop-cat-pill {
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-family: 'Pixelify Sans', 'Inter', monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.desktop-cat-pill:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.desktop-cat-pill.is-active {
+  color: #fef08a;
+  background: rgba(251, 191, 36, 0.22);
+  border-color: rgba(253, 224, 71, 0.45);
+}
+
+.desktop-bridge-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.72rem;
+  background: rgba(0, 0, 0, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+
+.desktop-bridge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #fbbf24;
+}
+
+.desktop-bridge-dot.is-online {
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.85);
+}
+
+/* Results List inside the Optical Glass Drawer */
+.desktop-results-list {
+  overflow-y: auto;
+  max-height: min(26vh, 225px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 4px;
+}
+
+.desktop-result-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 11px;
+  border-radius: 14px;
+  text-align: left;
+  background: var(--we-glass-pocket-bg);
+  border: 1px solid var(--we-glass-pocket-border);
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.desktop-result-row:hover,
+.desktop-result-row.is-highlighted {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.36);
+}
+
+.desktop-result-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bae6fd;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.desktop-real-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+.desktop-dock-real-icon {
+  width: 17px;
+  height: 17px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+}
+
+.desktop-result-row[data-kind="app"] .desktop-result-icon {
+  color: #fde68a;
+  background: rgba(251, 191, 36, 0.14);
+  border-color: rgba(253, 224, 71, 0.28);
+}
+
+.desktop-result-row[data-kind="folder"] .desktop-result-icon {
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(125, 211, 252, 0.28);
+}
+
+.desktop-result-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.desktop-result-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.96);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.desktop-result-sub {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.62);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.desktop-result-badge {
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.8);
+  flex-shrink: 0;
+}
+
+/* Hybrid Web Search Fallback Bar at the bottom of the Drawer */
+.desktop-web-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.desktop-web-fallback-label {
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: 'Pixelify Sans', monospace;
+}
+
+.desktop-web-fallback-btns {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.desktop-web-btn {
+  padding: 3px 9px;
+  border-radius: 9px;
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.72rem;
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(125, 211, 252, 0.32);
+  color: #e0f2fe;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.desktop-web-btn:hover {
+  background: rgba(56, 189, 248, 0.3);
+  color: #fff;
+}
+
+/* Frequent Applications Glass Dock Enhancements */
+.desktop-dock-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 16px;
+}
+
+.desktop-dock-icon {
+  width: 17px;
+  height: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(253, 230, 138, 0.92);
+  flex-shrink: 0;
+}
+
+/* Action buttons inside search bar */
+.desktop-search-action-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 1rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.85);
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.desktop-search-action-btn:hover {
+  background-color: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.34);
+  color: #fff;
+}
+
+/* ==========================================================================
+   CEF-SAFE CUSTOM APPLICATION PICKER IN #shortcutModal (NO NATIVE <select>!)
+   ========================================================================== */
+#shortcutModal > .editorial-modal {
+  max-width: 460px !important;
+}
+
+.desktop-custom-app-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 175px;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.desktop-app-pick-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+  min-width: 0;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.desktop-app-pick-btn:hover,
+.desktop-app-pick-btn.is-selected {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(125, 211, 252, 0.45);
+}
+
+.desktop-app-pick-name {
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   ON-SCREEN WALLPAPER & LIQUID GLASS SETTINGS WIDGET (#weSettingsPopover)
+   ========================================================================== */
+.we-settings-popover {
+  width: min(460px, calc(100vw - 28px));
+  padding: 18px !important;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.we-settings-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+.we-settings-section-title {
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  color: #7dd3fc;
+  text-transform: uppercase;
+  margin-bottom: 9px;
+}
+
+.we-segmented-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  padding: 4px;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+.we-segmented-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.we-seg-btn {
+  padding: 6px 4px;
+  border-radius: 8px;
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.65);
+  border: 1px solid transparent;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.we-seg-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.we-seg-btn.is-active {
+  color: #fef08a;
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(253, 224, 71, 0.42);
+}
+
+.we-slider-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 44px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.we-slider-row input[type="range"] {
+  width: 100%;
+  accent-color: #7dd3fc;
+  cursor: pointer;
+}
+
+.we-slider-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: #bae6fd;
+  text-align: right;
+}
+
+.we-toggles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.we-toggle-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.68);
+  text-align: left;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.we-toggle-chip.is-on {
+  background: rgba(52, 211, 153, 0.14);
+  border-color: rgba(110, 231, 183, 0.34);
+  color: #ecfdf5;
+}
+
+.we-toggle-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+}
+
+.we-toggle-chip.is-on .we-toggle-dot {
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
+}
+
+/* Toast message for launcher feedback */
+.desktop-launcher-toast {
+  position: fixed;
+  bottom: calc(var(--we-taskbar-height, 54px) + 18px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: rgba(10, 16, 28, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  backdrop-filter: blur(12px);
+  color: #f8fafc;
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.78rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+body.we-hide-air-btn #airPurifierBtnWrapper {
+  display: none !important;
+}
+
+/* ==========================================================================
+   XIAOMI SMART AIR PURIFIER 4 — EDITORIAL PIXEL-ART ROOM CLIMATE WIDGET
+   Matches #weatherPopover & #focusPopover visual grammar (.wx-air-card,
+   .wx-stats, .wx-uv-card, .focus-duration-grid, crispEdges SVG).
+   ========================================================================== */
+.we-air-popover {
+  width: min(456px, calc(100vw - 28px));
+  max-height: min(86vh, 780px);
+  padding: 1.35rem !important;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.we-air-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.72);
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.we-air-icon-btn:hover,
+.we-air-icon-btn.is-active {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(125, 211, 252, 0.38);
+  color: #f8fafc;
+}
+
+.we-air-icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.we-air-pixel-icon {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.we-air-filter-track {
+  height: 5px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.we-air-filter-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #34d399, #38bdf8);
+  transition: width 0.3s ease;
+}
+
+.we-air-filter-track.is-low span {
+  background: linear-gradient(90deg, #f43f5e, #fbbf24);
+}
+
+.we-air-config-box {
+  margin-top: 13px;
+  padding: 13px 14px;
+  border-radius: 15px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.we-air-input {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.we-air-input:focus {
+  outline: none;
+  border-color: rgba(125, 211, 252, 0.55);
+  background: rgba(0, 0, 0, 0.34);
+}
+
+/* ==========================================================================
+   EXPANDED 8-SOUNDSCAPE & BIOME CREATURE AUDIO STUDIO (#focusPopover)
+   Clean monochrome vector icons + weather-consistent checkbox controls.
+   ========================================================================== */
+#focusPopover.focus-popover {
+  width: min(378px, calc(100vw - 24px)) !important;
+}
+
+.we-biome-audio-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 11px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.038);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.we-biome-toggle-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.84);
+  cursor: pointer;
+}
+
+.we-biome-creature-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.we-soundscape-grid-8 {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+}
+
+.we-soundscape-grid-8 .sound-btn {
+  padding: 8px 4px !important;
+  min-height: 58px;
+  justify-content: center;
+  text-align: center;
+}
+
+.we-creature-preview-btn {
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.13);
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  color: #dff5ff;
+  font-family: 'Pixelify Sans', monospace;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.we-creature-preview-btn:hover {
+  background: rgba(56, 189, 248, 0.24);
+  border-color: rgba(125, 211, 252, 0.48);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   MINECRAFT PIXEL DISC MUSIC PLAYER — FLOATING OPTICAL GLASS TURNTABLE
+   Bottom-left widget with stepped 48x48 pixel vinyl disc, spinning pixelated
+   album art cover, pivoting pixel tonearm, jukebox pixel note particles,
+   and full / mini-disc modes.
+   ========================================================================== */
+body.we-hide-music #weMusicWidget {
+  display: none !important;
+}
+
+#weMusicWidget {
+  --disc-accent: #4ade80;
+  position: fixed;
+  left: 20px;
+  bottom: calc(var(--we-taskbar-height, 54px) + 18px);
+  z-index: 26;
+  width: min(344px, calc(100vw - 40px));
+  border-radius: 22px;
+  padding: 12px 14px 12px 12px;
+  pointer-events: auto;
+  overflow: visible !important;
+  transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1), padding 0.28s ease, opacity 0.25s ease;
+}
+
+/* Keep optical glass refraction canvas & smoked-crystal scrim clipped via border-radius (no GPU mask pass) while letting jukebox notes float out */
+#weMusicWidget > canvas.glass-lens {
+  border-radius: inherit;
+}
+
+#weMusicWidget::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: var(--we-glass-float-scrim);
+}
+
+#weMusicWidget::after {
+  z-index: 2 !important;
+}
+
+#weMusicWidget .we-music-shell {
+  z-index: 3;
+  text-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.56);
+}
+
+#weMusicWidget .we-music-compact-expand {
+  z-index: 7;
+}
+
+#weMusicWidget.is-compact {
+  width: 112px;
+  padding: 10px;
+}
+
+.we-music-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+#weMusicWidget.is-compact .we-music-shell {
+  justify-content: center;
+  gap: 0;
+}
+
+#weMusicWidget.is-compact .we-music-info {
+  display: none;
+}
+
+/* Turntable Platter Stage */
+.we-music-platter {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  flex: 0 0 88px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.we-music-platter-well {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 14px;
+  background: rgba(3, 7, 15, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+}
+
+#weMusicDiscCanvas {
+  width: 78px;
+  height: 78px;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.55));
+  animation: we-disc-spin 9.5s linear infinite;
+  animation-play-state: paused;
+}
+
+#weMusicWidget.is-playing #weMusicDiscCanvas {
+  animation-play-state: running;
+  will-change: transform;
+}
+
+@keyframes we-disc-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Stationary subtle vinyl light glint over the spinning pixel disc */
+.we-music-disc-glint {
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  image-rendering: pixelated;
+  opacity: 0.42;
+}
+
+/* Pivoting 16-Bit Pixel Tonearm (Needle) */
+.we-music-tonearm {
+  position: absolute;
+  top: 4px;
+  right: 3px;
+  width: 30px;
+  height: 44px;
+  pointer-events: none;
+  image-rendering: pixelated;
+  transform-origin: 23px 7px;
+  transform: rotate(-24deg);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+#weMusicWidget.is-playing .we-music-tonearm {
+  transform: rotate(3deg);
+}
+
+/* Floating Minecraft Jukebox Pixel Note Particles */
+.we-music-notes-layer {
+  position: absolute;
+  inset: -26px -10px auto -10px;
+  height: 48px;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 6;
+}
+
+.we-music-note-particle {
+  position: absolute;
+  bottom: 0;
+  pointer-events: none;
+  image-rendering: pixelated;
+  animation: we-jukebox-note-rise 2.4s steps(24) forwards;
+}
+
+@keyframes we-jukebox-note-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 6px) scale(0.8);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-3px, -4px) scale(1);
+  }
+  65% {
+    opacity: 0.9;
+    transform: translate(4px, -22px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-2px, -38px) scale(0.9);
+  }
+}
+
+/* Compact Mode Hover Expand Button */
+.we-music-compact-expand {
+  display: none;
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: rgba(12, 19, 34, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.85);
+  align-items: center;
+  justify-content: center;
+  z-index: 8;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+#weMusicWidget.is-compact .we-music-compact-expand {
+  display: inline-flex;
+}
+
+.we-music-compact-expand:hover {
+  background: rgba(56, 189, 248, 0.28);
+  color: #ffffff;
+}
+
+/* Right Column: Track Info, Pixel Progress, Monochrome Transport Controls */
+.we-music-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.we-music-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.we-music-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.56);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.we-music-led {
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+
+#weMusicWidget.is-playing .we-music-led {
+  background: var(--disc-accent, #4ade80);
+  box-shadow: 0 0 7px var(--disc-accent, #4ade80);
+}
+
+.we-music-mini-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.52);
+  border: 1px solid transparent;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.we-music-mini-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.we-music-title {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.96);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.we-music-artist {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.60);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.we-music-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 3px;
+}
+
+.we-music-pixel-track {
+  flex: 1;
+  height: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  background: repeating-linear-gradient(to right, rgba(255, 255, 255, 0.12) 0 5px, transparent 5px 7px), rgba(0, 0, 0, 0.36);
+}
+
+.we-music-pixel-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: repeating-linear-gradient(to right, var(--disc-accent, #7dd3fc) 0 5px, transparent 5px 7px);
+  transition: width 0.5s linear;
+}
+
+.we-music-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.63rem;
+  color: rgba(255, 255, 255, 0.50);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.we-music-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.we-music-ctrl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.84);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.we-music-ctrl-btn:hover {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.we-music-ctrl-btn.is-primary {
+  padding: 0 12px;
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(125, 211, 252, 0.32);
+  color: #e0f2fe;
+}
+
+.we-music-ctrl-btn.is-primary:hover {
+  background: rgba(56, 189, 248, 0.26);
+  border-color: rgba(125, 211, 252, 0.5);
+  color: #ffffff;
+}
+
+.we-music-ctrl-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* ==========================================================================
+   DIORAMA SMART CALENDAR — HOLIDAYS, LIVE MATCHES, WEEKLY TIMETABLE & FREE TIME
+   Wider calm frosted glass layout matching Weather, News, and Focus.
+   ========================================================================== */
+#calendarPopover.calendar-popover {
+  width: min(580px, calc(100vw - 28px)) !important;
+  max-height: calc(100vh - var(--we-taskbar-height, 54px) - 92px) !important;
+  padding: 1.25rem 1.3rem 2.8rem !important;
+}
+
+.we-cal-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 13px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.we-cal-tab-btn {
+  padding: 7px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.76rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.we-cal-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.we-cal-tab-btn.is-active {
+  color: #e0f2fe;
+  background: rgba(56, 189, 248, 0.17);
+  border-color: rgba(125, 211, 252, 0.36);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Calendar Day Cell Color-Coded Indicators & Official Holiday Accent */
+#calendarGrid .calendar-day.is-holiday:not(.is-outside) {
+  border-color: rgba(251, 113, 133, 0.34);
+  background: linear-gradient(160deg, rgba(244, 63, 94, 0.14), rgba(255, 255, 255, 0.03));
+}
+
+#calendarGrid .calendar-day.is-holiday:not(.is-outside) .calendar-day-number {
+  color: #fecdd3;
+}
+
+#calendarGrid .calendar-day.has-match:not(.is-outside):not(.is-selected) {
+  border-color: rgba(251, 191, 36, 0.28);
+}
+
+#calendarGrid .calendar-day-dots i.dot-holiday {
+  background: #fb7185;
+  box-shadow: 0 0 6px rgba(251, 113, 133, 0.65);
+}
+
+#calendarGrid .calendar-day-dots i.dot-match {
+  background: #fbbf24;
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.65);
+}
+
+#calendarGrid .calendar-day-dots i.dot-routine {
+  background: #34d399;
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.55);
+}
+
+#calendarGrid .calendar-day-dots i.dot-special {
+  background: #c084fc;
+  box-shadow: 0 0 6px rgba(192, 132, 252, 0.55);
+}
+
+#calendarGrid .calendar-day-dots i.dot-event {
+  background: #7dd3fc;
+  box-shadow: 0 0 6px rgba(125, 211, 252, 0.55);
+}
+
+.we-cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 0 2px;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.we-cal-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.we-cal-legend i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Selected Day Holiday Banner & Enriched Agenda Rows */
+.we-cal-holiday-banner {
+  margin-bottom: 9px;
+  padding: 9px 11px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.16), rgba(244, 63, 94, 0.06));
+  border: 1px solid rgba(251, 113, 133, 0.34);
+  color: #ffe4e6;
+  font-size: 0.77rem;
+  line-height: 1.4;
+}
+
+.we-cal-holiday-banner small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.69rem;
+  color: rgba(255, 228, 230, 0.74);
+}
+
+#calendarEventList.calendar-event-list {
+  max-height: 255px;
+}
+
+.we-cal-agenda-row {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(0, 0, 0, 0.20);
+}
+
+.we-cal-agenda-row.is-holiday {
+  border-color: rgba(251, 113, 133, 0.30);
+  background: rgba(244, 63, 94, 0.10);
+}
+
+.we-cal-agenda-row.is-special {
+  border-color: rgba(192, 132, 252, 0.28);
+  background: rgba(168, 85, 247, 0.09);
+}
+
+.we-cal-agenda-row.is-match {
+  border-color: rgba(251, 191, 36, 0.34);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(0, 0, 0, 0.22));
+}
+
+.we-cal-agenda-row.is-school {
+  border-color: rgba(56, 189, 248, 0.28);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.we-cal-agenda-row.is-work {
+  border-color: rgba(52, 211, 153, 0.28);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.we-cal-agenda-row.is-routine {
+  border-color: rgba(167, 139, 250, 0.26);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.we-cal-agenda-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.71rem;
+  color: #bae6fd;
+  white-space: nowrap;
+}
+
+.we-cal-agenda-body {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.we-cal-agenda-title {
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 0.81rem;
+  font-weight: 550;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.we-cal-agenda-sub {
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.69rem;
+  line-height: 1.3;
+}
+
+.we-cal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.64rem;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.80);
+}
+
+.we-cal-badge.is-holiday { background: rgba(244, 63, 94, 0.20); border-color: rgba(251, 113, 133, 0.42); color: #fecdd3; }
+.we-cal-badge.is-special { background: rgba(168, 85, 247, 0.18); border-color: rgba(192, 132, 252, 0.38); color: #e9d5ff; }
+.we-cal-badge.is-match { background: rgba(245, 158, 11, 0.20); border-color: rgba(251, 191, 36, 0.42); color: #fef3c7; }
+.we-cal-badge.is-school { background: rgba(56, 189, 248, 0.18); border-color: rgba(125, 211, 252, 0.36); color: #e0f2fe; }
+.we-cal-badge.is-work { background: rgba(16, 185, 129, 0.18); border-color: rgba(52, 211, 153, 0.38); color: #d1fae5; }
+.we-cal-badge.is-routine { background: rgba(139, 92, 246, 0.18); border-color: rgba(167, 139, 250, 0.38); color: #ede9fe; }
+
+/* Selected Day Free-Time Windows Box */
+.we-cal-free-box {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.24);
+}
+
+.we-cal-free-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.we-cal-free-label {
+  font-size: 0.70rem;
+  color: #a7f3d0;
+  letter-spacing: 0.03em;
+}
+
+.we-cal-free-total {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.70rem;
+  color: rgba(209, 250, 229, 0.85);
+}
+
+.we-cal-free-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.we-cal-free-chip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(110, 231, 183, 0.24);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.69rem;
+  color: #ecfdf5;
+}
+
+/* TAB 2: Weekly Schedule & Free-Time Timeline + Recurring Class/Work Builder */
+.we-cal-section-card {
+  padding: 13px;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.022));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
+  margin-bottom: 11px;
+}
+
+.we-cal-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+.we-cal-section-title {
+  font-size: 0.80rem;
+  color: #e0f2fe;
+}
+
+.we-cal-section-sub {
+  font-size: 0.70rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.we-cal-week-list {
+  display: grid;
+  gap: 7px;
+}
+
+.we-cal-week-row {
+  display: grid;
+  gap: 5px;
+  padding: 8px 10px;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.we-cal-week-row:hover {
+  border-color: rgba(125, 211, 252, 0.28);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.we-cal-week-row.is-today {
+  border-color: rgba(125, 211, 252, 0.42);
+}
+
+.we-cal-week-row.is-holiday {
+  border-color: rgba(251, 113, 133, 0.34);
+  background: rgba(244, 63, 94, 0.08);
+}
+
+.we-cal-week-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.74rem;
+}
+
+.we-cal-week-day {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.we-cal-week-free-sum {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.69rem;
+  color: #a7f3d0;
+}
+
+.we-cal-timeline-track {
+  position: relative;
+  height: 8px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: rgba(52, 211, 153, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.we-cal-timeline-seg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+}
+
+.we-cal-timeline-seg.is-school { background: #38bdf8; }
+.we-cal-timeline-seg.is-work { background: #34d399; }
+.we-cal-timeline-seg.is-routine { background: #a78bfa; }
+.we-cal-timeline-seg.is-match { background: #fbbf24; }
+.we-cal-timeline-seg.is-event { background: #f472b6; }
+
+.we-cal-week-slots {
+  font-size: 0.69rem;
+  color: rgba(255, 255, 255, 0.62);
+  line-height: 1.35;
+}
+
+/* Recurring Class / Work Form Controls */
+.we-cal-form-grid {
+  display: grid;
+  gap: 9px;
+}
+
+.we-cal-field-label {
+  display: block;
+  font-size: 0.70rem;
+  color: rgba(255, 255, 255, 0.70);
+  margin-bottom: 4px;
+}
+
+.we-cal-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(0, 0, 0, 0.24);
+  color: #f8fafc;
+  font-size: 0.78rem;
+  outline: none;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.we-cal-input:focus {
+  border-color: rgba(125, 211, 252, 0.48);
+  background: rgba(0, 0, 0, 0.34);
+}
+
+.we-cal-day-pills {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.we-cal-day-pill {
+  padding: 6px 2px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.66);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.69rem;
+  text-align: center;
+  transition: all 0.14s ease;
+}
+
+.we-cal-day-pill:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: #fff;
+}
+
+.we-cal-day-pill.is-active {
+  background: rgba(56, 189, 248, 0.20);
+  border-color: rgba(125, 211, 252, 0.48);
+  color: #e0f2fe;
+}
+
+.we-cal-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.we-cal-quick-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.we-cal-mini-chip {
+  padding: 3px 8px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 0.67rem;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.we-cal-mini-chip:hover {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(125, 211, 252, 0.34);
+  color: #ffffff;
+}
+
+.we-cal-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.84);
+  cursor: pointer;
+}
+
+.we-cal-check-row input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #38bdf8;
+  cursor: pointer;
+}
+
+.we-cal-primary-btn {
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(125, 211, 252, 0.42);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(56, 189, 248, 0.12));
+  color: #f0f9ff;
+  font-size: 0.78rem;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.we-cal-primary-btn:hover {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.34), rgba(56, 189, 248, 0.20));
+  border-color: rgba(125, 211, 252, 0.62);
+}
+
+.we-cal-rules-list {
+  display: grid;
+  gap: 6px;
+}
+
+.we-cal-rule-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.we-cal-rule-meta {
+  font-size: 0.69rem;
+  color: rgba(255, 255, 255, 0.58);
+  margin-top: 2px;
+}
+
+/* TAB 3: Holidays & Live Football Fixtures Settings */
+.we-cal-team-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+  padding: 4px;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.we-cal-match-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.we-cal-match-card {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 11px;
+  border: 1px solid rgba(251, 191, 36, 0.24);
+  background: rgba(245, 158, 11, 0.07);
+  text-align: left;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.we-cal-match-card:hover {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(251, 191, 36, 0.44);
+}
+
+/* Global Team Picker (1 National Team + up to 3 Club Teams via Country -> League -> Club) */
+.we-cal-slot-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.we-cal-team-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 5px 8px 5px 10px;
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.13);
+  border: 1px solid rgba(125, 211, 252, 0.34);
+  color: #f0f9ff;
+  font-size: 0.73rem;
+}
+
+.we-cal-team-chip.is-national {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(251, 191, 36, 0.36);
+  color: #fef3c7;
+}
+
+.we-cal-team-chip small {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.64rem;
+}
+
+.we-cal-team-chip button {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
+  line-height: 1;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.we-cal-team-chip button:hover {
+  background: rgba(244, 63, 94, 0.22);
+  color: #fecdd3;
+}
+
+.we-cal-add-slot-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  border: 1px dashed rgba(125, 211, 252, 0.36);
+  background: rgba(255, 255, 255, 0.045);
+  color: #bae6fd;
+  font-size: 0.72rem;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.we-cal-add-slot-btn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(125, 211, 252, 0.56);
+  color: #ffffff;
+}
+
+.we-cal-add-slot-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.we-cal-picker-drawer {
+  margin-top: 8px;
+  margin-bottom: 10px;
+  padding: 11px;
+  border-radius: 13px;
+  background: rgba(2, 8, 18, 0.54);
+  border: 1px solid rgba(125, 211, 252, 0.26);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.we-cal-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.we-cal-league-pills {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.we-cal-league-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.71rem;
+  text-align: left;
+  min-width: 0;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.we-cal-league-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.we-cal-league-btn small {
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 0.63rem;
+  flex-shrink: 0;
+}
+
+.we-cal-league-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+}
+
+.we-cal-league-btn.is-active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(125, 211, 252, 0.44);
+  color: #e0f2fe;
+}
+
+.we-cal-team-list-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  max-height: 176px;
+  overflow-y: auto;
+  margin-top: 7px;
+  padding-right: 2px;
+}
+
+.we-cal-team-pick-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.73rem;
+  text-align: left;
+  min-width: 0;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.we-cal-team-pick-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.we-cal-team-pick-btn:hover {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(125, 211, 252, 0.34);
+  color: #ffffff;
+}
+
+.we-cal-team-pick-btn.is-selected {
+  background: rgba(52, 211, 153, 0.18);
+  border-color: rgba(110, 231, 183, 0.46);
+  color: #d1fae5;
+}
+
+.we-cal-holiday-country-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  margin-bottom: 10px;
+}
+
+/* Bilingual Box-Fit Guards (ensures crisp fit in both TR & EN across tight pills/grids) */
+.we-seg-btn,
+.we-cal-tab-btn,
+.news-cat-btn,
+.wx-stat-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.we-seg-btn {
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
+
+.wx-stats {
+  gap: 6px !important;
+}
+
+.wx-stat-card {
+  padding: 9px 7px 8px !important;
+  gap: 4px 4px !important;
+}
+
+.wx-stat-icon {
+  font-size: 0.82rem !important;
+}
+
+.wx-stat-label {
+  font-size: 0.64rem !important;
+  letter-spacing: 0 !important;
+}
+
+.wx-stat-value {
+  font-size: 0.78rem !important;
+  letter-spacing: -0.02em;
+}
+
+/* ==========================================================================
+   PIXEL-ART SYSTEM & DIORAMA TELEMETRY MONITOR (#weSystemWidget)
+   Bottom-right Optical Liquid Glass twin of #weMusicWidget showing live CPU,
+   RAM, GPU, temperatures, VRAM, and Diorama's own CPU/RAM/GPU/FPS footprint.
+   ========================================================================== */
+body.we-hide-system #weSystemWidget {
+  display: none !important;
+}
+
+#weSystemWidget {
+  position: fixed;
+  right: 20px;
+  bottom: calc(var(--we-taskbar-height, 54px) + 18px);
+  z-index: 26;
+  width: min(344px, calc(100vw - 40px));
+  border-radius: 22px;
+  padding: 12px 14px;
+  pointer-events: auto;
+  overflow: hidden !important;
+  transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1), padding 0.28s ease, opacity 0.25s ease;
+}
+
+#weSystemWidget > canvas.glass-lens {
+  border-radius: inherit;
+  opacity: var(--we-glass-opacity, 0.90) !important;
+  filter: blur(var(--we-glass-blur, 2.2px)) saturate(var(--we-glass-saturate, 158%)) brightness(1.06) contrast(1.05) !important;
+}
+
+body.theme-light #weSystemWidget > canvas.glass-lens {
+  opacity: calc(var(--we-glass-opacity, 0.90) * 0.86) !important;
+  filter: blur(var(--we-glass-blur, 2.2px)) saturate(var(--we-glass-saturate, 145%)) brightness(0.84) contrast(1.09) !important;
+}
+
+/* Unified Hybrid Smoked-Crystal scrim identical to #weMusicWidget */
+#weSystemWidget::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: var(--we-glass-float-scrim);
+}
+
+#weSystemWidget::after {
+  z-index: 2 !important;
+}
+
+#weSystemWidget > :where(*:not(canvas.glass-lens)) {
+  position: relative;
+  z-index: 3 !important;
+  text-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.56);
+}
+
+#weSystemWidget.is-compact {
+  width: 226px;
+  padding: 10px 12px;
+}
+
+.we-sys-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+#weSystemWidget.is-compact .we-sys-head {
+  margin-bottom: 7px;
+}
+
+.we-sys-head-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.we-sys-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.75);
+  flex-shrink: 0;
+}
+
+.we-sys-live-dot.is-offline {
+  background: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.65);
+}
+
+.we-sys-kicker {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.we-sys-head-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+/* Full Mode: 3 Pixel-Segmented Hardware Rows (CPU, RAM, GPU) */
+.we-sys-metrics {
+  display: grid;
+  gap: 7px;
+}
+
+#weSystemWidget.is-compact .we-sys-metrics,
+#weSystemWidget.is-compact .we-sys-gpu-sub,
+#weSystemWidget.is-compact .we-sys-diorama-well {
+  display: none;
+}
+
+.we-sys-row {
+  display: grid;
+  grid-template-columns: 16px 34px minmax(0, 1fr) 44px 44px;
+  align-items: center;
+  gap: 7px;
+}
+
+.we-sys-px-icon {
+  display: block;
+  width: 14px;
+  height: 14px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.we-sys-label {
+  font-size: 0.71rem;
+  color: rgba(255, 255, 255, 0.82);
+  white-space: nowrap;
+}
+
+.we-sys-pixel-track {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: repeating-linear-gradient(to right, rgba(255, 255, 255, 0.10) 0 5px, transparent 5px 7px), rgba(0, 0, 0, 0.36);
+}
+
+.we-sys-pixel-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: repeating-linear-gradient(to right, var(--sys-bar-color, #7dd3fc) 0 5px, transparent 5px 7px);
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.we-sys-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.71rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.94);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.we-sys-sec {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  color: rgba(186, 230, 253, 0.82);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.we-sys-sec.is-warm { color: #fde68a; }
+.we-sys-sec.is-hot { color: #fda4af; }
+.we-sys-sec.is-muted { color: rgba(255, 255, 255, 0.34); }
+
+.we-sys-gpu-sub {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.64rem;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.we-sys-gpu-sub span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dedicated Diorama Project Resource Footprint Strip */
+.we-sys-diorama-well {
+  margin-top: 8px;
+  padding: 7px 9px;
+  border-radius: 12px;
+  background: rgba(2, 8, 18, 0.42);
+  border: 1px solid rgba(125, 211, 252, 0.20);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.we-sys-diorama-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.we-sys-diorama-head-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.we-sys-diorama-title {
+  font-size: 0.67rem;
+  color: #bae6fd;
+}
+
+.we-sys-diorama-tier {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.we-sys-diorama-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.we-sys-diorama-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.we-sys-diorama-cell small {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  color: rgba(255, 255, 255, 0.52);
+  letter-spacing: 0.04em;
+}
+
+.we-sys-diorama-cell strong {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.70rem;
+  color: #f0f9ff;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Compact Mode 2x2 Mini Readout Grid */
+.we-sys-compact-grid {
+  display: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+#weSystemWidget.is-compact .we-sys-compact-grid {
+  display: grid;
+}
+
+.we-sys-compact-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 4px 7px;
+  border-radius: 8px;
+  background: rgba(2, 8, 18, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+}
+
+.we-sys-compact-pill small {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.60rem;
+}
+
+.we-sys-compact-pill strong {
+  color: rgba(255, 255, 255, 0.94);
+  font-variant-numeric: tabular-nums;
+}

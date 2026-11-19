@@ -1,0 +1,1119 @@
+import { flora, pw, ph, pRect, ctx } from './07-habitat-state.js';
+import { isLightMode } from './01-core-ui.js';
+import { getGroundY } from './habitat-geometry.js';
+
+function createOffscreenSprite(w, h) {
+    try {
+        const off = document.createElement('canvas');
+        off.width = Math.max(1, Math.ceil(w));
+        off.height = Math.max(1, Math.ceil(h));
+        const sctx = off.getContext('2d');
+        return sctx ? { off, sctx } : null;
+    } catch {
+        return null;
+    }
+}
+
+/* HABITAT FLORA RENDERER — animated drawing for habitat plants and small scenery details. */
+
+// ============================================================================
+// BÖLÜM BAŞI: FLORA VE BİTKİ KÜMELERİNİN HAREKETLİ ÇİZİMİ
+// Bitki verileri initHabitat tarafından hazırlanır; bu modül yalnızca her karede çizer.
+// ============================================================================
+
+export function drawHabitatFlora(time, hab) {
+    flora.forEach(f => {
+        const baseGroundY = f.baseY !== undefined ? f.baseY : getGroundY(f.x, hab.sceneProfile, pw, ph);
+
+        if (f.type === 'pebble') {
+            // BÖLÜM BAŞI: ZEMİN VE KUTUP DETAYLARI
+            pRect(f.x, f.y, f.w, f.h, isLightMode ? 'rgba(15, 55, 65, 0.35)' : f.shade);
+
+} else if (f.type === 'cotton_grass') {
+            const sway = Math.sin(time * 0.0016 + f.phase) * 1.6;
+            const culmCol = isLightMode ? '#115e59' : '#0f766e';
+            const bractCol = '#78350f';
+            pRect(f.x - 2, baseGroundY - 1, 5, 2, '#134e4a');
+            [-1, 1, 0].forEach((offset, idx) => {
+                const ch = Math.max(6, Math.round(f.h * (offset === 0 ? 1 : 0.78)));
+                const tipX = Math.round(f.x + offset * 2 + sway * (offset === 0 ? 1 : 0.75));
+                const tipY = baseGroundY - ch;
+                for (let y = 0; y < ch; y++) {
+                    const prog = y / ch;
+                    const sx = f.x + offset + (tipX - (f.x + offset)) * prog;
+                    pRect(sx, baseGroundY - y, 1, 1, culmCol);
+                }
+                pRect(tipX - 1, tipY, 3, 1, bractCol);
+                pRect(tipX - 2, tipY - 2, 5, 2, '#f8fafc');
+                pRect(tipX - 1, tipY - 3, 3, 3, '#ffffff');
+                if (idx === 2) pRect(tipX, tipY - 4, 1, 1, '#e0f2fe');
+            });
+
+        } else if (f.type === 'arctic_crystal') {
+            const rockDark = isLightMode ? '#334155' : '#0f172a';
+            const rockMid = isLightMode ? '#475569' : '#1e293b';
+            const rockHi = isLightMode ? '#64748b' : '#334155';
+            const lichenCol = f.col === '#38bdf8' ? '#f97316' : '#84cc16';
+
+            pRect(f.x - 4, baseGroundY, 9, 2, 'rgba(7, 13, 25, 0.38)');
+            pRect(f.x - 4, baseGroundY - 3, 8, 3, rockDark);
+            pRect(f.x - 3, baseGroundY - 5, 6, 3, rockMid);
+            pRect(f.x - 2, baseGroundY - 6, 4, 2, rockHi);
+            pRect(f.x - 2, baseGroundY - 6, 3, 1, '#f8fafc');
+            pRect(f.x - 1, baseGroundY - 4, 2, 1, lichenCol);
+            pRect(f.x + 1, baseGroundY - 3, 2, 1, lichenCol);
+
+            const twigH = Math.max(5, Math.round(f.h * 0.65));
+            for (let y = 0; y < twigH; y++) {
+                const bx = f.x + 2 + Math.round((y / twigH) * 2);
+                const by = baseGroundY - 2 - y;
+                pRect(bx, by, 1, 1, '#451a03');
+                if (y % 2 === 1) {
+                    pRect(bx + 1, by, 1, 1, '#bae6fd');
+                }
+            }
+
+        } else if (f.type === 'arctic_berry_bush') {
+            const sway = Math.sin(time * 0.0014 + f.phase) * 0.6;
+            const leafDark = isLightMode ? '#134e4a' : '#062e2b';
+            const leafMid = isLightMode ? '#0f766e' : '#115e59';
+            pRect(f.x - f.r, baseGroundY, f.r * 2, 2, 'rgba(7, 13, 25, 0.35)');
+            pRect(f.x - 1, baseGroundY - 2, 3, 2, '#451a03');
+            for (let dy = -4; dy <= -1; dy++) {
+                const span = Math.max(2, f.r - Math.abs(dy + 2));
+                pRect(f.x - span + sway, baseGroundY + dy, span * 2, 1, dy < -2 ? leafMid : leafDark);
+            }
+            pRect(f.x - f.r + 2 + sway, baseGroundY - 5, Math.max(2, f.r * 2 - 4), 1, '#e0f2fe');
+            pRect(f.x - 2 + sway, baseGroundY - 3, 2, 2, '#f97316');
+            pRect(f.x - 2 + sway, baseGroundY - 3, 1, 1, '#fde047');
+            pRect(f.x + 1 + sway, baseGroundY - 2, 2, 2, '#ef4444');
+
+            // BÖLÜM SONU: ZEMİN VE KUTUP DETAYLARI
+        } else if (f.type === 'maple_bough') {
+            // BÖLÜM BAŞI: AĞAÇ, SARMAŞIK VE ORMAN FLORASI
+            for (let y = 0; y < f.len; y += 2) {
+                const prog = y / f.len;
+                const sway = Math.sin(time * 0.0015 + f.phase + y * 0.07) * (1.0 + prog * 3.0);
+                const px = Math.round(f.x + sway);
+                const py = f.branchY + y;
+                pRect(px, py, 1, 2, '#3b1806');
+                if (y > 2 && y % 4 === 0) {
+                    const span = Math.max(1, Math.round((1 - prog * 0.45) * 3));
+                    pRect(px - span, py, span * 2 + 1, 1, f.col);
+                    pRect(px - span + 1, py - 1, Math.max(1, span * 2 - 1), 3, f.col);
+                    pRect(px, py - 1, 1, 1, '#fde047');
+                    pRect(px - 1, py, 1, 1, '#fca5a5');
+                }
+            }
+
+        } else if (f.type === 'bamboo_stalk') {
+            const culmDark = isLightMode ? '#14532d' : '#063726';
+            const culmCol = isLightMode ? '#15803d' : '#0d593d';
+            const nodeCol = isLightMode ? '#86efac' : '#34d399';
+            const leafCol = isLightMode ? '#22c55e' : '#10b981';
+
+            pRect(f.x - 1, baseGroundY - 1, 4, 2, culmDark);
+            for (let y = 0; y < f.h; y += 2) {
+                const prog = y / f.h;
+                const sway = Math.sin(time * 0.0012 + f.phase) * prog * 3.2 + f.lean * y;
+                const px = Math.round(f.x + sway);
+                const py = baseGroundY - y;
+                pRect(px, py, 2, 2, culmCol);
+                pRect(px + 1, py, 1, 2, culmDark);
+                if (y > 6 && y % 12 === 0) {
+                    pRect(px - 1, py, 4, 1, nodeCol);
+                    const side = (y % 24 === 0) ? -1 : 1;
+                    const leafStartX = side > 0 ? px + 2 : px - 1;
+                    pRect(leafStartX, py - 1, 4 * side, 1, leafCol);
+                    pRect(leafStartX + side, py - 2, 4 * side, 1, nodeCol);
+                    pRect(leafStartX + side * 2, py, 3 * side, 1, culmCol);
+                }
+            }
+
+        } else if (f.type === 'sea_vine') {
+            for (let y = 0; y < f.len; y += 2) {
+                const prog = y / f.len;
+                const sway = Math.sin(time * 0.0014 + f.phase + y * 0.06) * (1.0 + prog * 3.5);
+                const px = f.x + sway;
+                const py = f.startY + y;
+                pRect(px, py, 1, 2, '#0f766e');
+                if (y % 6 === 0) {
+                    pRect(px - 1, py, 3, 1, f.col);
+                }
+            }
+
+        } else if (f.type === 'staghorn_coral') {
+            if (!f._cols) {
+                f._cols = {
+                    base: `hsla(${f.hue}, 70%, 28%, 0.95)`,
+                    main: `hsla(${f.hue}, 85%, 52%, 0.92)`,
+                    hi: `hsla(${f.hue}, 95%, 68%, 0.95)`,
+                };
+            }
+            const baseCol = f._cols.base;
+            const mainCol = f._cols.main;
+            const hiCol = f._cols.hi;
+            const tipCol = '#fef08a';
+
+            pRect(f.x - 3, baseGroundY - 1, 7, 3, baseCol);
+            pRect(f.x - 2, baseGroundY - 2, 5, 2, mainCol);
+
+            for (let b = -1; b <= 1; b++) {
+                const bh = Math.round(f.h * (b === 0 ? 1 : 0.78));
+                for (let y = 0; y < bh; y++) {
+                    const prog = y / bh;
+                    const sway = Math.sin(time * 0.001 + f.phase) * prog * 0.8;
+                    const px = Math.round(f.x + b * Math.pow(prog, 1.15) * 6.5 + sway);
+                    const py = baseGroundY - y;
+                    const col = y >= bh - 2 ? tipCol : (y < 4 ? baseCol : (y % 2 === 0 ? hiCol : mainCol));
+                    pRect(px, py, 2, 1, col);
+
+                    if (b !== 0 && y >= Math.floor(bh * 0.50) && y <= Math.floor(bh * 0.50) + 4) {
+                        const subStep = y - Math.floor(bh * 0.50);
+                        const sx = px + b * (1 + Math.floor(subStep * 0.6));
+                        const sy = py - subStep;
+                        pRect(sx, sy, 2, 1, subStep >= 3 ? tipCol : hiCol);
+                    }
+                }
+            }
+            
+        } else if (f.type === 'willow_frond') {
+            const stemCol = isLightMode ? '#15803d' : '#0b4635';
+            const leafCol = isLightMode ? '#22c55e' : '#10b981';
+            const tipCol = isLightMode ? '#86efac' : '#34d399';
+            pRect(f.x - 1, f.startY - 1, 3, 2, '#3b281e');
+            for (let y = 0; y < f.len; y += 2) {
+                const prog = y / f.len;
+                const sway = Math.sin(time * 0.0014 + f.phase + y * 0.05) * (1.2 + prog * 4.5);
+                const px = Math.round(f.x + sway);
+                const py = f.startY + y;
+                pRect(px, py, 1, 2, stemCol);
+                if (y > 3 && y % 4 === 0) {
+                    const side = (y % 8 === 0) ? -1 : 1;
+                    pRect(px + side, py, 2, 1, prog > 0.72 ? tipCol : leafCol);
+                    pRect(px + side * 2, py + 1, 1, 1, prog > 0.60 ? tipCol : leafCol);
+                }
+            }
+
+       } else if (f.type === 'canopy_vine') {
+            for (let y = 0; y < f.len; y += 2) {
+                const progress = y / f.len;
+                const sway = Math.sin(time * 0.0011 + f.phase + y * 0.035) * (1.0 + progress * 3.2);
+                const px = Math.round(f.x + sway);
+                const py = f.startY + y;
+                pRect(px, py, 1, 2, f.hue);
+                if (y > 6 && y % 8 === 0) {
+                    const side = (y % 16 === 0) ? 1 : -1;
+                    pRect(px + side, py, 2 * side, 2, '#22c55e');
+                    pRect(px + side * 2, py + 1, 1, 1, '#15803d');
+                }
+            }
+
+        } else if (f.type === 'tropical_leaf') {
+            const stem = isLightMode ? '#166534' : '#0b4636';
+            const sway = Math.sin(time * 0.0013 + f.phase) * 1.8;
+            for (let blade = -1; blade <= 1; blade++) {
+                const length = Math.round(f.h * (blade === 0 ? 1 : 0.76));
+                const spread = blade * 7 + f.dir * 2;
+                for (let step = 0; step < length; step++) {
+                    const t = step / length;
+                    const cx = Math.round(f.x + (spread + sway) * Math.pow(t, 1.15));
+                    const cy = baseGroundY - step;
+                    const halfW = Math.max(1, Math.round(Math.sin(t * Math.PI) * 3.5));
+                    pRect(cx - halfW, cy, halfW * 2 + 1, 1, step % 4 === 0 ? f.hue : (isLightMode ? '#15803d' : '#0c6246'));
+                    pRect(cx, cy, 1, 1, isLightMode ? '#4ade80' : '#2dd4a0');
+                }
+            }
+            pRect(f.x - 1, baseGroundY - 3, 3, 4, stem);
+
+        } else if (f.type === 'monstera') {
+            const sway = Math.sin(time * 0.0012 + f.phase) * 1.3;
+            const stemCol = isLightMode ? '#0f5e35' : '#073d2b';
+            const leafDark = isLightMode ? '#15803d' : '#0b5838';
+            const leafLight = isLightMode ? '#22a65a' : '#1b8250';
+            for (let blade = -2; blade <= 2; blade++) {
+                const length = f.h * (blade === 0 ? 1 : (Math.abs(blade) === 1 ? 0.82 : 0.66));
+                const lateralReach = blade * 8.5 * f.dir;
+                for (let step = 0; step < length; step += 2) {
+                    const progress = step / length;
+                    const centerX = f.x + lateralReach * Math.pow(progress, 1.15) + sway * progress;
+                    const py = baseGroundY - step;
+                    const halfW = Math.max(1, Math.round(Math.sin(progress * Math.PI) * 5.5));
+                    const leafCol = (blade + Math.floor(step / 12)) % 2 === 0 ? leafLight : leafDark;
+                    pRect(centerX - halfW, py, halfW * 2 + 1, 2, leafCol);
+                    pRect(centerX, py, 1, 2, stemCol);
+
+                    if (step > 8 && step < length - 8 && step % 12 === 0 && halfW >= 3) {
+                        const cut = Math.max(1, Math.floor(halfW * 0.48));
+                        const shadow = isLightMode ? '#0b3b2b' : '#041713';
+                        pRect(centerX - cut, py, 1, 2, shadow);
+                        pRect(centerX + cut, py, 1, 2, shadow);
+                    }
+                    if (step % 10 === 0 && halfW > 2) {
+                        pRect(centerX - Math.sign(lateralReach || f.dir) * (halfW - 1), py - 1, 1, 2, isLightMode ? '#4ade80' : '#2bb46f');
+                    }
+                }
+            }
+            pRect(f.x - 3, baseGroundY - 5, 7, 5, stemCol);
+            pRect(f.x - 1, baseGroundY - 7, 3, 2, leafLight);
+
+        } else if (f.type === 'jungle_fern') {
+            const stemCol = isLightMode ? '#14532d' : '#093829';
+            const leafletLight = isLightMode ? '#22c55e' : '#148f5a';
+            const leafletDark = isLightMode ? '#15803d' : '#0d6340';
+            pRect(f.x - 2, baseGroundY - 1, 5, 2, stemCol);
+            for (let frond = -2; frond <= 2; frond++) {
+                const direction = frond === 0 ? (f.dir || 1) : Math.sign(frond);
+                const length = Math.round(f.h * (0.65 + (2 - Math.abs(frond)) * 0.16));
+                const spread = frond === 0 ? direction * 3 : frond * 5.5;
+                for (let step = 0; step < length; step++) {
+                    const t = step / length;
+                    const sway = Math.sin(time * 0.0014 + f.phase + frond) * t * 1.4;
+                    const px = Math.round(f.x + spread * Math.pow(t, 1.35) + sway);
+                    const py = baseGroundY - step + Math.round(Math.pow(t, 2.2) * 3);
+                    pRect(px, py, 1, 1, stemCol);
+                    if (step > 2 && step % 2 === 0) {
+                        const pinna = Math.max(1, Math.round(Math.sin(t * Math.PI) * 3.2));
+                        pRect(px - pinna, py, pinna * 2 + 1, 1, Math.abs(frond) % 2 === 0 ? leafletLight : leafletDark);
+                    }
+                }
+            }
+
+        } else if (f.type === 'heliconia') {
+            const sway = Math.sin(time * 0.0015 + f.phase) * 1.8;
+            const stemCol = isLightMode ? '#166534' : '#0d4a36';
+            const leafCol = isLightMode ? '#15803d' : '#116345';
+            const dir = f.dir || 1;
+
+            // Geniş kavisli taban yaprakları
+            [-1, 1].forEach(side => {
+                const lh = Math.round(f.h * 0.72);
+                for (let s = 0; s < lh; s++) {
+                    const t = s / lh;
+                    const lx = Math.round(f.x + side * Math.pow(t, 1.2) * 6 + sway * t * 0.6);
+                    const ly = baseGroundY - s;
+                    const lw = Math.max(1, Math.round(Math.sin(t * Math.PI) * 2.4));
+                    pRect(lx - lw, ly, lw * 2 + 1, 1, leafCol);
+                }
+            });
+
+            // Kavisli ana sap ve uçtan sarkan Heliconia (ıstakoz kıskacı) çiçek salkımı
+            let topX = f.x;
+            const topY = Math.round(baseGroundY - f.h);
+            for (let y = 0; y < f.h; y++) {
+                const prog = y / f.h;
+                topX = Math.round(f.x + dir * Math.pow(prog, 1.4) * 4 + sway * prog);
+                pRect(topX, baseGroundY - y, 1, 1, stemCol);
+            }
+            for (let b = 0; b < 4; b++) {
+                const bx = topX + dir * (2 + (b % 2));
+                const by = topY + 2 + b * 3;
+                pRect(topX + dir, by - 1, 2, 2, stemCol);
+                pRect(bx, by, 3 * dir, 2, f.hue);
+                pRect(bx + dir * 2, by, 1, 1, '#facc15');
+            }
+
+        } else if (f.type === 'epiphyte') {
+            const x = f.x;
+            const y = f.y;
+            const sway = Math.sin(time * 0.0015 + f.phase) * 0.6;
+            const leafDark = isLightMode ? '#14532d' : '#063726';
+            const leafMid = isLightMode ? '#16a34a' : '#0f6b48';
+
+            // Dal çatalını kavrayan ince kavisli epifit yaprakları
+            [-2, -1, 0, 1, 2].forEach(blade => {
+                for (let s = 0; s < 5; s++) {
+                    const lx = Math.round(x + blade * (1 + s * 0.45) + sway * (s / 5));
+                    const ly = y - s + Math.floor(Math.abs(blade) * 0.5);
+                    pRect(lx, ly, 1, 1, s < 2 ? leafDark : leafMid);
+                }
+            });
+            // Merkezden yükselen zarif çiçek başağı
+            const flX = Math.round(x + sway);
+            pRect(flX - 1, y - 4, 3, 2, f.hue);
+            pRect(flX, y - 6, 1, 2, f.hue);
+            pRect(flX, y - 6, 1, 1, '#fef08a');
+
+        } else if (f.type === 'bromeliad') {
+            const centerX = f.x;
+            const leafDark = isLightMode ? '#14532d' : '#093829';
+            const leafMid = isLightMode ? '#15803d' : '#0f5e42';
+            const leafHi = isLightMode ? '#22c55e' : '#168058';
+
+            for (let blade = -3; blade <= 3; blade++) {
+                const bh = Math.round(f.h * (0.58 + (3 - Math.abs(blade)) * 0.12));
+                const dir = blade === 0 ? 1 : Math.sign(blade);
+                for (let y = 0; y < bh; y++) {
+                    const prog = y / bh;
+                    const arch = blade * 2.8 * Math.pow(prog, 1.25);
+                    const droop = prog > 0.72 ? Math.round((prog - 0.72) * 6) : 0;
+                    const px = Math.round(centerX + arch);
+                    const py = baseGroundY - y + droop;
+                    const col = Math.abs(blade) % 2 === 0 ? (prog > 0.6 ? leafHi : leafMid) : leafDark;
+                    pRect(px - 1, py, 2, 1, col);
+                    if (prog < 0.25) pRect(px + dir, py, 1, 1, leafDark);
+                }
+            }
+            const bractY = Math.round(baseGroundY - f.h * 0.55);
+            for (let by = 0; by < 6; by++) {
+                const bw = by < 2 ? 1 : (by < 5 ? 2 : 1);
+                pRect(centerX - bw, bractY - by, bw * 2 + 1, 1, f.hue);
+            }
+            pRect(centerX, bractY - 6, 1, 2, '#facc15');
+
+        } else if (f.type === 'orchid') {
+            const stemCol = isLightMode ? '#166534' : '#115e59';
+            const leafCol = isLightMode ? '#15803d' : '#0d4a36';
+            pRect(f.x - 3, baseGroundY - 2, 3, 2, leafCol);
+            pRect(f.x + 1, baseGroundY - 2, 3, 2, leafCol);
+            let topX = f.x;
+            for (let y = 0; y < f.h; y++) {
+                const prog = y / f.h;
+                const sway = Math.sin(time * 0.0016 + f.phase + y * 0.06) * prog * 2.2 + Math.pow(prog, 1.4) * 3;
+                topX = Math.round(f.x + sway);
+                pRect(topX, baseGroundY - y, 1, 1, stemCol);
+            }
+            const flowerY = Math.round(baseGroundY - f.h);
+            pRect(topX - 2, flowerY - 1, 5, 3, f.hue);
+            pRect(topX - 1, flowerY - 2, 3, 4, '#fbcfe8');
+            pRect(topX, flowerY, 1, 2, '#be185d');
+            pRect(topX, flowerY - 1, 1, 1, '#fef08a');
+
+            // BÖLÜM SONU: AĞAÇ, SARMAŞIK VE ORMAN FLORASI
+
+        } else if (f.type === 'meadow_stone') {
+            // BÖLÜM BAŞI: ÇAYIR VE ÇİÇEKLİ BİTKİLER
+            const stoneDark = isLightMode ? '#475569' : '#1e293b';
+            const stoneMid = isLightMode ? '#64748b' : '#334155';
+            const stoneHi = isLightMode ? '#94a3b8' : '#475569';
+            pRect(f.x - f.rx, baseGroundY, f.rx * 2, 2, 'rgba(2, 10, 14, 0.38)');
+            for (let dy = -f.ry; dy <= 0; dy++) {
+                const span = Math.max(1, Math.round(f.rx * Math.sqrt(Math.max(0, 1 - (dy * dy) / ((f.ry + 1) * (f.ry + 1))))));
+                pRect(f.x - span, baseGroundY + dy, span * 2, 1, dy === 0 ? stoneDark : stoneMid);
+                if (dy === -f.ry) {
+                    pRect(f.x - span + 1, baseGroundY + dy, Math.max(1, span * 2 - 2), 1, stoneHi);
+                    if (f.hasMoss) {
+                        pRect(f.x - Math.floor(span * 0.6), baseGroundY + dy, Math.max(2, Math.floor(span * 1.1)), 1, isLightMode ? '#16a34a' : '#15803d');
+                    }
+                }
+            }
+
+        } else if (f.type === 'meadow_tuft') {
+            const bladeDark = isLightMode ? '#15803d' : '#0d3b2e';
+            const bladeLight = isLightMode ? '#22c55e' : '#155e46';
+            const sway = Math.sin(time * 0.0017 + f.phase) * 1.2;
+            [-2, -1, 0, 1, 2].forEach((b, bIdx) => {
+                const bh = Math.max(3, f.h - Math.abs(b));
+                for (let y = 0; y < bh; y++) {
+                    const prog = y / bh;
+                    const bx = f.x + b + (b * 0.6 + sway) * prog;
+                    pRect(bx, baseGroundY - y, 1, 1, bIdx % 2 === 0 ? bladeLight : bladeDark);
+                }
+            });
+            if (f.hasClover) {
+                const cx = Math.round(f.x + sway * 0.6);
+                const cy = baseGroundY - Math.max(2, Math.floor(f.h * 0.55));
+                pRect(cx - 1, cy, 3, 1, '#16a34a');
+                pRect(cx - 1, cy - 1, 3, 1, f.cloverCol);
+                pRect(cx, cy - 2, 1, 1, '#ffffff');
+            }
+
+        } else if (f.type === 'sunflower') {
+            const stemShade = isLightMode ? '#15803d' : '#14532d';
+            const stemHi = isLightMode ? '#22c55e' : '#1b5e3a';
+            const leafCol = isLightMode ? '#16a34a' : '#15803d';
+            const leafHi = isLightMode ? '#4ade80' : '#22c55e';
+            let topX = f.x;
+            const topY = baseGroundY - Math.floor(f.h);
+
+            pRect(f.x - 2, baseGroundY - 1, 5, 2, stemShade);
+            pRect(f.x - 3, baseGroundY - 2, 2, 1, leafCol);
+            pRect(f.x + 2, baseGroundY - 2, 2, 1, leafCol);
+
+            for (let y = 0; y < f.h; y++) {
+                const sway = Math.sin(time * 0.0016 + f.phase + y * 0.05) * (y / f.h) * 3.0;
+                const px = f.x + sway;
+                const py = baseGroundY - y;
+                if (y === Math.floor(f.h) - 1) topX = px;
+                pRect(px, py, 2, 1, stemShade);
+                pRect(px, py, 1, 1, stemHi);
+
+                if (y === Math.floor(f.h * 0.32) || y === Math.floor(f.h * 0.54) || y === Math.floor(f.h * 0.74)) {
+                    const side = (y === Math.floor(f.h * 0.54)) ? -1 : 1;
+                    const petioleX = px + (side > 0 ? 2 : -1);
+                    pRect(petioleX, py, 1, 1, stemShade);
+                    pRect(petioleX + side, py - 1, 3, 2, leafCol);
+                    pRect(petioleX + side * 2, py, 3, 2, leafCol);
+                    pRect(petioleX + side, py - 1, 2, 1, leafHi);
+                }
+            }
+            const hr = f.headR || 4;
+            pRect(topX - 2, topY + 1, 5, 2, stemShade);
+            for (let dy = -hr - 1; dy <= hr + 1; dy++) {
+                for (let dx = -hr - 1; dx <= hr + 1; dx++) {
+                    const d2 = dx * dx + dy * dy;
+                    if (d2 <= 3) {
+                        pRect(topX + dx, topY + dy, 1, 1, (dx + dy) % 2 === 0 ? '#451a03' : '#78350f');
+                    } else if (d2 <= 6) {
+                        pRect(topX + dx, topY + dy, 1, 1, '#92400e');
+                    } else if (d2 <= hr * hr + 2) {
+                        const isOuterTip = d2 > (hr - 1) * (hr - 1);
+                        const petalCol = isOuterTip ? '#fde047' : ((dx + dy) % 2 === 0 ? '#facc15' : '#f59e0b');
+                        pRect(topX + dx, topY + dy, 1, 1, petalCol);
+                    }
+                }
+            }
+            f.tipX = topX;
+            f.tipY = topY;
+
+        } else if (f.type === 'foxglove' || f.type === 'loosestrife') {
+            const stemShade = isLightMode ? '#15803d' : '#115e59';
+            const rosetteCol = isLightMode ? '#16a34a' : '#0f5138';
+            let topX = f.x;
+
+            pRect(f.x - 3, baseGroundY - 1, 7, 2, stemShade);
+            pRect(f.x - 4, baseGroundY - 2, 3, 1, rosetteCol);
+            pRect(f.x + 2, baseGroundY - 2, 3, 1, rosetteCol);
+
+            for (let y = 0; y < f.h; y++) {
+                const prog = y / f.h;
+                const sway = Math.sin(time * 0.0017 + f.phase + y * 0.05) * prog * 2.8;
+                const px = f.x + sway;
+                const py = baseGroundY - y;
+                topX = px;
+                pRect(px, py, 1, 1, stemShade);
+
+                if (y === Math.floor(f.h * 0.22) || y === Math.floor(f.h * 0.34)) {
+                    const lSide = y % 2 === 0 ? -2 : 1;
+                    pRect(px + lSide, py, 2, 1, rosetteCol);
+                }
+
+                if (prog > 0.38 && y % 3 === 0) {
+                    const side = (y % 6 === 0) ? -1 : 1;
+                    pRect(px + side, py, 1, 1, stemShade);
+                    if (prog > 0.86) {
+                        pRect(px + side, py, 2, 1, f.hue);
+                    } else {
+                        const bellX = px + (side < 0 ? -3 : 1);
+                        pRect(bellX, py, 3, 2, f.hue);
+                        pRect(bellX + (side < 0 ? 0 : 2), py + 1, 1, 1, '#fdf4ff');
+                    }
+                }
+            }
+            pRect(topX, baseGroundY - f.h - 1, 1, 2, f.hue);
+            f.tipX = topX;
+            f.tipY = baseGroundY - f.h;
+
+       } else if (f.type === 'buddleia') {
+            const woodyCol = isLightMode ? '#451a03' : '#1e1b2e';
+            const stemCol = isLightMode ? '#15803d' : '#0d4a3a';
+            const leafCol = isLightMode ? '#22c55e' : '#10b981';
+            let tipX = f.x;
+            let tipY = baseGroundY - f.h;
+
+            pRect(f.x - 3, baseGroundY - 1, 7, 2, stemCol);
+            pRect(f.x - 1, baseGroundY - 3, 3, 3, woodyCol);
+
+            for (let y = 0; y < f.h; y++) {
+                const prog = y / f.h;
+                const sway = Math.sin(time * 0.0016 + f.phase + y * 0.05) * prog * 3.2 + (f.tilt || 0) * y * 0.7;
+                const px = Math.round(f.x + sway);
+                const py = baseGroundY - y;
+                tipX = px;
+                tipY = py;
+                pRect(px, py, 1, 1, y < 5 ? woodyCol : stemCol);
+
+                if (y === Math.floor(f.h * 0.26) || y === Math.floor(f.h * 0.44)) {
+                    pRect(px - 3, py, 7, 1, stemCol);
+                    pRect(px - 2, py - 1, 2, 1, leafCol);
+                    pRect(px + 1, py - 1, 2, 1, leafCol);
+                }
+                if (prog > 0.52 && y % 2 === 0) {
+                    const coneW = Math.max(1, Math.round((1 - prog) * 5.5));
+                    pRect(px - coneW, py, coneW * 2 + 1, 2, f.hue);
+                    if (coneW >= 2) pRect(px - coneW + 1, py - 1, coneW * 2 - 1, 1, '#fdf4ff');
+                    pRect(px, py, 1, 1, '#fef08a');
+                }
+            }
+            pRect(tipX, tipY - 1, 1, 2, f.hue);
+            f.tipX = tipX;
+            f.tipY = tipY;
+
+        } else if (f.type === 'hydrangea') {
+            const sway = Math.sin(time * 0.0012 + f.phase) * 1.2;
+            const cx = Math.round(f.x + sway);
+            const cy = baseGroundY - f.r - 2;
+            const bushDark = isLightMode ? '#14532d' : '#063729';
+            const bushMid = isLightMode ? '#15803d' : '#064e3b';
+            const bushHi = isLightMode ? '#22c55e' : '#10b981';
+
+            pRect(f.x - f.r - 2, baseGroundY, (f.r + 2) * 2, 2, 'rgba(2, 8, 16, 0.35)');
+            for (let by = 0; by < 5; by++) {
+                const bw = f.r + 3 - Math.floor(by * 0.5);
+                pRect(f.x - bw + sway * 0.4, baseGroundY - by, bw * 2, 1, by < 2 ? bushDark : bushMid);
+            }
+            [-2, 0, 2].forEach(stemOff => {
+                pRect(f.x + stemOff, baseGroundY - 5, 1, 4, '#3b2316');
+                pRect(f.x + stemOff * 1.5, baseGroundY - 5, 2, 1, bushHi);
+            });
+
+            for (let dy = -f.r; dy <= f.r * 0.65; dy += 2) {
+                const span = Math.round(f.r * Math.sqrt(Math.max(0, 1 - (dy * dy) / (f.r * f.r))));
+                for (let dx = -span; dx <= span; dx += 2) {
+                    const floretCol = (dx + dy) % 4 === 0 ? '#fdf4ff' : f.hue;
+                    pRect(cx + dx, cy + dy, 2, 2, floretCol);
+                    if ((dx * dy) % 3 === 0) pRect(cx + dx, cy + dy, 1, 1, '#fef9c3');
+                }
+            }
+            f.tipX = cx;
+            f.tipY = cy - f.r;
+
+        } else if (f.type === 'meadow') {
+            const stemShade = isLightMode ? '#15803d' : '#14332a';
+            const leafAccent = isLightMode ? '#22c55e' : '#1b4d3e';
+            let topX = f.x;
+            const maxH = Math.floor(f.h);
+
+            pRect(f.x - 1, baseGroundY - 1, 3, 2, stemShade);
+            pRect(f.x - 2, baseGroundY - 2, 1, 2, leafAccent);
+            pRect(f.x + 2, baseGroundY - 2, 1, 2, leafAccent);
+
+            for (let y = 0; y < maxH; y++) {
+                const prog = y / Math.max(1, maxH);
+                const sway = Math.sin(time * 0.0018 + f.phase + y * 0.07) * prog * 2.8;
+                const px = f.x + sway;
+                const py = baseGroundY - y;
+                topX = px;
+                pRect(px, py, 1, 1, stemShade);
+
+                if (y === Math.floor(maxH * 0.42)) {
+                    const side = (f.x % 2 === 0) ? -1 : 1;
+                    pRect(px + side, py, 2 * side, 1, leafAccent);
+                }
+
+                if (f.hasBloom && f.kind === 'lavender' && y > maxH - 9 && y % 2 === 0) {
+                    pRect(px - 1, py, 3, 1, y >= maxH - 3 ? '#c084fc' : '#9333ea');
+                    if (y === maxH - 1) pRect(px, py - 1, 1, 1, '#e9d5ff');
+                }
+            }
+
+            const headY = baseGroundY - maxH;
+            if (f.hasBloom) {
+                if (f.kind === 'daisy') {
+                    pRect(topX - 1, headY + 1, 3, 1, stemShade);
+                    pRect(topX - 3, headY - 1, 7, 2, '#f8fafc');
+                    pRect(topX - 2, headY - 2, 5, 4, '#ffffff');
+                    pRect(topX - 1, headY - 1, 3, 2, '#facc15');
+                    pRect(topX, headY - 1, 1, 1, '#f59e0b');
+                } else if (f.kind === 'poppy') {
+                    pRect(topX - 1, headY + 1, 3, 1, stemShade);
+                    pRect(topX - 3, headY - 2, 7, 3, '#e11d48');
+                    pRect(topX - 2, headY - 3, 5, 3, '#fb7185');
+                    pRect(topX - 3, headY - 3, 2, 1, '#fda4af');
+                    pRect(topX + 2, headY - 3, 2, 1, '#fda4af');
+                    pRect(topX - 1, headY - 1, 3, 2, '#1e1b4b');
+                    pRect(topX, headY - 1, 1, 1, '#fef08a');
+                } else if (f.kind === 'buttercup') {
+                    pRect(topX - 1, headY + 1, 3, 1, stemShade);
+                    pRect(topX - 2, headY - 1, 5, 2, '#f59e0b');
+                    pRect(topX - 2, headY - 2, 5, 2, '#fde047');
+                    pRect(topX - 1, headY - 2, 3, 1, '#fef9c3');
+                    pRect(topX, headY - 1, 1, 1, '#d97706');
+                } else if (f.kind === 'echinacea') {
+                    pRect(topX - 1, headY + 1, 3, 1, stemShade);
+                    pRect(topX - 3, headY, 2, 2, '#f472b6');
+                    pRect(topX + 2, headY, 2, 2, '#f472b6');
+                    pRect(topX - 2, headY - 1, 5, 2, '#ec4899');
+                    pRect(topX - 1, headY - 2, 3, 2, '#b45309');
+                    pRect(topX, headY - 2, 1, 1, '#f59e0b');
+                } else if (f.kind === 'nightbloom') {
+                    pRect(topX - 1, headY + 1, 3, 1, stemShade);
+                    pRect(topX - 2, headY - 1, 5, 3, '#38bdf8');
+                    pRect(topX - 1, headY - 2, 3, 2, '#7dd3fc');
+                    pRect(topX, headY - 1, 1, 1, '#e0f2fe');
+                }
+            }
+            f.tipX = topX;
+            f.tipY = headY;
+
+            // BÖLÜM SONU: ÇAYIR VE ÇİÇEKLİ BİTKİLER
+        } else if (f.type === 'carpet_tuft') {
+            // BÖLÜM BAŞI: SULAK ALAN VE AKVARYUM BİTKİLERİ
+            const sway = Math.sin(time * 0.0015 + f.phase) * 0.6;
+            const darkCol = isLightMode ? '#15803d' : '#064e3b';
+            const midCol = isLightMode ? '#16a34a' : '#047857';
+            const hiCol = isLightMode ? '#4ade80' : '#10b981';
+            pRect(f.x - f.w, baseGroundY - 1, f.w * 2, 2, darkCol);
+            pRect(f.x - f.w + 1 + sway, baseGroundY - f.h, f.w * 2 - 2, f.h, midCol);
+            pRect(f.x - 1 + sway, baseGroundY - f.h, 2, 1, hiCol);
+
+        } else if (f.type === 'amazon_sword') {
+            const crownCol = isLightMode ? '#14532d' : '#064e3b';
+            const bladeDark = isLightMode ? '#15803d' : '#047857';
+            const bladeLight = isLightMode ? '#22c55e' : '#10b981';
+            const veinCol = isLightMode ? '#86efac' : '#34d399';
+            pRect(f.x - 2, baseGroundY - 1, 5, 2, crownCol);
+            [-2, -1, 0, 1, 2].forEach(b => {
+                const bh = f.h * (b === 0 ? 1 : (Math.abs(b) === 1 ? 0.86 : 0.70));
+                const spread = b * 3.2;
+                for (let y = 0; y < bh; y += 2) {
+                    const prog = y / bh;
+                    const sway = Math.sin(time * 0.0015 + f.phase + b * 0.5) * prog * 2.5;
+                    const cx = f.x + spread * prog + sway;
+                    const cy = baseGroundY - y;
+                    const halfW = Math.max(1, Math.round(Math.sin(prog * Math.PI) * 2.2));
+                    pRect(cx - halfW, cy, halfW * 2 + 1, 2, Math.abs(b) % 2 === 0 ? bladeLight : bladeDark);
+                    pRect(cx, cy, 1, 2, veinCol);
+                }
+            });
+
+        } else if (f.type === 'hornwort') {
+            pRect(f.x - 1, baseGroundY - 1, 3, 2, isLightMode ? '#14532d' : '#064e3b');
+            for (let y = 0; y < f.h; y++) {
+                const sway = Math.sin(time * 0.0018 + f.phase + y * 0.06) * (y / f.h) * 4.5;
+                const px = f.x + sway;
+                const py = baseGroundY - y;
+                if (py < 4) break;
+                pRect(px, py, 1, 1, isLightMode ? '#15803d' : '#065f46');
+                if (y > 4 && y % 4 === 0) {
+                    const span = Math.max(2, Math.round(f.whorlSpan * (1 - (y / f.h) * 0.35)));
+                    for (let wx = -span; wx <= span; wx++) {
+                        if (wx === 0) continue;
+                        const needleY = py - Math.abs(wx) * 0.45;
+                        const isTip = Math.abs(wx) === span;
+                        const col = (!isLightMode && isTip) ? f.glowCol : (isLightMode ? '#22c55e' : '#047857');
+                        pRect(px + wx, needleY, 1, 1, col);
+                    }
+                }
+                if (!isLightMode && y === Math.floor(f.h) - 1) {
+                    pRect(px - 1, py - 1, 3, 2, '#6ee7b7');
+                }
+            }
+
+        } else if (f.type === 'pistia') {
+            const drift = Math.sin(time * 0.0012 + f.phase) * 3.5;
+            const px = Math.round(f.x + drift);
+            pRect(px - 5, 2, 11, 2, isLightMode ? '#16a34a' : '#0f5138');
+            pRect(px - 4, 1, 9, 2, isLightMode ? '#22c55e' : '#15803d');
+            pRect(px - 2, 1, 5, 1, '#86efac');
+            for (let r = 0; r < f.rootLen; r++) {
+                const rw = Math.sin(time * 0.002 + r * 0.25 + f.phase) * 1.4;
+                const rootAlpha = (0.42 * (1 - r / f.rootLen)).toFixed(2);
+                pRect(px + rw, 3 + r, 1, 1, `rgba(167, 243, 208, ${rootAlpha})`);
+                if (r < f.rootLen * 0.72) {
+                    pRect(px - 2 + rw * 0.8, 3 + r, 1, 1, `rgba(52, 211, 153, ${rootAlpha})`);
+                    pRect(px + 2 + rw * 0.8, 3 + r, 1, 1, `rgba(52, 211, 153, ${rootAlpha})`);
+                }
+            }
+            
+       } else if (f.type === 'wisteria_cluster') {
+            pRect(f.x - 1, f.branchY - 1, 3, 2, '#3b2316');
+            pRect(f.x - 3, f.branchY + 1, 7, 1, isLightMode ? '#15803d' : '#0d4a36');
+            pRect(f.x - 2, f.branchY + 2, 5, 1, isLightMode ? '#22c55e' : '#10b981');
+            for (let y = 0; y < f.len; y++) {
+                const prog = y / f.len;
+                const sway = Math.sin(time * 0.0015 + f.phase + y * 0.09) * prog * 3.5;
+                const px = Math.round(f.x + sway);
+                const py = f.branchY + y;
+                pRect(px, py, 1, 1, '#14532d');
+                if (y > 2 && y % 2 === 0) {
+                    const halfW = Math.max(0, Math.round((1 - prog) * 3.4));
+                    for (let dx = -halfW; dx <= halfW; dx++) {
+                        const petalCol = (dx === 0 && y % 4 === 0) ? '#fdf4ff' : f.hue;
+                        pRect(px + dx, py, 1, 2, petalCol);
+                    }
+                }
+            }
+
+        } else if (f.type === 'fern') {
+            pRect(f.x - 2, baseGroundY - 1, 5, 2, '#14532d');
+            for (let i = 1; i <= 3; i++) {
+                const side = (i === 2) ? -f.dir : f.dir;
+                const fh = f.h * (0.65 + i * 0.12);
+                for (let y = 0; y < fh; y++) {
+                    const prog = y / fh;
+                    const curve = Math.pow(prog, 1.4) * 6 * side + Math.sin(time * 0.0016 + f.phase) * prog * 1.5;
+                    const px = Math.round(f.x + curve);
+                    const py = baseGroundY - y;
+                    pRect(px, py, 1, 1, isLightMode ? '#15803d' : '#065f46');
+                    if (y % 2 === 0 && y < fh - 2) {
+                        const pinna = Math.max(1, Math.round((1 - prog) * 3));
+                        pRect(px - pinna, py, pinna * 2 + 1, 1, isLightMode ? '#22c55e' : '#10b981');
+                    }
+                }
+            }
+
+        } else if (f.type === 'glow_mushroom') {
+            const sway = Math.sin(time * 0.002 + f.phase) * 0.8;
+            pRect(f.x - 2, baseGroundY - 1, 5, 2, isLightMode ? '#14532d' : '#064e3b');
+            for (let y = 0; y < f.h; y++) {
+                pRect(f.x + sway * (y / f.h), baseGroundY - y, 1, 1, '#e2e8f0');
+            }
+            const cx = Math.round(f.x + sway);
+            const cy = Math.round(baseGroundY - f.h);
+            pRect(cx - f.capR + 1, cy + 1, Math.max(1, (f.capR - 1) * 2 + 1), 1, '#94a3b8');
+            pRect(cx - f.capR, cy, f.capR * 2 + 1, 2, f.col);
+            pRect(cx - f.capR + 1, cy - 1, (f.capR - 1) * 2 + 1, 1, '#e0f2fe');
+            if (!isLightMode) {
+                pRect(cx - f.capR - 1, cy - 2, f.capR * 2 + 3, 4, 'rgba(56, 189, 248, 0.22)');
+            }
+
+        } else if (f.type === 'iris') {
+            const sheathCol = isLightMode ? '#14532d' : '#063729';
+            const bladeCol = isLightMode ? '#15803d' : '#0d5946';
+            const bladeHi = isLightMode ? '#22c55e' : '#10b981';
+            pRect(f.x - 2, baseGroundY - 1, 5, 2, sheathCol);
+            for (let blade = -1; blade <= 1; blade++) {
+                const bh = f.h * (blade === 0 ? 1 : 0.78);
+                for (let y = 0; y < bh; y += 2) {
+                    const prog = y / bh;
+                    const sway = Math.sin(time * 0.0015 + f.phase + y * 0.05) * prog * 2.4 + blade * (y * 0.15);
+                    pRect(f.x + sway, baseGroundY - y, blade === 0 ? 2 : 1, 2, blade === 0 ? bladeCol : bladeHi);
+                }
+            }
+            const topX = Math.round(f.x + Math.sin(time * 0.0015 + f.phase + f.h * 0.05) * 2.4);
+            const topY = Math.round(baseGroundY - f.h);
+            pRect(topX - 1, topY + 1, 3, 1, bladeCol);
+            pRect(topX - 3, topY - 1, 2, 2, f.col);
+            pRect(topX + 2, topY - 1, 2, 2, f.col);
+            pRect(topX - 2, topY - 2, 5, 2, f.col);
+            pRect(topX - 1, topY - 4, 3, 3, f.col);
+            pRect(topX, topY - 2, 1, 2, '#fef9c3');
+
+        } else if (f.type === 'papyrus') {
+            const stemDark = isLightMode ? '#14532d' : '#063729';
+            const stemCol = isLightMode ? '#166534' : '#0c4a38';
+            const rayCol = isLightMode ? '#22c55e' : '#10b981';
+            let topX = f.x;
+            const topY = Math.round(baseGroundY - f.h);
+            pRect(f.x - 2, baseGroundY - 1, 5, 2, stemDark);
+            for (let y = 0; y < f.h; y += 2) {
+                const sway = Math.sin(time * 0.0014 + f.phase + y * 0.05) * (y / f.h) * 3;
+                topX = Math.round(f.x + sway);
+                pRect(topX, baseGroundY - y, 2, 2, stemCol);
+            }
+            pRect(topX - 1, topY, 4, 2, '#78350f');
+            for (let r = -5; r <= 5; r++) {
+                const arch = Math.abs(r) < 3 ? 2 : 1;
+                pRect(topX + r, topY - arch, 1, 2, rayCol);
+                if (Math.abs(r) % 2 === 1) {
+                    pRect(topX + r, topY - arch - 1, 1, 1, '#fde68a');
+                }
+            }
+
+        } else if (f.type === 'val' || f.type === 'ludwigia') {
+            pRect(f.x - 1, baseGroundY - 1, 3, 2, f.type === 'ludwigia' ? '#4c0519' : '#064e3b');
+            if (f.type === 'val') {
+                [-1, 0, 1].forEach(ribbon => {
+                    const rh = f.h * (ribbon === 0 ? 1 : 0.82);
+                    for (let y = 0; y < rh; y++) {
+                        const prog = y / rh;
+                        const sway = Math.sin(time * 0.0016 + f.phase + y * 0.06 + ribbon * 0.4) * prog * 4.5 + ribbon * prog * 2.5;
+                        const px = f.x + ribbon + sway;
+                        const py = baseGroundY - y;
+                        if (py < 4) break;
+                        pRect(px, py, 1, 1, ribbon === 0 ? (isLightMode ? '#22c55e' : '#10b981') : (isLightMode ? '#15803d' : '#0f5138'));
+                    }
+                });
+            } else {
+                for (let y = 0; y < f.h; y++) {
+                    const prog = y / f.h;
+                    const sway = Math.sin(time * 0.0016 + f.phase + y * 0.07) * prog * 3.8;
+                    const px = f.x + sway;
+                    const py = baseGroundY - y;
+                    if (py < 4) break;
+                    const stemCol = prog > 0.6 ? '#be123c' : '#881337';
+                    const leafCol = prog > 0.65 ? '#fda4af' : (prog > 0.35 ? '#fb7185' : '#e11d48');
+                    pRect(px, py, 1, 1, stemCol);
+                    if (y % 4 === 0 && y > 5) {
+                        const span = prog > 0.75 ? 2 : 3;
+                        pRect(px - span, py, span * 2 + 1, 1, leafCol);
+                        pRect(px - span + 1, py - 1, Math.max(1, span - 1), 1, leafCol);
+                        pRect(px + 1, py - 1, Math.max(1, span - 1), 1, leafCol);
+                    }
+                }
+            }
+
+        } else if (f.type === 'reed') {
+            const stemCol = isLightMode ? '#166534' : '#0d4a3a';
+            const bladeCol = isLightMode ? '#15803d' : '#115e49';
+            const bladeHi = isLightMode ? '#22c55e' : '#10b981';
+            let tipX = f.x;
+            pRect(f.x - 2, baseGroundY - 1, 5, 2, stemCol);
+
+            for (let y = 0; y < f.h; y++) {
+                const prog = y / f.h;
+                const sway = Math.sin(time * 0.0015 + f.phase + y * 0.045) * prog * 3.5 + (f.tilt || 0) * y;
+                const px = f.x + sway;
+                const py = baseGroundY - y;
+                tipX = px;
+                pRect(px, py, 1, 1, stemCol);
+
+                if (y > 4 && y < f.h * 0.68 && y % 2 === 0) {
+                    const bladeSpread = Math.sin(prog * Math.PI) * 3.8;
+                    pRect(px - bladeSpread, py, 1, 2, bladeCol);
+                    pRect(px + bladeSpread, py + 1, 1, 2, bladeHi);
+                }
+
+                if (f.hasCat && y > f.h - 17 && y < f.h - 5) {
+                    pRect(px - 1, py, 3, 1, '#3b1806');
+                    pRect(px - 1, py, 2, 1, '#5c2d16');
+                    pRect(px, py, 1, 1, '#78350f');
+                    if (y === Math.floor(f.h - 6)) {
+                        pRect(px - 1, py - 1, 2, 1, '#fef3c7');
+                    }
+                }
+                if (f.hasCat && y >= f.h - 5) {
+                    pRect(px, py, 1, 1, '#d97706');
+                }
+            }
+            f.tipX = tipX;
+            f.tipY = baseGroundY - f.h;
+            
+        } else if (f.type === 'lily') {
+            const driftX = Math.round(f.x + Math.sin(time * 0.001 + (f.phase || 0)) * 1.2);
+            const ry = Math.max(2, Math.ceil(f.r * 0.55));
+            const topPad = Math.max(ry, f.flower ? 5 : ry);
+            const botPad = Math.max(ry, 4);
+
+            if (!f._sprite || f._spriteLight !== isLightMode || f._spriteR !== f.r) {
+                const sp = createOffscreenSprite(f.r * 2 + 4, topPad + botPad + 2);
+                if (sp) {
+                    const { off, sctx } = sp;
+                    const ox = f.r + 1;
+                    const oy = topPad;
+                    const padCol1 = isLightMode ? '#15803d' : '#0f4c3a';
+                    const padCol2 = isLightMode ? '#16a34a' : '#14634b';
+                    const padRim = isLightMode ? '#4ade80' : '#2dd4bf';
+
+                    sctx.fillStyle = 'rgba(2, 10, 18, 0.38)';
+                    sctx.fillRect(ox - f.r + 1, oy + 2, f.r * 2 - 2, 2);
+                    for (let dy = -ry; dy <= ry; dy++) {
+                        for (let dx = -f.r; dx <= f.r; dx++) {
+                            const normDist = (dx * dx) / (f.r * f.r) + (dy * dy) / (ry * ry);
+                            if (normDist <= 1) {
+                                if (dx > 1 && Math.abs(dy) <= Math.floor((dx - 1) * 0.35)) continue;
+                                const isRim = normDist > 0.72 && dy < 0;
+                                sctx.fillStyle = isRim ? padRim : ((dx + dy) % 2 === 0 ? padCol1 : padCol2);
+                                sctx.fillRect(ox + dx, oy + dy, 1, 1);
+                            }
+                        }
+                    }
+                    if (f.flower) {
+                        const flCol = f.flowerCol || '#f472b6';
+                        sctx.fillStyle = padCol1;
+                        sctx.fillRect(ox - 3, oy - 1, 7, 1);
+                        sctx.fillStyle = flCol;
+                        sctx.fillRect(ox - 3, oy - 2, 7, 2);
+                        sctx.fillRect(ox - 2, oy - 3, 5, 3);
+                        sctx.fillStyle = '#ffffff';
+                        sctx.fillRect(ox - 1, oy - 4, 3, 2);
+                        sctx.fillStyle = '#fef08a';
+                        sctx.fillRect(ox, oy - 2, 1, 1);
+                    }
+                    f._sprite = off;
+                    f._spriteLight = isLightMode;
+                    f._spriteR = f.r;
+                }
+            }
+
+            if (f._sprite) {
+                ctx.drawImage(f._sprite, driftX - f.r - 1, Math.round(f.y) - topPad);
+            } else {
+                const padCol1 = isLightMode ? '#15803d' : '#0f4c3a';
+                const padCol2 = isLightMode ? '#16a34a' : '#14634b';
+                const padRim = isLightMode ? '#4ade80' : '#2dd4bf';
+                pRect(driftX - f.r + 1, f.y + 2, f.r * 2 - 2, 2, 'rgba(2, 10, 18, 0.38)');
+                for (let dy = -ry; dy <= ry; dy++) {
+                    for (let dx = -f.r; dx <= f.r; dx++) {
+                        const normDist = (dx * dx) / (f.r * f.r) + (dy * dy) / (ry * ry);
+                        if (normDist <= 1) {
+                            if (dx > 1 && Math.abs(dy) <= Math.floor((dx - 1) * 0.35)) continue;
+                            const isRim = normDist > 0.72 && dy < 0;
+                            const col = isRim ? padRim : ((dx + dy) % 2 === 0 ? padCol1 : padCol2);
+                            pRect(driftX + dx, f.y + dy, 1, 1, col);
+                        }
+                    }
+                }
+                if (f.flower) {
+                    const flCol = f.flowerCol || '#f472b6';
+                    pRect(driftX - 3, f.y - 1, 7, 1, padCol1);
+                    pRect(driftX - 3, f.y - 2, 7, 2, flCol);
+                    pRect(driftX - 2, f.y - 3, 5, 3, flCol);
+                    pRect(driftX - 1, f.y - 4, 3, 2, '#ffffff');
+                    pRect(driftX, f.y - 2, 1, 1, '#fef08a');
+                }
+            }
+
+            // BÖLÜM SONU: SULAK ALAN VE AKVARYUM BİTKİLERİ
+            
+       } else if (f.type === 'brain_coral') {
+            // BÖLÜM BAŞI: RESİF VE DENİZ CANLILARI
+            if (!f._sprite || f._spriteR !== f.r) {
+                const sp = createOffscreenSprite((f.r + 1) * 2 + 1, f.r + 3);
+                if (sp) {
+                    const { off, sctx } = sp;
+                    const ox = f.r + 1;
+                    const oy = f.r;
+                    sctx.fillStyle = 'rgba(5, 4, 23, 0.48)';
+                    sctx.fillRect(ox - f.r - 1, oy, (f.r + 1) * 2, 2);
+                    sctx.fillStyle = '#1e1b4b';
+                    sctx.fillRect(ox - f.r, oy - 1, f.r * 2, 2);
+                    for (let dy = -f.r; dy <= 0; dy++) {
+                        const span = Math.round(f.r * Math.sqrt(Math.max(0, 1 - (dy * dy) / (f.r * f.r))));
+                        for (let dx = -span; dx <= span; dx++) {
+                            const groove = Math.sin(dx * 1.35 + Math.cos(dy * 1.2) * 1.5) > 0.15;
+                            const isRim = dy < -f.r * 0.6 && Math.abs(dx) < span * 0.6;
+                            const lightness = groove ? (isRim ? 74 : 64) : 26;
+                            sctx.fillStyle = `hsla(${f.hue}, 90%, ${lightness}%, 0.92)`;
+                            sctx.fillRect(ox + dx, oy + dy, 1, 1);
+                        }
+                    }
+                    f._sprite = off;
+                    f._spriteR = f.r;
+                }
+            }
+            if (f._sprite) {
+                ctx.drawImage(f._sprite, Math.round(f.x - f.r - 1), Math.round(baseGroundY - f.r));
+            } else {
+                pRect(f.x - f.r - 1, baseGroundY, (f.r + 1) * 2, 2, 'rgba(5, 4, 23, 0.48)');
+                pRect(f.x - f.r, baseGroundY - 1, f.r * 2, 2, '#1e1b4b');
+                for (let dy = -f.r; dy <= 0; dy++) {
+                    const span = Math.round(f.r * Math.sqrt(Math.max(0, 1 - (dy * dy) / (f.r * f.r))));
+                    for (let dx = -span; dx <= span; dx++) {
+                        const groove = Math.sin(dx * 1.35 + Math.cos(dy * 1.2) * 1.5) > 0.15;
+                        const isRim = dy < -f.r * 0.6 && Math.abs(dx) < span * 0.6;
+                        const lightness = groove ? (isRim ? 74 : 64) : 26;
+                        const col = `hsla(${f.hue}, 90%, ${lightness}%, 0.92)`;
+                        pRect(f.x + dx, baseGroundY + dy, 1, 1, col);
+                    }
+                }
+            }
+
+        } else if (f.type === 'tube_sponge') {
+            if (!f._cols) {
+                const steps = 8;
+                const walls = [];
+                const shades = [];
+                for (let s = 0; s < steps; s++) {
+                    const lum = Math.round(32 + (s / (steps - 1)) * 28);
+                    walls.push(`hsla(${f.hue}, 88%, ${lum}%, 0.90)`);
+                    shades.push(`hsla(${f.hue}, 78%, ${Math.max(20, lum - 12)}%, 0.90)`);
+                }
+                f._cols = { baseShade: `hsla(${f.hue}, 75%, 24%, 0.92)`, walls, shades };
+            }
+            const baseShade = f._cols.baseShade;
+            pRect(f.x - 5, baseGroundY, 11, 2, 'rgba(5, 4, 23, 0.45)');
+            pRect(f.x - 5, baseGroundY - 2, 11, 3, baseShade);
+
+            [-3, 0, 3].forEach((ox, idx) => {
+                const th = Math.round(f.h * (idx === 1 ? 1 : (idx === 0 ? 0.76 : 0.84)));
+                for (let y = 0; y < th; y++) {
+                    const prog = y / th;
+                    const sway = Math.sin(time * 0.0012 + f.phase + idx) * prog * 0.8;
+                    const tx = Math.round(f.x + ox + sway);
+                    const ty = baseGroundY - y;
+                    const isTop = y >= th - 2;
+                    const stepIdx = Math.min(7, Math.floor(prog * 8));
+                    const wallCol = isTop ? '#fef08a' : f._cols.walls[stepIdx];
+                    const shadeCol = f._cols.shades[stepIdx];
+                    pRect(tx - 1, ty, 3, 1, shadeCol);
+                    pRect(tx - 1, ty, 2, 1, wallCol);
+                    if (y === th - 1) {
+                        pRect(tx, ty, 1, 1, '#1e1b4b');
+                    }
+                }
+            });
+
+        } else if (f.type === 'sea_fan') {
+            if (!f._cols) {
+                f._cols = {
+                    vein: `hsla(${f.hue}, 85%, 45%, 0.90)`,
+                    mesh: `hsla(${f.hue}, 92%, 64%, 0.78)`,
+                };
+            }
+            const stalkCol = '#311042';
+            const veinCol = f._cols.vein;
+            const meshCol = f._cols.mesh;
+            const polypCol = '#fef08a';
+
+            pRect(f.x - 2, baseGroundY - 1, 5, 2, stalkCol);
+            pRect(f.x - 1, baseGroundY - 4, 3, 4, stalkCol);
+
+            for (let y = 3; y < f.h; y++) {
+                const prog = y / f.h;
+                const sway = Math.sin(time * 0.0014 + f.phase + y * 0.08) * prog * 2.5;
+                const spread = Math.round(Math.sin(prog * Math.PI * 0.92) * 7);
+                const px = Math.round(f.x + sway);
+                const py = baseGroundY - y;
+
+                pRect(px, py, 1, 1, y < f.h * 0.45 ? stalkCol : veinCol);
+                for (let dx = -spread; dx <= spread; dx++) {
+                    const isEdge = Math.abs(dx) === spread;
+                    const isMainVein = Math.abs(dx) === Math.round(spread * 0.5);
+                    if (isEdge) {
+                        pRect(px + dx, py, 1, 1, (y % 3 === 0) ? polypCol : meshCol);
+                    } else if (isMainVein || (dx + y) % 2 === 0) {
+                        pRect(px + dx, py, 1, 1, isMainVein ? veinCol : meshCol);
+                    }
+                }
+            }
+
+        } else if (f.type === 'kelp') {
+            const holdfastCol = '#134e4a';
+            const stipeCol = '#0f766e';
+            const bladeDark = '#0d9488';
+            const bladeLight = '#2dd4bf';
+
+            pRect(f.x - 2, baseGroundY - 1, 5, 2, holdfastCol);
+            for (let y = 0; y < f.h; y++) {
+                const prog = y / f.h;
+                const sway = Math.sin(time * 0.0015 + f.phase + y * 0.07) * prog * 5;
+                const px = Math.round(f.x + sway);
+                const py = baseGroundY - y;
+                pRect(px, py, 1, 1, stipeCol);
+
+                if (y > 5 && y % 5 === 0) {
+                    const isLeft = (y % 10 === 0);
+                    const bladeLen = Math.max(2, Math.round((1 - prog * 0.35) * 4));
+                    pRect(px + (isLeft ? -1 : 1), py, 1, 1, '#5eead4');
+                    for (let b = 1; b <= bladeLen; b++) {
+                        const bx = px + (isLeft ? -b : b);
+                        const by = py + Math.floor(b * 0.4);
+                        pRect(bx, by, 1, 2, b === bladeLen ? bladeLight : bladeDark);
+                    }
+                }
+            }
+
+        } else if (f.type === 'anemone') {
+            if (!f._cols) {
+                const grad = [];
+                for (let s = 0; s < 5; s++) {
+                    grad.push(`hsla(${f.hue}, 92%, ${56 + s * 4}%, 0.88)`);
+                }
+                f._cols = { grad };
+            }
+            pRect(f.x - 4, baseGroundY, 9, 2, 'rgba(5, 4, 23, 0.45)');
+            pRect(f.x - 4, baseGroundY - 2, 9, 2, '#3b0764');
+            pRect(f.x - 3, baseGroundY - 4, 7, 3, '#581c87');
+            pRect(f.x - 4, baseGroundY - 5, 9, 2, '#701a75');
+
+            for (let t = -3; t <= 3; t++) {
+                const tLen = Math.round(f.h * (1 - Math.abs(t) * 0.06));
+                const sway = Math.sin(time * 0.003 + f.phase + t * 0.7) * 1.8;
+                for (let y = 5; y <= tLen; y++) {
+                    const prog = (y - 5) / Math.max(1, tLen - 5);
+                    const tx = Math.round(f.x + t * (1.1 + prog * 0.5) + sway * prog);
+                    const ty = baseGroundY - y;
+                    const col = y >= tLen - 1 ? '#fef08a' : f._cols.grad[Math.min(4, Math.floor(prog * 5))];
+                    pRect(tx, ty, 1, 1, col);
+                }
+            }
+            // BÖLÜM SONU: RESİF VE DENİZ CANLILARI
+        }
+    });
+}
+
+// ============================================================================
+// BÖLÜM SONU: FLORA VE BİTKİ KÜMELERİNİN HAREKETLİ ÇİZİMİ
+// ============================================================================

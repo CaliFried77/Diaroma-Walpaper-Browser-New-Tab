@@ -1,0 +1,63 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { calculateFrameChance, calculateFrameSmoothing, scaleSceneCollections } from '../js/scene-math.js';
+
+test('frame chance is deterministic with an injected random value and bounded probability', () => {
+  assert.equal(calculateFrameChance(0.5, 1, 0.49), true);
+  assert.equal(calculateFrameChance(0.5, 1, 0.5), false);
+  assert.equal(calculateFrameChance(2, 1, 0.99), true);
+  assert.equal(calculateFrameChance(-1, 1, 0.01), false);
+});
+
+test('frame smoothing follows frame scale while preserving the original curve', () => {
+  assert.equal(calculateFrameSmoothing(0, 1), 0);
+  assert.equal(calculateFrameSmoothing(1, 1), 1);
+  assert.equal(calculateFrameSmoothing(0.5, 1), 0.5);
+  assert.ok(calculateFrameSmoothing(0.5, 2) > 0.5);
+});
+
+test('viewport resize scales scene positions in place without replacing entities', () => {
+  const bee = { x: 100, y: 50, baseX: 120, baseY: 60, vx: 2, vy: -1, width: 9 };
+  const particle = { x: 40, y: 80, phase: 1.2 };
+  const collection = [bee];
+  scaleSceneCollections([collection, [particle]], 0.5, 2);
+  assert.equal(collection[0], bee);
+  assert.deepEqual(bee, { x: 50, y: 100, baseX: 60, baseY: 120, vx: 2, vy: -1, width: 9 });
+  assert.deepEqual(particle, { x: 20, y: 160, phase: 1.2 });
+});
+
+test('habitat resize no longer requests a full habitat reinitialization', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../js/07-habitat-state.js', import.meta.url), 'utf8');
+  assert.match(source, /scaleSceneCollections/);
+  assert.doesNotMatch(source, /requestHabitatInit/);
+});
+
+
+test('the removed generic horizon silhouette is not part of habitat state or rendering', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const [stateSource, initializerSource, scenerySource, backgroundsSource, mathSource] = await Promise.all([
+    readFile(new URL('../js/07-habitat-state.js', import.meta.url), 'utf8'),
+    readFile(new URL('../js/habitat-initializer.js', import.meta.url), 'utf8'),
+    readFile(new URL('../js/09-scenery.js', import.meta.url), 'utf8'),
+    readFile(new URL('../js/habitat-backgrounds.js', import.meta.url), 'utf8'),
+    readFile(new URL('../js/scene-math.js', import.meta.url), 'utf8'),
+  ]);
+
+  for (const source of [stateSource, initializerSource, scenerySource, backgroundsSource, mathSource]) {
+    assert.doesNotMatch(source, /bgSilhouettes|createBackgroundSilhouettes/);
+  }
+});
+
+
+test('viewport resize scales flora branch anchors and vertical lengths', () => {
+  const willow = { type: 'willow_frond', x: 40, startY: 12, len: 64, phase: 1 };
+  const wisteria = { type: 'wisteria_cluster', x: 80, branchY: 18, len: 52, hue: '#c084fc' };
+  const pistia = { type: 'pistia', x: 120, y: 30, rootLen: 20, r: 6 };
+
+  scaleSceneCollections([[willow, wisteria, pistia]], 1.5, 2);
+
+  assert.deepEqual(willow, { type: 'willow_frond', x: 60, startY: 24, len: 128, phase: 1 });
+  assert.deepEqual(wisteria, { type: 'wisteria_cluster', x: 120, branchY: 36, len: 104, hue: '#c084fc' });
+  assert.deepEqual(pistia, { type: 'pistia', x: 180, y: 60, rootLen: 40, r: 6 });
+});
