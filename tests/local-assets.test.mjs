@@ -231,9 +231,15 @@ test('all remaining biomes have stationary ambient wildlife and arctic tundra su
   ]) {
     assert.ok(ambientWildlifeModule.includes(fnName), `Missing stationary wildlife/holiday renderer: ${fnName}`);
   }
+  assert.ok(ambientWildlifeModule.includes('getLeftSafeX'));
+  assert.ok(ambientWildlifeModule.includes('getRightSafeX'));
   assert.ok(ambientWildlifeModule.includes('drawArcticCandyCane'));
   assert.ok(ambientWildlifeModule.includes('drawArcticGiftBox'));
   assert.ok(ambientWildlifeModule.includes('drawArcticChristmasElf'));
+  assert.ok(ambientWildlifeModule.includes('drawArcticSnowman'));
+  assert.ok(ambientWildlifeModule.includes('drawHeroChristmasTree'));
+  assert.ok(ambientWildlifeModule.includes('Math.max(52,'), 'Santa flyby must stay below top toolbar pill bar');
+  assert.ok(ambientWildlifeModule.includes('rgba(2, 14, 22'), 'Koi-pond Loch Ness serpent must keep submerged underwater shadow coil');
 });
 test('service worker precaches local shell assets and leaves external live services to the network', () => {
   assert.match(main, /serviceWorker\.register/);
